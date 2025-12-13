@@ -49,6 +49,7 @@ interface CategoryData {
 }
 
 interface BudgetData {
+  hasBudget: boolean
   budget: number
   spent: number
   remaining: number
@@ -57,6 +58,12 @@ interface BudgetData {
   projectedTotal: number
   isOverBudget: boolean
   month: string
+  previousBudget?: {
+    _id: string
+    month: number
+    year: number
+    totalBudget: number
+  } | null
 }
 
 interface ReminderData {
@@ -262,8 +269,10 @@ export const DashboardPage: React.FC = () => {
             <motion.div variants={itemVariants}>
               <BudgetProgress 
                 spent={budgetData?.spent || 0} 
-                budget={budgetData?.budget || 50000} 
-                familyMode={false} 
+                budget={budgetData?.budget || 0}
+                hasBudget={budgetData?.hasBudget || false}
+                familyMode={false}
+                previousBudget={budgetData?.previousBudget}
               />
             </motion.div>
 

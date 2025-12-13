@@ -295,6 +295,39 @@ export const budgetApi = {
     const response = await api.delete(`/budgets/${id}`)
     return response.data
   },
+
+  copyFromPrevious: async () => {
+    const response = await api.post('/budgets/copy-previous')
+    return response.data
+  },
+}
+
+// Reports API
+export const reportsApi = {
+  getMonthly: async (params?: { month?: number; year?: number }) => {
+    const response = await api.get('/reports/monthly', { params })
+    return response.data
+  },
+
+  getYearly: async (params?: { year?: number }) => {
+    const response = await api.get('/reports/yearly', { params })
+    return response.data
+  },
+
+  getCategoryTrends: async (params?: { months?: number }) => {
+    const response = await api.get('/reports/category-trends', { params })
+    return response.data
+  },
+
+  getComparison: async () => {
+    const response = await api.get('/reports/comparison')
+    return response.data
+  },
+
+  exportData: async (params?: { month?: number; year?: number; format?: string }) => {
+    const response = await api.get('/reports/export', { params })
+    return response.data
+  },
 }
 
 export default api

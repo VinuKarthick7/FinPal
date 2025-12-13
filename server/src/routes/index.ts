@@ -5,6 +5,7 @@ import reminderRoutes from './reminders';
 import dashboardRoutes from './dashboard';
 import profileRoutes from './profile';
 import budgetRoutes from './budgets';
+import reportsRoutes from './reports';
 
 const router = Router();
 
@@ -24,5 +25,6 @@ router.use('/reminders', reminderRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/profile', profileRoutes);
 router.use('/budgets', budgetRoutes);
+router.use('/reports', reportsRoutes);
 
 export default router;

@@ -11,6 +11,7 @@ import { ExpensesPage } from './pages/expenses'
 import { RemindersPage } from './pages/reminders'
 import { ProfilePage } from './pages/profile'
 import { BudgetPage } from './pages/budget'
+import { ReportsPage } from './pages/reports/ReportsPage'
 import { MainLayout } from './components/layout'
 import { ErrorBoundary } from './components/ui'
 import { useAuthStore } from './stores/authStore'
@@ -146,6 +147,7 @@ function App() {
             <Route path="/expenses" element={<ExpensesPage />} />
             <Route path="/add-expense" element={<AddExpensePage />} />
             <Route path="/budget" element={<BudgetPage />} />
+            <Route path="/reports" element={<ReportsPage />} />
             <Route path="/family" element={<DashboardPage />} />
             <Route path="/reminders" element={<RemindersPage />} />
             <Route path="/profile" element={<ProfilePage />} />

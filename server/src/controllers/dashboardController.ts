@@ -19,7 +19,7 @@ export const getDashboardStats = async (req: Request, res: Response): Promise<vo
       date: { $gte: startOfMonth, $lte: endOfMonth },
     });
 
-    // Calculate totals
+    // Calculate totals (using Math.round to avoid floating-point precision issues)
     let totalSpent = 0;
     let totalIncome = 0;
 
@@ -31,7 +31,10 @@ export const getDashboardStats = async (req: Request, res: Response): Promise<vo
       }
     });
 
-    const savings = totalIncome - totalSpent;
+    // Round to 2 decimal places to fix floating-point precision
+    totalSpent = Math.round(totalSpent * 100) / 100;
+    totalIncome = Math.round(totalIncome * 100) / 100;
+    const savings = Math.round((totalIncome - totalSpent) * 100) / 100;
 
     // Get pending bills (unpaid reminders with due date in the future)
     const pendingReminders = await Reminder.find({
@@ -40,7 +43,7 @@ export const getDashboardStats = async (req: Request, res: Response): Promise<vo
       dueDate: { $gte: new Date() },
     });
 
-    const pendingBillsAmount = pendingReminders.reduce((sum, r) => sum + r.amount, 0);
+    const pendingBillsAmount = Math.round(pendingReminders.reduce((sum, r) => sum + r.amount, 0) * 100) / 100;
     const pendingBillsCount = pendingReminders.length;
 
     // Calculate trend (compare with last month)
@@ -53,7 +56,7 @@ export const getDashboardStats = async (req: Request, res: Response): Promise<vo
       type: 'expense',
     });
 
-    const lastMonthSpent = lastMonthTransactions.reduce((sum, t) => sum + t.amount, 0);
+    const lastMonthSpent = Math.round(lastMonthTransactions.reduce((sum, t) => sum + t.amount, 0) * 100) / 100;
     const spentTrend = lastMonthSpent > 0 
       ? Math.round(((totalSpent - lastMonthSpent) / lastMonthSpent) * 100)
       : 0;
@@ -119,7 +122,7 @@ export const getCategoryBreakdown = async (req: Request, res: Response): Promise
     ]);
 
     // Calculate total and percentages
-    const total = categoryData.reduce((sum, cat) => sum + cat.amount, 0);
+    const total = Math.round(categoryData.reduce((sum, cat) => sum + cat.amount, 0) * 100) / 100;
 
     // Category colors
     const categoryColors: { [key: string]: string } = {
@@ -136,7 +139,7 @@ export const getCategoryBreakdown = async (req: Request, res: Response): Promise
 
     const categories = categoryData.map((cat) => ({
       name: cat._id,
-      amount: cat.amount,
+      amount: Math.round(cat.amount * 100) / 100,
       percentage: total > 0 ? Math.round((cat.amount / total) * 100) : 0,
       color: categoryColors[cat._id] || '#6B7280',
       count: cat.count,
@@ -168,20 +171,10 @@ export const getBudgetProgress = async (req: Request, res: Response): Promise<vo
     const month = now.getMonth() + 1;
     const year = now.getFullYear();
 
-    // Get or create budget for current month
-    let budget = await Budget.findOne({ user: userId, month, year });
+    // Get budget for current month (don't auto-create, let user set it)
+    const budget = await Budget.findOne({ user: userId, month, year });
 
-    if (!budget) {
-      // Create default budget if none exists
-      budget = await Budget.create({
-        user: userId,
-        month,
-        year,
-        totalBudget: 50000, // Default budget
-      });
-    }
-
-    // Get total spent this month
+    // Get total spent this month regardless of budget
     const startOfMonth = new Date(year, month - 1, 1);
     const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999);
 
@@ -191,19 +184,61 @@ export const getBudgetProgress = async (req: Request, res: Response): Promise<vo
       date: { $gte: startOfMonth, $lte: endOfMonth },
     });
 
-    const spent = transactions.reduce((sum, t) => sum + t.amount, 0);
-    const remaining = budget.totalBudget - spent;
-    const percentage = Math.round((spent / budget.totalBudget) * 100);
+    const spent = Math.round(transactions.reduce((sum, t) => sum + t.amount, 0) * 100) / 100;
+
+    // If no budget set, check for previous month's budget
+    if (!budget) {
+      // Calculate previous month
+      let prevMonth = month - 1;
+      let prevYear = year;
+      if (prevMonth < 1) {
+        prevMonth = 12;
+        prevYear--;
+      }
+
+      const previousBudget = await Budget.findOne({ user: userId, month: prevMonth, year: prevYear });
+
+      const dayOfMonth = now.getDate();
+      const daysInMonth = new Date(year, month, 0).getDate();
+      const dailyAverage = dayOfMonth > 0 ? spent / dayOfMonth : 0;
+      const projectedTotal = Math.round(dailyAverage * daysInMonth);
+
+      res.json({
+        success: true,
+        data: {
+          hasBudget: false,
+          budget: 0,
+          spent,
+          remaining: 0,
+          percentage: 0,
+          dailyAverage: Math.round(dailyAverage),
+          projectedTotal,
+          isOverBudget: false,
+          month: now.toLocaleString('default', { month: 'long', year: 'numeric' }),
+          previousBudget: previousBudget ? {
+            _id: previousBudget._id,
+            month: previousBudget.month,
+            year: previousBudget.year,
+            totalBudget: previousBudget.totalBudget,
+          } : null,
+        },
+      });
+      return;
+    }
+
+    const remaining = Math.round((budget.totalBudget - spent) * 100) / 100;
+    const percentage = budget.totalBudget > 0 ? Math.round((spent / budget.totalBudget) * 100) : 0;
 
     // Calculate daily average and projection
     const dayOfMonth = now.getDate();
     const daysInMonth = new Date(year, month, 0).getDate();
-    const dailyAverage = spent / dayOfMonth;
+    const dailyAverage = dayOfMonth > 0 ? spent / dayOfMonth : 0;
     const projectedTotal = Math.round(dailyAverage * daysInMonth);
 
     res.json({
       success: true,
       data: {
+        hasBudget: true,
         budget: budget.totalBudget,
         spent,
         remaining,

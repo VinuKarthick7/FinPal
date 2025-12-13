@@ -1,21 +1,22 @@
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import {
   ArrowLeft,
-  DollarSign,
-  Tag,
   Store,
   Calendar,
-  CreditCard,
-  FileText,
   Loader2,
+  Receipt,
+  Plus,
+  Wallet,
+  Bell,
+  TrendingUp,
 } from 'lucide-react'
 import { Button, Input } from '@/components/ui'
-import { expensesApi } from '@/lib/api'
+import { expensesApi, remindersApi } from '@/lib/api'
 
 interface ExpenseFormData {
   amount: string
@@ -24,6 +25,16 @@ interface ExpenseFormData {
   date: string
   type: 'expense' | 'income'
   paymentMethod: string
+  notes: string
+}
+
+interface ReminderFormData {
+  title: string
+  amount: string
+  dueDate: string
+  type: 'bill' | 'loan' | 'subscription'
+  recurring: boolean
+  recurringPeriod: 'monthly' | 'quarterly' | 'yearly'
   notes: string
 }
 
@@ -46,21 +57,43 @@ const paymentMethods = [
   { value: 'upi', label: 'UPI', icon: '📱' },
   { value: 'card', label: 'Card', icon: '💳' },
   { value: 'cash', label: 'Cash', icon: '💵' },
-  { value: 'netbanking', label: 'Net Banking', icon: '🏦' },
+  { value: 'netbanking', label: 'Bank', icon: '🏦' },
   { value: 'other', label: 'Other', icon: '💰' },
 ]
 
+const reminderTypes = [
+  { value: 'bill', label: '📄 Bill', color: 'bg-blue-100 text-blue-600' },
+  { value: 'loan', label: '💳 Loan', color: 'bg-purple-100 text-purple-600' },
+  { value: 'subscription', label: '🔄 Subscription', color: 'bg-teal-100 text-teal-600' },
+]
+
+type TabType = 'expense' | 'income' | 'reminder'
+
 export const AddExpensePage: React.FC = () => {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const queryClient = useQueryClient()
-  const [selectedType, setSelectedType] = useState<'expense' | 'income'>('expense')
+  
+  // Get initial tab from URL params
+  const initialTab = (searchParams.get('tab') as TabType) || 'expense'
+  const [activeTab, setActiveTab] = useState<TabType>(initialTab)
 
+  // Update tab when URL param changes
+  useEffect(() => {
+    const tabParam = searchParams.get('tab') as TabType
+    if (tabParam && ['expense', 'income', 'reminder'].includes(tabParam)) {
+      setActiveTab(tabParam)
+    }
+  }, [searchParams])
+
+  // Expense/Income Form
   const {
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-    formState: { errors },
+    register: registerExpense,
+    handleSubmit: handleSubmitExpense,
+    watch: watchExpense,
+    setValue: setValueExpense,
+    formState: { errors: expenseErrors },
+    reset: resetExpense,
   } = useForm<ExpenseFormData>({
     defaultValues: {
       type: 'expense',
@@ -69,26 +102,48 @@ export const AddExpensePage: React.FC = () => {
     },
   })
 
-  const selectedCategory = watch('category')
-  const selectedPaymentMethod = watch('paymentMethod')
+  // Reminder Form
+  const {
+    register: registerReminder,
+    handleSubmit: handleSubmitReminder,
+    watch: watchReminder,
+    setValue: setValueReminder,
+    formState: { errors: reminderErrors },
+    reset: resetReminder,
+  } = useForm<ReminderFormData>({
+    defaultValues: {
+      type: 'bill',
+      recurring: false,
+      recurringPeriod: 'monthly',
+      dueDate: new Date().toISOString().split('T')[0],
+    },
+  })
 
-  const createMutation = useMutation({
+  const selectedCategory = watchExpense('category')
+  const selectedPaymentMethod = watchExpense('paymentMethod')
+  const selectedReminderType = watchReminder('type')
+  const isRecurring = watchReminder('recurring')
+
+  // Expense/Income mutation
+  const expenseMutation = useMutation({
     mutationFn: (data: ExpenseFormData) =>
       expensesApi.create({
         amount: parseFloat(data.amount),
         category: data.category,
         merchant: data.merchant,
         date: data.date,
-        type: selectedType,
+        type: activeTab as 'expense' | 'income',
         paymentMethod: data.paymentMethod,
         notes: data.notes,
       }),
     onSuccess: () => {
-      toast.success(`${selectedType === 'expense' ? 'Expense' : 'Income'} added successfully!`)
+      toast.success(`${activeTab === 'expense' ? 'Expense' : 'Income'} added successfully!`)
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
       queryClient.invalidateQueries({ queryKey: ['recent-transactions'] })
       queryClient.invalidateQueries({ queryKey: ['category-breakdown'] })
       queryClient.invalidateQueries({ queryKey: ['budget-progress'] })
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      resetExpense()
       navigate('/dashboard')
     },
     onError: (error: any) => {
@@ -97,209 +152,437 @@ export const AddExpensePage: React.FC = () => {
     },
   })
 
-  const onSubmit = (data: ExpenseFormData) => {
-    createMutation.mutate(data)
+  // Reminder mutation
+  const reminderMutation = useMutation({
+    mutationFn: (data: ReminderFormData) =>
+      remindersApi.create({
+        title: data.title,
+        amount: parseFloat(data.amount),
+        dueDate: data.dueDate,
+        type: data.type,
+        recurring: data.recurring,
+        recurringPeriod: data.recurring ? data.recurringPeriod : undefined,
+        notes: data.notes || undefined,
+      }),
+    onSuccess: () => {
+      toast.success('Reminder added successfully!')
+      queryClient.invalidateQueries({ queryKey: ['reminders'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['upcoming-reminders'] })
+      resetReminder()
+      navigate('/reminders')
+    },
+    onError: (error: any) => {
+      const message = error.response?.data?.message || 'Failed to add reminder'
+      toast.error(message)
+    },
+  })
+
+  const onSubmitExpense = (data: ExpenseFormData) => {
+    expenseMutation.mutate(data)
+  }
+
+  const onSubmitReminder = (data: ReminderFormData) => {
+    reminderMutation.mutate(data)
+  }
+
+  const getTabIcon = (tab: TabType) => {
+    switch (tab) {
+      case 'expense': return <Wallet className="w-4 h-4" />
+      case 'income': return <TrendingUp className="w-4 h-4" />
+      case 'reminder': return <Bell className="w-4 h-4" />
+    }
+  }
+
+  const getHeaderGradient = () => {
+    switch (activeTab) {
+      case 'expense': return 'from-red-500 via-red-600 to-red-700'
+      case 'income': return 'from-green-500 via-green-600 to-green-700'
+      case 'reminder': return 'from-blue-500 via-blue-600 to-blue-700'
+    }
+  }
+
+  const getHeaderTitle = () => {
+    switch (activeTab) {
+      case 'expense': return 'Add Expense'
+      case 'income': return 'Add Income'
+      case 'reminder': return 'Add Reminder'
+    }
+  }
+
+  const getHeaderSubtitle = () => {
+    switch (activeTab) {
+      case 'expense': return 'Track your spending'
+      case 'income': return 'Record your earnings'
+      case 'reminder': return 'Never miss a payment'
+    }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-100 sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
+    <div className="min-h-screen bg-gray-50 pb-24">
+      {/* Gradient Header */}
+      <div className={`bg-gradient-to-br ${getHeaderGradient()} pt-4 pb-8 px-4`}>
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-2xl mx-auto"
+        >
+          <div className="flex items-center gap-4 mb-6">
             <button
               onClick={() => navigate(-1)}
-              className="p-2 -ml-2 rounded-xl hover:bg-gray-100 transition-colors"
+              className="p-2 -ml-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
             >
-              <ArrowLeft className="w-5 h-5 text-gray-600" />
+              <ArrowLeft className="w-5 h-5 text-white" />
             </button>
-            <h1 className="text-xl font-semibold text-gray-900">Add Transaction</h1>
-          </div>
-        </div>
-      </div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="max-w-2xl mx-auto px-4 py-6"
-      >
-        {/* Type Toggle */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-2 mb-6">
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => setSelectedType('expense')}
-              className={`py-3 rounded-xl font-medium transition-all ${
-                selectedType === 'expense'
-                  ? 'bg-red-500 text-white shadow-sm'
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              💸 Expense
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedType('income')}
-              className={`py-3 rounded-xl font-medium transition-all ${
-                selectedType === 'income'
-                  ? 'bg-green-500 text-white shadow-sm'
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              💰 Income
-            </button>
-          </div>
-        </div>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          {/* Amount */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-            <label className="block text-sm font-medium text-gray-700 mb-3">
-              Amount *
-            </label>
-            <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl text-gray-400">
-                ₹
-              </span>
-              <input
-                type="number"
-                step="0.01"
-                placeholder="0.00"
-                className={`w-full pl-12 pr-4 py-4 text-3xl font-semibold rounded-xl border-2 transition-colors ${
-                  errors.amount
-                    ? 'border-red-300 focus:border-red-500'
-                    : 'border-gray-200 focus:border-primary-500'
-                } focus:outline-none`}
-                {...register('amount', {
-                  required: 'Amount is required',
-                  min: { value: 0.01, message: 'Amount must be greater than 0' },
-                })}
-              />
+            <div>
+              <h1 className="text-2xl font-bold text-white">{getHeaderTitle()}</h1>
+              <p className="text-white/70 text-sm mt-0.5">{getHeaderSubtitle()}</p>
             </div>
-            {errors.amount && (
-              <p className="mt-2 text-sm text-red-500">{errors.amount.message}</p>
-            )}
           </div>
 
-          {/* Category */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-            <label className="block text-sm font-medium text-gray-700 mb-3">
-              Category *
-            </label>
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-              {categories
-                .filter((cat) =>
-                  selectedType === 'income'
-                    ? ['Salary', 'Investment', 'Gift', 'Other'].includes(cat.value)
-                    : !['Salary', 'Investment'].includes(cat.value)
-                )
-                .map((cat) => (
-                  <button
-                    key={cat.value}
-                    type="button"
-                    onClick={() => setValue('category', cat.value)}
-                    className={`p-3 rounded-xl text-sm font-medium transition-all ${
-                      selectedCategory === cat.value
-                        ? `${cat.color} ring-2 ring-offset-2 ring-primary-500`
-                        : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
-                    }`}
-                  >
-                    {cat.label}
-                  </button>
-                ))}
-            </div>
-            <input type="hidden" {...register('category', { required: 'Category is required' })} />
-            {errors.category && (
-              <p className="mt-2 text-sm text-red-500">{errors.category.message}</p>
-            )}
-          </div>
-
-          {/* Merchant/Description */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-            <Input
-              label="Description *"
-              placeholder={selectedType === 'expense' ? 'Where did you spend?' : 'Income source'}
-              leftIcon={Store}
-              error={errors.merchant?.message}
-              {...register('merchant', {
-                required: 'Description is required',
-                maxLength: { value: 100, message: 'Max 100 characters' },
-              })}
-            />
-          </div>
-
-          {/* Date */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-            <Input
-              label="Date *"
-              type="date"
-              leftIcon={Calendar}
-              error={errors.date?.message}
-              {...register('date', { required: 'Date is required' })}
-            />
-          </div>
-
-          {/* Payment Method */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-            <label className="block text-sm font-medium text-gray-700 mb-3">
-              Payment Method
-            </label>
-            <div className="grid grid-cols-5 gap-2">
-              {paymentMethods.map((method) => (
+          {/* Tab Selector in Header */}
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-1.5">
+            <div className="grid grid-cols-3 gap-1">
+              {(['expense', 'income', 'reminder'] as TabType[]).map((tab) => (
                 <button
-                  key={method.value}
+                  key={tab}
                   type="button"
-                  onClick={() => setValue('paymentMethod', method.value)}
-                  className={`p-3 rounded-xl text-center transition-all ${
-                    selectedPaymentMethod === method.value
-                      ? 'bg-primary-100 text-primary-600 ring-2 ring-offset-2 ring-primary-500'
-                      : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                  onClick={() => setActiveTab(tab)}
+                  className={`py-3 rounded-lg font-medium transition-all flex items-center justify-center gap-2 ${
+                    activeTab === tab
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-white/80 hover:bg-white/10'
                   }`}
                 >
-                  <span className="text-xl block mb-1">{method.icon}</span>
-                  <span className="text-xs font-medium">{method.label}</span>
+                  {getTabIcon(tab)}
+                  <span className="capitalize">{tab}</span>
                 </button>
               ))}
             </div>
-            <input type="hidden" {...register('paymentMethod')} />
           </div>
+        </motion.div>
+      </div>
 
-          {/* Notes */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-            <label className="block text-sm font-medium text-gray-700 mb-3">
-              Notes (optional)
-            </label>
-            <textarea
-              placeholder="Add any additional notes..."
-              rows={3}
-              className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary-500 focus:outline-none transition-colors resize-none"
-              {...register('notes', {
-                maxLength: { value: 500, message: 'Max 500 characters' },
-              })}
-            />
-            {errors.notes && (
-              <p className="mt-2 text-sm text-red-500">{errors.notes.message}</p>
-            )}
-          </div>
-
-          {/* Submit Button */}
-          <div className="sticky bottom-0 bg-gray-50 pt-4 pb-8">
-            <Button
-              type="submit"
-              fullWidth
-              size="lg"
-              loading={createMutation.isPending}
-              className={selectedType === 'expense' ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'}
+      {/* Main Content */}
+      <div className="max-w-2xl mx-auto px-4 -mt-2">
+        <AnimatePresence mode="wait">
+          {/* Expense/Income Form */}
+          {(activeTab === 'expense' || activeTab === 'income') && (
+            <motion.form
+              key="expense-form"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.2 }}
+              onSubmit={handleSubmitExpense(onSubmitExpense)}
+              className="space-y-4 pt-4"
             >
-              {createMutation.isPending ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                `Add ${selectedType === 'expense' ? 'Expense' : 'Income'}`
-              )}
-            </Button>
-          </div>
-        </form>
-      </motion.div>
+              {/* Amount */}
+              <div className="bg-white rounded-xl border border-gray-200 p-5">
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Amount
+                </label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl text-gray-400">
+                    ₹
+                  </span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    className={`w-full pl-12 pr-4 py-4 text-3xl font-semibold rounded-xl border-2 transition-colors ${
+                      expenseErrors.amount
+                        ? 'border-red-300 focus:border-red-500'
+                        : 'border-gray-200 focus:border-primary-500'
+                    } focus:outline-none`}
+                    {...registerExpense('amount', {
+                      required: 'Amount is required',
+                      min: { value: 0.01, message: 'Amount must be greater than 0' },
+                    })}
+                  />
+                </div>
+                {expenseErrors.amount && (
+                  <p className="mt-2 text-sm text-red-500">{expenseErrors.amount.message}</p>
+                )}
+              </div>
+
+              {/* Category */}
+              <div className="bg-white rounded-xl border border-gray-200 p-5">
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Category
+                </label>
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                  {categories
+                    .filter((cat) =>
+                      activeTab === 'income'
+                        ? ['Salary', 'Investment', 'Gift', 'Other'].includes(cat.value)
+                        : !['Salary', 'Investment'].includes(cat.value)
+                    )
+                    .map((cat) => (
+                      <button
+                        key={cat.value}
+                        type="button"
+                        onClick={() => setValueExpense('category', cat.value)}
+                        className={`p-3 rounded-xl text-sm font-medium transition-all ${
+                          selectedCategory === cat.value
+                            ? `${cat.color} ring-2 ring-offset-2 ring-primary-500`
+                            : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        {cat.label}
+                      </button>
+                    ))}
+                </div>
+                <input type="hidden" {...registerExpense('category', { required: 'Category is required' })} />
+                {expenseErrors.category && (
+                  <p className="mt-2 text-sm text-red-500">{expenseErrors.category.message}</p>
+                )}
+              </div>
+
+              {/* Merchant/Description */}
+              <div className="bg-white rounded-xl border border-gray-200 p-5">
+                <Input
+                  label="Description"
+                  placeholder={activeTab === 'expense' ? 'Where did you spend?' : 'Income source'}
+                  leftIcon={Store}
+                  error={expenseErrors.merchant?.message}
+                  {...registerExpense('merchant', {
+                    required: 'Description is required',
+                    maxLength: { value: 100, message: 'Max 100 characters' },
+                  })}
+                />
+              </div>
+
+              {/* Date */}
+              <div className="bg-white rounded-xl border border-gray-200 p-5">
+                <Input
+                  label="Date"
+                  type="date"
+                  leftIcon={Calendar}
+                  error={expenseErrors.date?.message}
+                  {...registerExpense('date', { required: 'Date is required' })}
+                />
+              </div>
+
+              {/* Payment Method */}
+              <div className="bg-white rounded-xl border border-gray-200 p-5">
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Payment Method
+                </label>
+                <div className="grid grid-cols-5 gap-2">
+                  {paymentMethods.map((method) => (
+                    <button
+                      key={method.value}
+                      type="button"
+                      onClick={() => setValueExpense('paymentMethod', method.value)}
+                      className={`p-3 rounded-xl text-center transition-all ${
+                        selectedPaymentMethod === method.value
+                          ? 'bg-primary-100 text-primary-600 ring-2 ring-offset-2 ring-primary-500'
+                          : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      <span className="text-xl block mb-1">{method.icon}</span>
+                      <span className="text-xs font-medium">{method.label}</span>
+                    </button>
+                  ))}
+                </div>
+                <input type="hidden" {...registerExpense('paymentMethod')} />
+              </div>
+
+              {/* Notes */}
+              <div className="bg-white rounded-xl border border-gray-200 p-5">
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Notes (optional)
+                </label>
+                <textarea
+                  placeholder="Add any additional notes..."
+                  rows={3}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 focus:outline-none transition-all resize-none"
+                  {...registerExpense('notes', {
+                    maxLength: { value: 500, message: 'Max 500 characters' },
+                  })}
+                />
+                {expenseErrors.notes && (
+                  <p className="mt-2 text-sm text-red-500">{expenseErrors.notes.message}</p>
+                )}
+              </div>
+
+              {/* Submit Button */}
+              <div className="pt-2 pb-4">
+                <Button
+                  type="submit"
+                  fullWidth
+                  size="lg"
+                  loading={expenseMutation.isPending}
+                  leftIcon={!expenseMutation.isPending ? <Plus className="w-5 h-5" /> : undefined}
+                  className={activeTab === 'expense' ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'}
+                >
+                  {expenseMutation.isPending ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    `Add ${activeTab === 'expense' ? 'Expense' : 'Income'}`
+                  )}
+                </Button>
+              </div>
+            </motion.form>
+          )}
+
+          {/* Reminder Form */}
+          {activeTab === 'reminder' && (
+            <motion.form
+              key="reminder-form"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.2 }}
+              onSubmit={handleSubmitReminder(onSubmitReminder)}
+              className="space-y-4 pt-4"
+            >
+              {/* Title */}
+              <div className="bg-white rounded-xl border border-gray-200 p-5">
+                <Input
+                  label="Title"
+                  placeholder="e.g., Electricity Bill, Netflix"
+                  leftIcon={Receipt}
+                  error={reminderErrors.title?.message}
+                  {...registerReminder('title', {
+                    required: 'Title is required',
+                    maxLength: { value: 100, message: 'Max 100 characters' },
+                  })}
+                />
+              </div>
+
+              {/* Amount */}
+              <div className="bg-white rounded-xl border border-gray-200 p-5">
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Amount
+                </label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl text-gray-400">
+                    ₹
+                  </span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    className={`w-full pl-12 pr-4 py-4 text-3xl font-semibold rounded-xl border-2 transition-colors ${
+                      reminderErrors.amount
+                        ? 'border-red-300 focus:border-red-500'
+                        : 'border-gray-200 focus:border-primary-500'
+                    } focus:outline-none`}
+                    {...registerReminder('amount', {
+                      required: 'Amount is required',
+                      min: { value: 0.01, message: 'Amount must be greater than 0' },
+                    })}
+                  />
+                </div>
+                {reminderErrors.amount && (
+                  <p className="mt-2 text-sm text-red-500">{reminderErrors.amount.message}</p>
+                )}
+              </div>
+
+              {/* Due Date */}
+              <div className="bg-white rounded-xl border border-gray-200 p-5">
+                <Input
+                  label="Due Date"
+                  type="date"
+                  leftIcon={Calendar}
+                  error={reminderErrors.dueDate?.message}
+                  {...registerReminder('dueDate', { required: 'Due date is required' })}
+                />
+              </div>
+
+              {/* Type */}
+              <div className="bg-white rounded-xl border border-gray-200 p-5">
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Type
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {reminderTypes.map((type) => (
+                    <button
+                      key={type.value}
+                      type="button"
+                      onClick={() => setValueReminder('type', type.value as 'bill' | 'loan' | 'subscription')}
+                      className={`p-4 rounded-xl text-sm font-medium transition-all border ${
+                        selectedReminderType === type.value
+                          ? `${type.color} border-current ring-2 ring-offset-2 ring-primary-500`
+                          : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                      }`}
+                    >
+                      {type.label}
+                    </button>
+                  ))}
+                </div>
+                <input type="hidden" {...registerReminder('type', { required: 'Type is required' })} />
+              </div>
+
+              {/* Recurring */}
+              <div className="bg-white rounded-xl border border-gray-200 p-5">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    {...registerReminder('recurring')}
+                    className="w-5 h-5 rounded border-gray-300 text-primary-500 focus:ring-primary-500"
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-gray-700">Recurring payment</span>
+                    <p className="text-xs text-gray-500">Auto-create next reminder when paid</p>
+                  </div>
+                </label>
+                {isRecurring && (
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Repeat Every</label>
+                    <select
+                      {...registerReminder('recurringPeriod')}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary-500 focus:outline-none bg-white"
+                    >
+                      <option value="monthly">Every Month</option>
+                      <option value="quarterly">Every 3 Months</option>
+                      <option value="yearly">Every Year</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              {/* Notes */}
+              <div className="bg-white rounded-xl border border-gray-200 p-5">
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Notes (optional)
+                </label>
+                <textarea
+                  placeholder="Add any additional notes..."
+                  rows={3}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 focus:outline-none transition-all resize-none"
+                  {...registerReminder('notes', {
+                    maxLength: { value: 500, message: 'Max 500 characters' },
+                  })}
+                />
+                {reminderErrors.notes && (
+                  <p className="mt-2 text-sm text-red-500">{reminderErrors.notes.message}</p>
+                )}
+              </div>
+
+              {/* Submit Button */}
+              <div className="pt-2 pb-4">
+                <Button
+                  type="submit"
+                  fullWidth
+                  size="lg"
+                  loading={reminderMutation.isPending}
+                  leftIcon={!reminderMutation.isPending ? <Plus className="w-5 h-5" /> : undefined}
+                  className="bg-blue-500 hover:bg-blue-600"
+                >
+                  {reminderMutation.isPending ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    'Add Reminder'
+                  )}
+                </Button>
+              </div>
+            </motion.form>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   )
 }

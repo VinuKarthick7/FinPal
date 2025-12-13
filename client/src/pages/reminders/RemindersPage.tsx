@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
@@ -52,9 +53,9 @@ const typeLabels: Record<string, string> = {
 }
 
 export const RemindersPage: React.FC = () => {
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   
-  const [showAddModal, setShowAddModal] = useState(false)
   const [editingReminder, setEditingReminder] = useState<Reminder | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [filter, setFilter] = useState<'all' | 'upcoming' | 'paid'>('all')
@@ -209,7 +210,7 @@ export const RemindersPage: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900">Reminders</h1>
           <p className="text-gray-500 text-sm">Track your bills, loans & subscriptions</p>
         </div>
-        <Button onClick={() => setShowAddModal(true)} leftIcon={<Plus className="w-4 h-4" />}>
+        <Button onClick={() => navigate('/add-expense')} leftIcon={<Plus className="w-4 h-4" />}>
           Add Reminder
         </Button>
       </div>
@@ -276,7 +277,7 @@ export const RemindersPage: React.FC = () => {
           </div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">No reminders yet</h3>
           <p className="text-gray-500 mb-6 max-w-sm mx-auto">Add your bills, loans, and subscriptions to never miss a payment</p>
-          <Button onClick={() => setShowAddModal(true)}>
+          <Button onClick={() => navigate('/add-expense')}>
             <Plus className="w-4 h-4 mr-2" />Add Your First Reminder
           </Button>
         </div>
@@ -315,10 +316,10 @@ export const RemindersPage: React.FC = () => {
         </div>
       )}
 
-      {/* Add/Edit Modal */}
+      {/* Edit Modal */}
       <AnimatePresence>
-        {(showAddModal || editingReminder) && (
-          <ReminderModal reminder={editingReminder} onClose={() => { setShowAddModal(false); setEditingReminder(null) }} />
+        {editingReminder && (
+          <ReminderModal reminder={editingReminder} onClose={() => setEditingReminder(null)} />
         )}
       </AnimatePresence>
 

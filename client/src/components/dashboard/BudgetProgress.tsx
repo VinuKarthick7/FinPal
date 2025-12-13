@@ -1,17 +1,130 @@
 import React from 'react'
-import { TrendingUp, TrendingDown, Users } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { TrendingUp, TrendingDown, Users, PiggyBank, ArrowRight, Copy, RefreshCw, Loader2 } from 'lucide-react'
+import { budgetApi } from '@/lib/api'
+import toast from 'react-hot-toast'
+
+interface PreviousBudgetInfo {
+  _id: string
+  month: number
+  year: number
+  totalBudget: number
+}
 
 interface BudgetProgressProps {
   spent: number
   budget: number
+  hasBudget?: boolean
   familyMode?: boolean
+  previousBudget?: PreviousBudgetInfo | null
 }
 
 export const BudgetProgress: React.FC<BudgetProgressProps> = ({
   spent,
   budget,
+  hasBudget = true,
   familyMode = false,
+  previousBudget = null,
 }) => {
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+
+  // Copy previous budget mutation
+  const copyPreviousMutation = useMutation({
+    mutationFn: budgetApi.copyFromPrevious,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['budget-progress'] })
+      queryClient.invalidateQueries({ queryKey: ['budgets'] })
+      queryClient.invalidateQueries({ queryKey: ['current-budget'] })
+      queryClient.invalidateQueries({ queryKey: ['budget-overview'] })
+      toast.success('Budget copied from last month!')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to copy budget')
+    },
+  })
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0,
+    }).format(amount)
+  }
+
+  // Show setup prompt if no budget is set
+  if (!hasBudget || budget === 0) {
+    // If there's a previous budget, show continuation option
+    if (previousBudget) {
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+      
+      return (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-900">Monthly Budget</h3>
+            <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-full">New Month</span>
+          </div>
+          <div className="text-center py-3">
+            <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-3">
+              <RefreshCw className="w-6 h-6 text-amber-600" />
+            </div>
+            <p className="text-gray-600 mb-1">Continue with last month's budget?</p>
+            <p className="text-sm text-gray-400 mb-1">
+              {monthNames[previousBudget.month - 1]} budget: <span className="font-semibold text-gray-600">{formatCurrency(previousBudget.totalBudget)}</span>
+            </p>
+            <p className="text-xs text-gray-400 mb-4">You've spent {formatCurrency(spent)} so far</p>
+            
+            <div className="flex flex-col sm:flex-row gap-2 justify-center">
+              <button
+                onClick={() => copyPreviousMutation.mutate()}
+                disabled={copyPreviousMutation.isPending}
+                className="inline-flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700 text-white font-medium text-sm px-4 py-2 rounded-lg disabled:opacity-50 transition-colors"
+              >
+                {copyPreviousMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Copy className="w-4 h-4" />
+                )}
+                Continue with {formatCurrency(previousBudget.totalBudget)}
+              </button>
+              <button
+                onClick={() => navigate('/budget')}
+                className="inline-flex items-center justify-center gap-2 text-gray-600 hover:text-gray-800 border border-gray-200 hover:border-gray-300 font-medium text-sm px-4 py-2 rounded-lg transition-colors"
+              >
+                Set New Budget
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    // First time - no previous budget
+    return (
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-gray-900">Monthly Budget</h3>
+        </div>
+        <div className="text-center py-4">
+          <div className="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center mx-auto mb-3">
+            <PiggyBank className="w-6 h-6 text-primary-600" />
+          </div>
+          <p className="text-gray-600 mb-1">No budget set for this month</p>
+          <p className="text-sm text-gray-400 mb-4">You've spent ₹{spent.toLocaleString('en-IN')} so far</p>
+          <button
+            onClick={() => navigate('/budget')}
+            className="inline-flex items-center gap-2 text-primary-600 hover:text-primary-700 font-medium text-sm"
+          >
+            Set up your budget
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   const percentage = Math.min((spent / budget) * 100, 100)
   const remaining = budget - spent
   const isOverBudget = spent > budget

@@ -94,7 +94,7 @@ router.get('/', async (req: any, res: Response) => {
         // Update category spent amounts
         const updatedCategoryBudgets = budget.categoryBudgets.map((cb: any) => ({
           category: cb.category,
-          budgetAmount: cb.budgetAmount,
+          amount: cb.amount,
           color: cb.color,
           icon: cb.icon,
           spent: categorySpending[cb.category] || 0,
@@ -122,7 +122,7 @@ router.get('/', async (req: any, res: Response) => {
 });
 
 // @route   GET /api/budgets/current
-// @desc    Get current month's budget
+// @desc    Get current month's budget with previous month info
 // @access  Private
 router.get('/current', async (req: any, res: Response) => {
   try {
@@ -131,16 +131,42 @@ router.get('/current', async (req: any, res: Response) => {
     const currentMonth = now.getMonth() + 1;
     const currentYear = now.getFullYear();
 
+    // Calculate previous month
+    let prevMonth = currentMonth - 1;
+    let prevYear = currentYear;
+    if (prevMonth === 0) {
+      prevMonth = 12;
+      prevYear = currentYear - 1;
+    }
+
+    // Get current month budget
     let budget = await Budget.findOne({
       user: userId,
       month: currentMonth,
       year: currentYear,
     });
 
+    // Get previous month budget
+    const previousBudget = await Budget.findOne({
+      user: userId,
+      month: prevMonth,
+      year: prevYear,
+    });
+
     if (!budget) {
       return res.json({
         success: true,
-        data: { budget: null },
+        data: { 
+          budget: null,
+          previousBudget: previousBudget ? {
+            _id: previousBudget._id,
+            month: previousBudget.month,
+            year: previousBudget.year,
+            totalBudget: previousBudget.totalBudget,
+            categoryBudgets: previousBudget.categoryBudgets,
+            alertThreshold: previousBudget.alertThreshold,
+          } : null,
+        },
       });
     }
 
@@ -154,7 +180,7 @@ router.get('/current', async (req: any, res: Response) => {
     // Update category spent amounts
     const updatedCategoryBudgets = budget.categoryBudgets.map((cb: any) => ({
       category: cb.category,
-      budgetAmount: cb.budgetAmount,
+      amount: cb.amount,
       color: cb.color,
       icon: cb.icon,
       spent: categorySpending[cb.category] || 0,
@@ -168,10 +194,86 @@ router.get('/current', async (req: any, res: Response) => {
           totalSpent,
           categoryBudgets: updatedCategoryBudgets,
         },
+        previousBudget: null, // Not needed when current budget exists
       },
     });
   } catch (error: any) {
     console.error('Get current budget error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+    });
+  }
+});
+
+// @route   POST /api/budgets/copy-previous
+// @desc    Copy previous month's budget to current month
+// @access  Private
+router.post('/copy-previous', async (req: any, res: Response) => {
+  try {
+    const userId = req.user._id;
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+
+    // Calculate previous month
+    let prevMonth = currentMonth - 1;
+    let prevYear = currentYear;
+    if (prevMonth === 0) {
+      prevMonth = 12;
+      prevYear = currentYear - 1;
+    }
+
+    // Check if current month budget already exists
+    const existingBudget = await Budget.findOne({
+      user: userId,
+      month: currentMonth,
+      year: currentYear,
+    });
+
+    if (existingBudget) {
+      return res.status(400).json({
+        success: false,
+        message: 'Budget already exists for this month',
+      });
+    }
+
+    // Get previous month budget
+    const previousBudget = await Budget.findOne({
+      user: userId,
+      month: prevMonth,
+      year: prevYear,
+    });
+
+    if (!previousBudget) {
+      return res.status(404).json({
+        success: false,
+        message: 'No previous budget found to copy',
+      });
+    }
+
+    // Create new budget for current month based on previous
+    const newBudget = await Budget.create({
+      user: userId,
+      month: currentMonth,
+      year: currentYear,
+      totalBudget: previousBudget.totalBudget,
+      categoryBudgets: previousBudget.categoryBudgets.map((cb: any) => ({
+        category: cb.category,
+        amount: cb.amount,
+        color: cb.color,
+        spent: 0, // Reset spent for new month
+      })),
+      alertThreshold: previousBudget.alertThreshold,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Budget copied from previous month',
+      data: { budget: newBudget },
+    });
+  } catch (error: any) {
+    console.error('Copy budget error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error',
@@ -205,7 +307,7 @@ router.get('/:id', async (req: any, res: Response) => {
 
     const updatedCategoryBudgets = budget.categoryBudgets.map((cb: any) => ({
       category: cb.category,
-      budgetAmount: cb.budgetAmount,
+      amount: cb.amount,
       color: cb.color,
       icon: cb.icon,
       spent: categorySpending[cb.category] || 0,

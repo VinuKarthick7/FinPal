@@ -13,8 +13,8 @@ import {
   X,
   Loader2,
   Target,
-  DollarSign,
-  PieChart,
+  Copy,
+  RefreshCw,
 } from 'lucide-react'
 import { Button } from '@/components/ui'
 import { budgetApi } from '@/lib/api'
@@ -33,6 +33,15 @@ interface Budget {
   year: number
   totalBudget: number
   totalSpent: number
+  categoryBudgets: CategoryBudget[]
+  alertThreshold: number
+}
+
+interface PreviousBudget {
+  _id: string
+  month: number
+  year: number
+  totalBudget: number
   categoryBudgets: CategoryBudget[]
   alertThreshold: number
 }
@@ -87,14 +96,17 @@ export const BudgetPage: React.FC = () => {
     color: string
   }>>([])
 
-  // Fetch current budget
-  const { data: currentBudgetData, isLoading: currentLoading } = useQuery({
+  // Fetch current budget with previous month info
+  const { data: currentBudgetResponse, isLoading: currentLoading } = useQuery({
     queryKey: ['current-budget'],
     queryFn: async () => {
       const response = await budgetApi.getCurrent()
-      return response.data.budget as Budget | null
+      return response.data as { budget: Budget | null; previousBudget: PreviousBudget | null }
     },
   })
+
+  const currentBudgetData = currentBudgetResponse?.budget
+  const previousBudgetData = currentBudgetResponse?.previousBudget
 
   // Fetch budget overview
   const { data: overviewData, isLoading: overviewLoading } = useQuery({
@@ -121,6 +133,7 @@ export const BudgetPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['budgets'] })
       queryClient.invalidateQueries({ queryKey: ['current-budget'] })
       queryClient.invalidateQueries({ queryKey: ['budget-overview'] })
+      queryClient.invalidateQueries({ queryKey: ['budget-progress'] })
       toast.success('Budget created successfully!')
       closeModal()
     },
@@ -136,6 +149,7 @@ export const BudgetPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['budgets'] })
       queryClient.invalidateQueries({ queryKey: ['current-budget'] })
       queryClient.invalidateQueries({ queryKey: ['budget-overview'] })
+      queryClient.invalidateQueries({ queryKey: ['budget-progress'] })
       toast.success('Budget updated successfully!')
       closeModal()
     },
@@ -151,11 +165,27 @@ export const BudgetPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['budgets'] })
       queryClient.invalidateQueries({ queryKey: ['current-budget'] })
       queryClient.invalidateQueries({ queryKey: ['budget-overview'] })
+      queryClient.invalidateQueries({ queryKey: ['budget-progress'] })
       toast.success('Budget deleted successfully!')
       setShowDeleteConfirm(null)
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Failed to delete budget')
+    },
+  })
+
+  // Copy previous budget mutation
+  const copyPreviousMutation = useMutation({
+    mutationFn: budgetApi.copyFromPrevious,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['budgets'] })
+      queryClient.invalidateQueries({ queryKey: ['current-budget'] })
+      queryClient.invalidateQueries({ queryKey: ['budget-overview'] })
+      queryClient.invalidateQueries({ queryKey: ['budget-progress'] })
+      toast.success('Budget copied from last month!')
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to copy budget')
     },
   })
 
@@ -260,10 +290,17 @@ export const BudgetPage: React.FC = () => {
             Set and track your monthly spending limits
           </p>
         </div>
-        <Button onClick={() => setShowModal(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Set Budget
-        </Button>
+        {currentBudgetData ? (
+          <Button onClick={() => openEditModal(currentBudgetData)}>
+            <Edit2 className="w-4 h-4 mr-2" />
+            Edit Budget
+          </Button>
+        ) : (
+          <Button onClick={() => setShowModal(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Set Budget
+          </Button>
+        )}
       </div>
 
       {isLoading ? (
@@ -271,24 +308,86 @@ export const BudgetPage: React.FC = () => {
           <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
         </div>
       ) : !overviewData?.hasBudget ? (
-        /* Empty State */
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-xl border border-gray-200 p-12 text-center"
-        >
-          <div className="w-16 h-16 rounded-full bg-primary-100 flex items-center justify-center mx-auto mb-4">
-            <PiggyBank className="w-8 h-8 text-primary-600" />
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No Budget Set</h3>
-          <p className="text-gray-500 mb-6 max-w-sm mx-auto">
-            Create a budget to start tracking your spending and stay on top of your finances.
-          </p>
-          <Button onClick={() => setShowModal(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Create Your First Budget
-          </Button>
-        </motion.div>
+        /* Empty State - With Previous Budget Option */
+        previousBudgetData ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-xl border border-gray-200 p-8 text-center"
+          >
+            <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-4">
+              <RefreshCw className="w-8 h-8 text-amber-600" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">New Month, New Budget!</h3>
+            <p className="text-gray-500 mb-2">
+              It's {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}. Would you like to set up your budget?
+            </p>
+            <p className="text-sm text-gray-400 mb-6">
+              Last month's budget was <span className="font-semibold text-gray-600">{formatCurrency(previousBudgetData.totalBudget)}</span>
+            </p>
+            
+            <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
+              <Button
+                onClick={() => copyPreviousMutation.mutate()}
+                disabled={copyPreviousMutation.isPending}
+                className="flex-1"
+              >
+                {copyPreviousMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Copy className="w-4 h-4 mr-2" />
+                )}
+                Continue with {formatCurrency(previousBudgetData.totalBudget)}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowModal(true)}
+                className="flex-1"
+              >
+                <Edit2 className="w-4 h-4 mr-2" />
+                Set New Budget
+              </Button>
+            </div>
+
+            {/* Previous Budget Details */}
+            {previousBudgetData.categoryBudgets && previousBudgetData.categoryBudgets.length > 0 && (
+              <div className="mt-6 pt-6 border-t border-gray-100">
+                <p className="text-xs text-gray-400 mb-3">Last month's category breakdown:</p>
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {previousBudgetData.categoryBudgets.slice(0, 5).map((cat, idx) => (
+                    <span key={idx} className="px-3 py-1 bg-gray-100 rounded-full text-xs text-gray-600">
+                      {cat.category}: {formatCurrency(cat.amount)}
+                    </span>
+                  ))}
+                  {previousBudgetData.categoryBudgets.length > 5 && (
+                    <span className="px-3 py-1 bg-gray-100 rounded-full text-xs text-gray-400">
+                      +{previousBudgetData.categoryBudgets.length - 5} more
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+          </motion.div>
+        ) : (
+          /* First Time Empty State */
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-xl border border-gray-200 p-12 text-center"
+          >
+            <div className="w-16 h-16 rounded-full bg-primary-100 flex items-center justify-center mx-auto mb-4">
+              <PiggyBank className="w-8 h-8 text-primary-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Budget Set</h3>
+            <p className="text-gray-500 mb-6 max-w-sm mx-auto">
+              Create a budget to start tracking your spending and stay on top of your finances.
+            </p>
+            <Button onClick={() => setShowModal(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Create Your First Budget
+            </Button>
+          </motion.div>
+        )
       ) : (
         <>
           {/* Overview Cards */}
@@ -297,17 +396,29 @@ export const BudgetPage: React.FC = () => {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-xl border border-gray-200 p-5"
+              className="bg-white rounded-xl border border-gray-200 p-5 group relative"
             >
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-lg bg-primary-100 flex items-center justify-center">
-                  <Target className="w-5 h-5 text-primary-600" />
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary-100 flex items-center justify-center">
+                    <Target className="w-5 h-5 text-primary-600" />
+                  </div>
+                  <span className="text-sm text-gray-500">Monthly Budget</span>
                 </div>
-                <span className="text-sm text-gray-500">Monthly Budget</span>
+                {currentBudgetData && (
+                  <button
+                    onClick={() => openEditModal(currentBudgetData)}
+                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                    title="Edit Budget"
+                  >
+                    <Edit2 className="w-4 h-4 text-gray-500" />
+                  </button>
+                )}
               </div>
               <p className="text-2xl font-bold text-gray-900">
                 {formatCurrency(overviewData.totalBudget)}
               </p>
+              <p className="text-xs text-gray-400 mt-1">Click edit to adjust</p>
             </motion.div>
 
             {/* Spent */}

@@ -6,6 +6,7 @@ import {
   Bell,
   Wallet,
   PiggyBank,
+  BarChart3,
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -14,7 +15,7 @@ const navItems = [
   { path: '/expenses', icon: Wallet, label: 'Expenses' },
   { path: '/add-expense', icon: PlusCircle, label: 'Add' },
   { path: '/budget', icon: PiggyBank, label: 'Budget' },
-  { path: '/reminders', icon: Bell, label: 'Reminders' },
+  { path: '/reports', icon: BarChart3, label: 'Reports' },
 ]
 
 export const MainLayout: React.FC = () => {
