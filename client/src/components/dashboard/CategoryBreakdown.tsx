@@ -1,15 +1,4 @@
 import React from 'react'
-import {
-  ShoppingCart,
-  Utensils,
-  Car,
-  Zap,
-  Heart,
-  Film,
-  GraduationCap,
-  Home,
-  MoreHorizontal,
-} from 'lucide-react'
 
 interface CategoryData {
   name: string
@@ -23,18 +12,6 @@ interface CategoryBreakdownProps {
   total: number
 }
 
-const categoryIcons: Record<string, React.ComponentType<{ className?: string }>> = {
-  shopping: ShoppingCart,
-  food: Utensils,
-  transport: Car,
-  utilities: Zap,
-  health: Heart,
-  entertainment: Film,
-  education: GraduationCap,
-  rent: Home,
-  other: MoreHorizontal,
-}
-
 export const CategoryBreakdown: React.FC<CategoryBreakdownProps> = ({
   categories,
   total,
@@ -45,7 +22,7 @@ export const CategoryBreakdown: React.FC<CategoryBreakdownProps> = ({
 
       {/* Progress Bar */}
       <div className="h-3 sm:h-4 rounded-full bg-gray-100 overflow-hidden flex mb-6">
-        {categories.map((category, index) => (
+        {categories.map((category) => (
           <div
             key={category.name}
             style={{
@@ -60,7 +37,6 @@ export const CategoryBreakdown: React.FC<CategoryBreakdownProps> = ({
       {/* Category List */}
       <div className="space-y-3">
         {categories.map((category) => {
-          const Icon = categoryIcons[category.name.toLowerCase()] || MoreHorizontal
           return (
             <div key={category.name} className="flex items-center gap-3">
               <div

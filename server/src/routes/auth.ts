@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { body } from 'express-validator';
 import passport from 'passport';
 import jwt from 'jsonwebtoken';
-import { register, login, getMe, forgotPassword } from '../controllers/authController';
+import { register, login, getMe, forgotPassword, verifyEmail, resendVerification } from '../controllers/authController';
 import { protect } from '../middleware/auth';
 import config from '../config';
 import { IUser } from '../models/User';
@@ -89,11 +89,15 @@ const forgotPasswordValidation = [
     .withMessage('Please enter a valid email'),
 ];
 
+const resendVerificationValidation = forgotPasswordValidation;
+
 // Routes
 router.post('/register', registerValidation, register);
 router.post('/login', loginValidation, login);
 router.get('/me', protect, getMe);
 router.post('/forgot-password', forgotPasswordValidation, forgotPassword);
+router.get('/verify-email', verifyEmail);
+router.post('/resend-verification', resendVerificationValidation, resendVerification);
 
 // Google OAuth routes
 router.get('/google', (req, res, next) => {

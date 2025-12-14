@@ -12,6 +12,9 @@
 html {
   scroll-behavior: smooth;
   -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scrollbar-gutter: stable;
 }
 
 body {
@@ -22,6 +25,12 @@ body {
   color: #111827;
   min-height: 100vh;
   min-height: 100dvh;
+  text-rendering: optimizeLegibility;
+}
+
+html,
+body {
+  height: 100%;
 }
 
 #root {
@@ -60,6 +69,11 @@ button, input, select, textarea {
   font-family: inherit;
 }
 
+button,
+a {
+  touch-action: manipulation;
+}
+
 /* Disable iOS input zoom */
 @media screen and (max-width: 768px) {
   input[type="text"],
@@ -77,6 +91,13 @@ button, input, select, textarea {
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+
+  .scroll-container {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    scroll-behavior: smooth;
   }
   
   .animate-in {
@@ -97,6 +118,21 @@ button, input, select, textarea {
 
   .safe-right {
     padding-right: env(safe-area-inset-right);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 

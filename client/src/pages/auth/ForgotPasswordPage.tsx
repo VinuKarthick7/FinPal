@@ -47,7 +47,7 @@ export const ForgotPasswordPage: React.FC = () => {
           className="w-full max-w-[440px]"
         >
           {/* Card Container */}
-          <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl shadow-gray-200/50 p-6 sm:p-8 lg:p-10">
+          <div className="bg-white rounded-[2rem] shadow-xl shadow-gray-200/50 p-6 sm:p-8 lg:p-10">
             <AnimatePresence mode="wait">
               {!success ? (
                 <motion.div
@@ -67,7 +67,7 @@ export const ForgotPasswordPage: React.FC = () => {
 
                   {/* Icon Section */}
                   <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-primary-100 mb-4">
+                    <div className="inline-flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-primary-100 mb-4">
                       <KeyRound className="w-10 h-10 sm:w-12 sm:h-12 text-primary-600" />
                     </div>
                     <h1 className="text-xl sm:text-2xl font-bold text-gray-900">

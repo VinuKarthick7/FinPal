@@ -1,5 +1,6 @@
 import React from 'react'
 import { format } from 'date-fns'
+import { motion, useReducedMotion } from 'framer-motion'
 import {
   ShoppingCart,
   Utensils,
@@ -11,7 +12,6 @@ import {
   Home,
   MoreHorizontal,
   ArrowUpRight,
-  ArrowDownLeft,
   LucideIcon,
 } from 'lucide-react'
 
@@ -60,11 +60,15 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
 }) => {
   const Icon = categoryIcons[transaction.category.toLowerCase()] || MoreHorizontal
   const colorClass = categoryColors[transaction.category.toLowerCase()] || categoryColors.other
+  const shouldReduceMotion = useReducedMotion()
 
   return (
-    <button
+    <motion.button
       onClick={onClick}
-      className="w-full flex items-center gap-3 p-3 sm:p-4 rounded-xl hover:bg-gray-50 transition-colors text-left"
+      whileHover={shouldReduceMotion ? undefined : { y: -1 }}
+      whileTap={shouldReduceMotion ? undefined : { scale: 0.99 }}
+      transition={{ type: 'spring', stiffness: 360, damping: 28, mass: 0.5 }}
+      className="w-full flex items-center gap-3 p-3 sm:p-4 rounded-xl hover:bg-gray-50 transition-colors text-left will-change-transform"
     >
       <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl ${colorClass} flex items-center justify-center flex-shrink-0`}>
         <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -87,7 +91,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
         </p>
         <p className="text-xs text-gray-400 uppercase">{transaction.paymentMethod}</p>
       </div>
-    </button>
+    </motion.button>
   )
 }
 

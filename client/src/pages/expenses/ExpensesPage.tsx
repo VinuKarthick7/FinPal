@@ -7,11 +7,8 @@ import {
   Search,
   Filter,
   Plus,
-  ChevronDown,
-  Calendar,
   Trash2,
   Edit3,
-  X,
   ArrowUpRight,
   ArrowDownLeft,
   Loader2,
@@ -169,7 +166,7 @@ export const ExpensesPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 sticky top-0 z-20">
+      <div className="bg-white/90 supports-[backdrop-filter]:bg-white/70 backdrop-blur-md border-b border-gray-100/70 sticky top-0 z-20">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -360,10 +357,13 @@ export const ExpensesPage: React.FC = () => {
                   {txns.map((transaction, index) => (
                     <motion.div
                       key={transaction._id}
+                      layout
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      className={`flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors ${
+                      whileHover={{ y: -1 }}
+                      whileTap={{ scale: 0.99 }}
+                      transition={{ type: 'spring', stiffness: 420, damping: 34, mass: 0.55, delay: index * 0.03 }}
+                      className={`flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors will-change-transform ${
                         index !== txns.length - 1 ? 'border-b border-gray-100' : ''
                       }`}
                     >
@@ -411,13 +411,13 @@ export const ExpensesPage: React.FC = () => {
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => navigate(`/edit-expense/${transaction._id}`)}
-                          className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                          className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors active:scale-[0.98]"
                         >
                           <Edit3 className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => setDeleteId(transaction._id)}
-                          className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                          className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors active:scale-[0.98]"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>

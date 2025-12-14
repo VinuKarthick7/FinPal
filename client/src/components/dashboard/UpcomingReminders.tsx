@@ -20,7 +20,6 @@ interface UpcomingRemindersProps {
 
 export const UpcomingReminders: React.FC<UpcomingRemindersProps> = ({
   reminders,
-  onMarkPaid,
   onViewAll,
 }) => {
   const getStatusColor = (daysUntilDue: number, isPaid: boolean) => {

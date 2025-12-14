@@ -3,33 +3,22 @@ import path from 'path';
 import fs from 'fs';
 
 // Ensure uploads directory exists
-const uploadsDir = path.join(__dirname, '../../uploads/avatars');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+export const AVATAR_UPLOADS_DIR = path.join(__dirname, '../../uploads/avatars');
+if (!fs.existsSync(AVATAR_UPLOADS_DIR)) {
+  fs.mkdirSync(AVATAR_UPLOADS_DIR, { recursive: true });
 }
 
-// Configure storage
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadsDir);
-  },
-  filename: (req: any, file, cb) => {
-    // Generate unique filename with user ID and timestamp
-    const userId = req.user?._id || 'unknown';
-    const ext = path.extname(file.originalname).toLowerCase();
-    const filename = `${userId}-${Date.now()}${ext}`;
-    cb(null, filename);
-  },
-});
+// Store the upload in memory so routes can normalize/optimize images (e.g., resize, strip EXIF).
+const storage = multer.memoryStorage();
 
 // File filter for images only
 const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-  const allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+  const allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
   
   if (allowedMimes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Invalid file type. Only JPEG, PNG, GIF, and WebP images are allowed.'));
+    cb(new Error('Invalid file type. Only JPEG, PNG, and WebP images are allowed.'));
   }
 };
 

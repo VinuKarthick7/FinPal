@@ -3,8 +3,10 @@ import { body } from 'express-validator';
 import bcrypt from 'bcryptjs';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
+import sharp from 'sharp';
 import { protect } from '../middleware/auth';
-import { uploadAvatar } from '../middleware/upload';
+import { uploadAvatar, AVATAR_UPLOADS_DIR } from '../middleware/upload';
 import User from '../models/User';
 import { validationResult } from 'express-validator';
 import config from '../config';
@@ -21,7 +23,7 @@ const safeDeleteAvatar = (avatarPath: string): boolean => {
       return false;
     }
     
-    const uploadsDir = path.resolve(__dirname, '../../uploads/avatars');
+    const uploadsDir = path.resolve(AVATAR_UPLOADS_DIR);
     const fullPath = path.resolve(__dirname, '../..', avatarPath);
     
     // Ensure the resolved path is within the uploads directory
@@ -230,7 +232,7 @@ router.delete('/', async (req: any, res) => {
 // @access  Private
 router.post('/avatar', uploadAvatar.single('avatar'), async (req: any, res: Response) => {
   try {
-    if (!req.file) {
+    if (!req.file || !req.file.buffer) {
       return res.status(400).json({
         success: false,
         message: 'Please upload an image file',
@@ -245,8 +247,23 @@ router.post('/avatar', uploadAvatar.single('avatar'), async (req: any, res: Resp
       safeDeleteAvatar(currentUser.avatar);
     }
 
+    // Ensure destination directory exists (defensive; upload middleware also creates it)
+    if (!fs.existsSync(AVATAR_UPLOADS_DIR)) {
+      fs.mkdirSync(AVATAR_UPLOADS_DIR, { recursive: true });
+    }
+
+    // Normalize avatar image for consistent quality + performance
+    const filename = `${crypto.randomUUID()}.webp`;
+    const outputPath = path.join(AVATAR_UPLOADS_DIR, filename);
+
+    await sharp(req.file.buffer)
+      .rotate()
+      .resize(256, 256, { fit: 'cover' })
+      .webp({ quality: 82 })
+      .toFile(outputPath);
+
     // Create avatar URL path
-    const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+    const avatarUrl = `/uploads/avatars/${filename}`;
 
     // Update user with new avatar
     const user = await User.findByIdAndUpdate(

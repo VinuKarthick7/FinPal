@@ -66,6 +66,11 @@ export const authApi = {
     return response.data
   },
 
+  resendVerification: async (email: string) => {
+    const response = await api.post('/auth/resend-verification', { email })
+    return response.data
+  },
+
   googleAuth: () => {
     window.location.href = `${API_URL}/auth/google`
   },

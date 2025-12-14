@@ -44,7 +44,12 @@ export const Skeleton: React.FC<SkeletonProps> = ({
 }
 
 // Pre-built skeleton layouts
-export const CardSkeleton: React.FC<{ className?: string }> = ({ className = '' }) => (
+type CardSkeletonProps = {
+  className?: string
+  children?: React.ReactNode
+}
+
+export const CardSkeleton = ({ className = '', children }: CardSkeletonProps) => (
   <div className={`bg-white rounded-2xl p-6 border border-gray-100 ${className}`}>
     <div className="flex items-center gap-4 mb-4">
       <Skeleton variant="circular" width={48} height={48} />
@@ -55,6 +60,8 @@ export const CardSkeleton: React.FC<{ className?: string }> = ({ className = '' 
     </div>
     <Skeleton className="w-full mb-2" />
     <Skeleton className="w-3/4" />
+
+    {children ? <div className="mt-4">{children}</div> : null}
   </div>
 )
 

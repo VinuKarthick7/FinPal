@@ -1,5 +1,6 @@
 import React from 'react'
 import { LucideIcon } from 'lucide-react'
+import { motion, useReducedMotion } from 'framer-motion'
 
 interface StatCardProps {
   title: string
@@ -52,9 +53,15 @@ export const StatCard: React.FC<StatCardProps> = ({
   className = '',
 }) => {
   const colors = colorClasses[color]
+  const shouldReduceMotion = useReducedMotion()
 
   return (
-    <div className={`bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-sm ${className}`}>
+    <motion.div
+      whileHover={shouldReduceMotion ? undefined : { y: -2 }}
+      whileTap={shouldReduceMotion ? undefined : { scale: 0.99 }}
+      transition={{ type: 'spring', stiffness: 320, damping: 26, mass: 0.6 }}
+      className={`bg-white rounded-2xl p-4 sm:p-5 border border-gray-100 shadow-sm will-change-transform ${className}`}
+    >
       <div className="flex items-start justify-between mb-3">
         <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl ${colors.icon} flex items-center justify-center`}>
           <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -73,7 +80,7 @@ export const StatCard: React.FC<StatCardProps> = ({
       <p className="text-xs sm:text-sm text-gray-500 mb-1">{title}</p>
       <p className="text-xl sm:text-2xl font-bold text-gray-900">{value}</p>
       {subtitle && <p className="text-xs text-gray-400 mt-1">{subtitle}</p>}
-    </div>
+    </motion.div>
   )
 }
 

@@ -119,9 +119,13 @@ export const ProfilePage: React.FC = () => {
     if (!file) return
 
     // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
     if (!allowedTypes.includes(file.type)) {
-      toast.error('Please select a valid image file (JPEG, PNG, GIF, or WebP)')
+      if (file.type === 'image/gif') {
+        toast.error("GIFs aren't supported for profile photos. Please use JPEG, PNG, or WebP.")
+      } else {
+        toast.error('Please select a valid image file (JPEG, PNG, or WebP)')
+      }
       return
     }
 
@@ -150,7 +154,12 @@ export const ProfilePage: React.FC = () => {
   const isValidAvatarUrl = (avatar: string | undefined): boolean => {
     if (!avatar) return false
     // Check if it's a valid URL or path
-    return avatar.startsWith('http') || avatar.startsWith('/uploads/') || avatar.startsWith('data:image')
+    return (
+      avatar.startsWith('http') ||
+      avatar.startsWith('/uploads/') ||
+      avatar.startsWith('/api/uploads/') ||
+      avatar.startsWith('data:image')
+    )
   }
 
   const getAvatarUrl = (avatar: string | undefined) => {
@@ -247,7 +256,7 @@ export const ProfilePage: React.FC = () => {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                accept="image/jpeg,image/jpg,image/png,image/webp"
                 onChange={handleFileSelect}
                 className="hidden"
               />
@@ -263,6 +272,12 @@ export const ProfilePage: React.FC = () => {
                     alt={user?.fullName || 'User'}
                     className="w-full h-full rounded-full object-cover p-2"
                     style={{ filter: !user?.avatar || !isValidAvatarUrl(user.avatar) ? 'invert(1)' : 'none' }}
+                    onError={(e) => {
+                      const img = e.currentTarget
+                      if (img.src.endsWith('/default-avatar.svg')) return
+                      img.src = '/default-avatar.svg'
+                      img.style.filter = 'invert(1)'
+                    }}
                   />
                 )}
               </div>

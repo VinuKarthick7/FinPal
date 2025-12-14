@@ -24,6 +24,41 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));
 
+// CORS (must come before rate limiting so preflight requests get CORS headers)
+const allowedOrigins = new Set([
+  config.clientUrl,
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:3001',
+]);
+
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    // Allow non-browser clients (no Origin header)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.has(origin)) return callback(null, true);
+    return callback(new Error(`CORS blocked for origin: ${origin}`));
+  },
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
+
+// Serve static files (uploads) with security headers
+// Alias: support both `/uploads/*` and `/api/uploads/*` to avoid client/server path mismatches.
+// Note: mounted before API rate limiting so images/assets don't consume API quota.
+const uploadsStatic = express.static(path.join(__dirname, '../uploads'), {
+  setHeaders: (res) => {
+    res.set('X-Content-Type-Options', 'nosniff');
+    res.set('Cache-Control', 'public, max-age=31536000');
+  },
+});
+
+app.use('/uploads', uploadsStatic);
+app.use('/api/uploads', uploadsStatic);
+
 // Security: Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -47,10 +82,6 @@ app.use('/api/auth/register', authLimiter);
 app.use('/api/auth/forgot-password', authLimiter);
 
 // Middleware
-app.use(cors({
-  origin: config.clientUrl,
-  credentials: true,
-}));
 app.use(express.json({ limit: '10kb' })); // Limit body size
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
@@ -59,14 +90,6 @@ app.use(mongoSanitize());
 
 // Security: Prevent parameter pollution
 app.use(hpp());
-
-// Serve static files (uploads) with security headers
-app.use('/uploads', express.static(path.join(__dirname, '../uploads'), {
-  setHeaders: (res) => {
-    res.set('X-Content-Type-Options', 'nosniff');
-    res.set('Cache-Control', 'public, max-age=31536000');
-  }
-}));
 
 // Session for OAuth
 app.use(session({

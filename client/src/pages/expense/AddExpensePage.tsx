@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import {
   ArrowLeft,
@@ -218,6 +218,8 @@ export const AddExpensePage: React.FC = () => {
     }
   }
 
+  const shouldReduceMotion = useReducedMotion()
+
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
       {/* Gradient Header */}
@@ -230,7 +232,7 @@ export const AddExpensePage: React.FC = () => {
           <div className="flex items-center gap-4 mb-6">
             <button
               onClick={() => navigate(-1)}
-              className="p-2 -ml-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
+              className="p-2 -ml-2 rounded-3xl bg-white/10 hover:bg-white/20 transition-colors"
             >
               <ArrowLeft className="w-5 h-5 text-white" />
             </button>
@@ -241,22 +243,36 @@ export const AddExpensePage: React.FC = () => {
           </div>
 
           {/* Tab Selector in Header */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-1.5">
+          <div className="bg-white/10 backdrop-blur-sm rounded-3xl p-1.5">
             <div className="grid grid-cols-3 gap-1">
               {(['expense', 'income', 'reminder'] as TabType[]).map((tab) => (
-                <button
+                <motion.button
                   key={tab}
                   type="button"
                   onClick={() => setActiveTab(tab)}
-                  className={`py-3 rounded-lg font-medium transition-all flex items-center justify-center gap-2 ${
-                    activeTab === tab
-                      ? 'bg-white text-gray-900 shadow-sm'
-                      : 'text-white/80 hover:bg-white/10'
+                  whileTap={shouldReduceMotion ? undefined : { scale: 0.98 }}
+                  transition={{ type: 'spring', stiffness: 420, damping: 30, mass: 0.45 }}
+                  className={`relative py-3 rounded-3xl font-medium transition-colors flex items-center justify-center gap-2 overflow-hidden ${
+                    activeTab === tab ? 'text-gray-900' : 'text-white/80 hover:bg-white/10'
                   }`}
                 >
+                  {activeTab === tab && (
+                    <motion.span
+                      layoutId="add-expense-active-tab"
+                      className="absolute inset-0 bg-white shadow-sm"
+                      style={{ borderRadius: 24 }}
+                      transition={
+                        shouldReduceMotion
+                          ? { duration: 0.01 }
+                          : { type: 'spring', stiffness: 420, damping: 32, mass: 0.6 }
+                      }
+                    />
+                  )}
+                  <span className="relative z-10 flex items-center justify-center gap-2">
                   {getTabIcon(tab)}
                   <span className="capitalize">{tab}</span>
-                </button>
+                  </span>
+                </motion.button>
               ))}
             </div>
           </div>
@@ -278,7 +294,7 @@ export const AddExpensePage: React.FC = () => {
               className="space-y-4 pt-4"
             >
               {/* Amount */}
-              <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <div className="bg-white rounded-3xl border border-gray-200 p-5">
                 <label className="block text-sm font-medium text-gray-700 mb-3">
                   Amount
                 </label>
@@ -290,7 +306,7 @@ export const AddExpensePage: React.FC = () => {
                     type="number"
                     step="0.01"
                     placeholder="0.00"
-                    className={`w-full pl-12 pr-4 py-4 text-3xl font-semibold rounded-xl border-2 transition-colors ${
+                    className={`w-full pl-12 pr-4 py-4 text-3xl font-semibold rounded-3xl border-2 transition-colors ${
                       expenseErrors.amount
                         ? 'border-red-300 focus:border-red-500'
                         : 'border-gray-200 focus:border-primary-500'
@@ -307,7 +323,7 @@ export const AddExpensePage: React.FC = () => {
               </div>
 
               {/* Category */}
-              <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <div className="bg-white rounded-3xl border border-gray-200 p-5">
                 <label className="block text-sm font-medium text-gray-700 mb-3">
                   Category
                 </label>
@@ -323,7 +339,7 @@ export const AddExpensePage: React.FC = () => {
                         key={cat.value}
                         type="button"
                         onClick={() => setValueExpense('category', cat.value)}
-                        className={`p-3 rounded-xl text-sm font-medium transition-all ${
+                        className={`p-3 rounded-3xl text-sm font-medium transition-all ${
                           selectedCategory === cat.value
                             ? `${cat.color} ring-2 ring-offset-2 ring-primary-500`
                             : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
@@ -340,7 +356,7 @@ export const AddExpensePage: React.FC = () => {
               </div>
 
               {/* Merchant/Description */}
-              <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <div className="bg-white rounded-3xl border border-gray-200 p-5">
                 <Input
                   label="Description"
                   placeholder={activeTab === 'expense' ? 'Where did you spend?' : 'Income source'}
@@ -354,7 +370,7 @@ export const AddExpensePage: React.FC = () => {
               </div>
 
               {/* Date */}
-              <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <div className="bg-white rounded-3xl border border-gray-200 p-5">
                 <Input
                   label="Date"
                   type="date"
@@ -365,7 +381,7 @@ export const AddExpensePage: React.FC = () => {
               </div>
 
               {/* Payment Method */}
-              <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <div className="bg-white rounded-3xl border border-gray-200 p-5">
                 <label className="block text-sm font-medium text-gray-700 mb-3">
                   Payment Method
                 </label>
@@ -375,7 +391,7 @@ export const AddExpensePage: React.FC = () => {
                       key={method.value}
                       type="button"
                       onClick={() => setValueExpense('paymentMethod', method.value)}
-                      className={`p-3 rounded-xl text-center transition-all ${
+                      className={`p-3 rounded-3xl text-center transition-all ${
                         selectedPaymentMethod === method.value
                           ? 'bg-primary-100 text-primary-600 ring-2 ring-offset-2 ring-primary-500'
                           : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
@@ -390,14 +406,14 @@ export const AddExpensePage: React.FC = () => {
               </div>
 
               {/* Notes */}
-              <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <div className="bg-white rounded-3xl border border-gray-200 p-5">
                 <label className="block text-sm font-medium text-gray-700 mb-3">
                   Notes (optional)
                 </label>
                 <textarea
                   placeholder="Add any additional notes..."
                   rows={3}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 focus:outline-none transition-all resize-none"
+                  className="w-full px-4 py-3 rounded-3xl border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 focus:outline-none transition-all resize-none"
                   {...registerExpense('notes', {
                     maxLength: { value: 500, message: 'Max 500 characters' },
                   })}
@@ -439,7 +455,7 @@ export const AddExpensePage: React.FC = () => {
               className="space-y-4 pt-4"
             >
               {/* Title */}
-              <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <div className="bg-white rounded-3xl border border-gray-200 p-5">
                 <Input
                   label="Title"
                   placeholder="e.g., Electricity Bill, Netflix"
@@ -453,7 +469,7 @@ export const AddExpensePage: React.FC = () => {
               </div>
 
               {/* Amount */}
-              <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <div className="bg-white rounded-3xl border border-gray-200 p-5">
                 <label className="block text-sm font-medium text-gray-700 mb-3">
                   Amount
                 </label>
@@ -465,7 +481,7 @@ export const AddExpensePage: React.FC = () => {
                     type="number"
                     step="0.01"
                     placeholder="0.00"
-                    className={`w-full pl-12 pr-4 py-4 text-3xl font-semibold rounded-xl border-2 transition-colors ${
+                    className={`w-full pl-12 pr-4 py-4 text-3xl font-semibold rounded-3xl border-2 transition-colors ${
                       reminderErrors.amount
                         ? 'border-red-300 focus:border-red-500'
                         : 'border-gray-200 focus:border-primary-500'
@@ -482,7 +498,7 @@ export const AddExpensePage: React.FC = () => {
               </div>
 
               {/* Due Date */}
-              <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <div className="bg-white rounded-3xl border border-gray-200 p-5">
                 <Input
                   label="Due Date"
                   type="date"
@@ -493,7 +509,7 @@ export const AddExpensePage: React.FC = () => {
               </div>
 
               {/* Type */}
-              <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <div className="bg-white rounded-3xl border border-gray-200 p-5">
                 <label className="block text-sm font-medium text-gray-700 mb-3">
                   Type
                 </label>
@@ -503,7 +519,7 @@ export const AddExpensePage: React.FC = () => {
                       key={type.value}
                       type="button"
                       onClick={() => setValueReminder('type', type.value as 'bill' | 'loan' | 'subscription')}
-                      className={`p-4 rounded-xl text-sm font-medium transition-all border ${
+                      className={`p-4 rounded-3xl text-sm font-medium transition-all border ${
                         selectedReminderType === type.value
                           ? `${type.color} border-current ring-2 ring-offset-2 ring-primary-500`
                           : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
@@ -517,12 +533,12 @@ export const AddExpensePage: React.FC = () => {
               </div>
 
               {/* Recurring */}
-              <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <div className="bg-white rounded-3xl border border-gray-200 p-5">
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input
                     type="checkbox"
                     {...registerReminder('recurring')}
-                    className="w-5 h-5 rounded border-gray-300 text-primary-500 focus:ring-primary-500"
+                    className="w-5 h-5 rounded-3xl border-gray-300 text-primary-500 focus:ring-primary-500"
                   />
                   <div>
                     <span className="text-sm font-medium text-gray-700">Recurring payment</span>
@@ -534,7 +550,7 @@ export const AddExpensePage: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">Repeat Every</label>
                     <select
                       {...registerReminder('recurringPeriod')}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary-500 focus:outline-none bg-white"
+                      className="w-full px-4 py-3 rounded-3xl border border-gray-200 focus:border-primary-500 focus:outline-none bg-white"
                     >
                       <option value="monthly">Every Month</option>
                       <option value="quarterly">Every 3 Months</option>
@@ -545,14 +561,14 @@ export const AddExpensePage: React.FC = () => {
               </div>
 
               {/* Notes */}
-              <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <div className="bg-white rounded-3xl border border-gray-200 p-5">
                 <label className="block text-sm font-medium text-gray-700 mb-3">
                   Notes (optional)
                 </label>
                 <textarea
                   placeholder="Add any additional notes..."
                   rows={3}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 focus:outline-none transition-all resize-none"
+                  className="w-full px-4 py-3 rounded-3xl border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 focus:outline-none transition-all resize-none"
                   {...registerReminder('notes', {
                     maxLength: { value: 500, message: 'Max 500 characters' },
                   })}

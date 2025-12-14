@@ -24,6 +24,15 @@ export const config = {
   clientUrl: process.env.CLIENT_URL || 'http://localhost:3000',
   serverUrl: process.env.SERVER_URL || 'http://localhost:5000',
   sessionSecret: getSecret('SESSION_SECRET', generateDevSecret()),
+
+  // Email (SMTP)
+  // If SMTP_HOST is not set, emails are not sent and links are logged to console (dev-friendly).
+  smtpHost: process.env.SMTP_HOST || '',
+  smtpPort: parseInt(process.env.SMTP_PORT || '587', 10),
+  smtpUser: process.env.SMTP_USER || '',
+  smtpPass: process.env.SMTP_PASS || '',
+  smtpSecure: process.env.SMTP_SECURE === 'true',
+  emailFrom: process.env.EMAIL_FROM || 'FinPal <no-reply@finpal.local>',
   
   // Google OAuth
   googleClientId: process.env.GOOGLE_CLIENT_ID || '',

@@ -113,6 +113,13 @@ The app is fully responsive and works on:
 | POST | `/api/auth/login` | Login user |
 | GET | `/api/auth/me` | Get current user |
 | POST | `/api/auth/forgot-password` | Request password reset |
+| GET | `/api/auth/verify-email?token=...` | Verify email address |
+| POST | `/api/auth/resend-verification` | Resend verification email |
+
+### Email Verification (SMTP)
+- Configure SMTP in `server/.env` to actually send emails:
+	- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_SECURE`, `EMAIL_FROM`
+- If `SMTP_HOST` is not set, the server will log the verification link to the console (dev-friendly).
 
 ## ✅ Sprint 1 Features (Current)
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { Mail, Lock, User, Phone, ArrowLeft, Wallet } from 'lucide-react'
 import { motion } from 'framer-motion'
@@ -47,9 +47,15 @@ export const RegisterPage: React.FC = () => {
       })
       
       if (response.success) {
-        setAuth(response.data.user, response.data.token)
-        toast.success('Account created successfully!')
-        navigate('/dashboard')
+        if (response.data?.token) {
+          // Backwards compatibility if token is returned
+          setAuth(response.data.user, response.data.token)
+          toast.success('Account created successfully!')
+          navigate('/dashboard')
+        } else {
+          toast.success('Account created! Please verify your email to activate your account.')
+          navigate('/login?verify=1')
+        }
       } else {
         toast.error(response.message || 'Registration failed')
       }
@@ -80,7 +86,7 @@ export const RegisterPage: React.FC = () => {
           className="w-full max-w-[440px]"
         >
           {/* Card Container */}
-          <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl shadow-gray-200/50 p-6 sm:p-8 lg:p-10">
+          <div className="bg-white rounded-[2rem] shadow-xl shadow-gray-200/50 p-6 sm:p-8 lg:p-10">
             {/* Back Button */}
             <button
               onClick={() => navigate(-1)}
@@ -92,7 +98,7 @@ export const RegisterPage: React.FC = () => {
 
             {/* Logo Section */}
             <div className="text-center mb-6">
-              <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-primary-100 mb-3">
+              <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-3xl bg-primary-100 mb-3">
                 <Wallet className="w-7 h-7 sm:w-8 sm:h-8 text-primary-600" />
               </div>
               <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Create Account</h1>

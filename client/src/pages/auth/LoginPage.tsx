@@ -13,11 +13,12 @@ interface LoginFormData {
   password: string
 }
 
-export const LoginPage: React.FC = () => {
+const LoginPage: React.FC = () => {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [loading, setLoading] = useState(false)
   const setAuth = useAuthStore((state) => state.setAuth)
+  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null)
 
   // Handle OAuth error messages from URL
   useEffect(() => {
@@ -31,6 +32,13 @@ export const LoginPage: React.FC = () => {
         'oauth_failed': 'Social login failed. Please try again.',
       }
       toast.error(errorMessages[error] || 'Login failed. Please try again.')
+    }
+
+    const verified = searchParams.get('verified')
+    if (verified === '1') {
+      toast.success('Email verified. You can sign in now.')
+    } else if (verified === '0') {
+      toast.error('Verification link is invalid or expired. Please resend the verification email.')
     }
   }, [searchParams])
 
@@ -52,10 +60,27 @@ export const LoginPage: React.FC = () => {
         toast.error(response.message || 'Login failed')
       }
     } catch (error: any) {
+      const code = error.response?.data?.code
       const message = error.response?.data?.message || 'Login failed. Please try again.'
       toast.error(message)
+      if (code === 'EMAIL_NOT_VERIFIED') {
+        setUnverifiedEmail(data.email)
+      } else {
+        setUnverifiedEmail(null)
+      }
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleResendVerification = async () => {
+    if (!unverifiedEmail) return
+    try {
+      const response = await authApi.resendVerification(unverifiedEmail)
+      toast.success(response.message || 'Verification email sent. Please check your inbox.')
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Failed to resend verification email.'
+      toast.error(message)
     }
   }
 
@@ -142,6 +167,16 @@ export const LoginPage: React.FC = () => {
               >
                 Sign In
               </Button>
+
+              {unverifiedEmail && (
+                <button
+                  type="button"
+                  onClick={handleResendVerification}
+                  className="w-full mt-3 text-sm text-primary-500 hover:text-primary-600 font-medium transition-colors"
+                >
+                  Resend verification email
+                </button>
+              )}
             </form>
 
             {/* Divider */}
@@ -181,3 +216,5 @@ export const LoginPage: React.FC = () => {
 }
 
 export default LoginPage
+
+

@@ -313,7 +313,7 @@ export const BudgetPage: React.FC = () => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-xl border border-gray-200 p-8 text-center"
+            className="bg-white rounded-3xl border border-gray-200 p-8 text-center"
           >
             <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-4">
               <RefreshCw className="w-8 h-8 text-amber-600" />
@@ -373,7 +373,7 @@ export const BudgetPage: React.FC = () => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-xl border border-gray-200 p-12 text-center"
+            className="bg-white rounded-3xl border border-gray-200 p-12 text-center"
           >
             <div className="w-16 h-16 rounded-full bg-primary-100 flex items-center justify-center mx-auto mb-4">
               <PiggyBank className="w-8 h-8 text-primary-600" />
@@ -396,7 +396,7 @@ export const BudgetPage: React.FC = () => {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-xl border border-gray-200 p-5 group relative"
+              className="bg-white rounded-3xl border border-gray-200 p-5 group relative"
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
@@ -426,7 +426,7 @@ export const BudgetPage: React.FC = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="bg-white rounded-xl border border-gray-200 p-5"
+              className="bg-white rounded-3xl border border-gray-200 p-5"
             >
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
@@ -447,7 +447,7 @@ export const BudgetPage: React.FC = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="bg-white rounded-xl border border-gray-200 p-5"
+              className="bg-white rounded-3xl border border-gray-200 p-5"
             >
               <div className="flex items-center gap-3 mb-3">
                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
@@ -474,7 +474,7 @@ export const BudgetPage: React.FC = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="bg-white rounded-xl border border-gray-200 p-5"
+              className="bg-white rounded-3xl border border-gray-200 p-5"
             >
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
@@ -496,7 +496,7 @@ export const BudgetPage: React.FC = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="bg-white rounded-xl border border-gray-200 p-6"
+            className="bg-white rounded-3xl border border-gray-200 p-6"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Budget Progress</h3>
@@ -545,7 +545,7 @@ export const BudgetPage: React.FC = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
-              className="bg-white rounded-xl border border-gray-200 p-6"
+              className="bg-white rounded-3xl border border-gray-200 p-6"
             >
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-semibold text-gray-900">Category Budgets</h3>
@@ -604,7 +604,7 @@ export const BudgetPage: React.FC = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
-              className="bg-white rounded-xl border border-gray-200 p-6"
+              className="bg-white rounded-3xl border border-gray-200 p-6"
             >
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Budget History</h3>
               <div className="space-y-3">
@@ -668,7 +668,7 @@ export const BudgetPage: React.FC = () => {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+              className="bg-white rounded-[2rem] w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="p-6 border-b border-gray-100">
@@ -844,7 +844,7 @@ export const BudgetPage: React.FC = () => {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-xl p-6 w-full max-w-sm"
+              className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center gap-3 mb-4">
