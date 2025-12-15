@@ -13,6 +13,7 @@ export interface IUser extends Document {
   emailVerificationExpires?: Date | null;
   googleId?: string;
   appleId?: string;
+  aiConsent: boolean;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -74,6 +75,10 @@ const userSchema = new Schema<IUser>(
       type: String,
       sparse: true,
       unique: true,
+    },
+    aiConsent: {
+      type: Boolean,
+      default: false,
     },
   },
   {
