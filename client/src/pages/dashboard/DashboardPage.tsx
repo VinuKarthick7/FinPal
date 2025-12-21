@@ -18,7 +18,6 @@ import {
   UpcomingReminders,
   BudgetProgress,
   Transaction,
-  AIAssistantChat,
 } from '@/components/dashboard'
 import { Button, DashboardSkeleton, ErrorDisplay } from '@/components/ui'
 import { dashboardApi } from '@/lib/api'
@@ -315,10 +314,6 @@ export const DashboardPage: React.FC = () => {
           </div>
         </div>
 
-        {/* AI Assistant Chat */}
-        <motion.div variants={itemVariants} className="mt-8">
-          <AIAssistantChat />
-        </motion.div>
 
         {/* Quick Actions - Mobile Only */}
         <motion.div variants={itemVariants} className="mt-6 lg:hidden">

@@ -8,7 +8,6 @@ import budgetRoutes from './budgets';
 import reportsRoutes from './reports';
 import expenseRoutes from './expenses';
 import insightsRoutes from './insights';
-import aiAssistantRoutes from './aiAssistant';
 
 const router = Router();
 
@@ -31,6 +30,5 @@ router.use('/budgets', budgetRoutes);
 router.use('/reports', reportsRoutes);
 router.use('/expenses', expenseRoutes);
 router.use('/insights', insightsRoutes);
-router.use('/ai-assistant', aiAssistantRoutes);
 
 export default router;
