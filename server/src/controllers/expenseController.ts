@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { classifyExpense } from '../utils/ai';
+import { classifyExpense } from '../utils/classifier';
 
 const categories = [
   'Food', 'Travel', 'Rent', 'Utilities', 'Shopping', 'Health', 'Education', 'Other'
