@@ -138,14 +138,28 @@ export const AddExpensePage: React.FC = () => {
       }),
     onSuccess: () => {
       toast.success(`${activeTab === 'expense' ? 'Expense' : 'Income'} added successfully!`)
+      // Invalidate common dashboard queries
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
       queryClient.invalidateQueries({ queryKey: ['recent-transactions'] })
       queryClient.invalidateQueries({ queryKey: ['category-breakdown'] })
-      queryClient.invalidateQueries({ queryKey: ['budget-progress'] })
       queryClient.invalidateQueries({ queryKey: ['transactions'] })
+
+      // Ensure budget pages update
+      queryClient.invalidateQueries({ queryKey: ['budget-progress'] })
+      queryClient.invalidateQueries({ queryKey: ['budget-overview'] })
+      queryClient.invalidateQueries({ queryKey: ['current-budget'] })
+      queryClient.invalidateQueries({ queryKey: ['budgets'] })
+
+      // Ensure reports refresh
+      queryClient.invalidateQueries({ queryKey: ['reports-monthly'] })
+      queryClient.invalidateQueries({ queryKey: ['reports-yearly'] })
+      queryClient.invalidateQueries({ queryKey: ['reports-comparison'] })
+      queryClient.invalidateQueries({ queryKey: ['reports-trends'] })
+
       resetExpense()
       navigate('/dashboard')
     },
+
     onError: (error: any) => {
       const message = error.response?.data?.message || 'Failed to add transaction'
       toast.error(message)

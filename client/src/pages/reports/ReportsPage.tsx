@@ -318,9 +318,9 @@ export const ReportsPage: React.FC = () => {
   }
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-IN', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'INR',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(value)
@@ -501,7 +501,7 @@ export const ReportsPage: React.FC = () => {
                         <YAxis 
                           tick={{ fontSize: 10, fill: '#9CA3AF' }}
                           axisLine={{ stroke: '#E5E7EB' }}
-                          tickFormatter={(value) => `$${value}`}
+                          tickFormatter={(value) => formatCurrency(Number(value))}
                         />
                         <Tooltip
                           contentStyle={{
@@ -711,7 +711,7 @@ export const ReportsPage: React.FC = () => {
                         <YAxis
                           tick={{ fontSize: 10, fill: '#9CA3AF' }}
                           axisLine={{ stroke: '#E5E7EB' }}
-                          tickFormatter={(value) => `$${value}`}
+                          tickFormatter={(value) => formatCurrency(Number(value))}
                         />
                         <Tooltip
                           contentStyle={{
@@ -827,7 +827,7 @@ export const ReportsPage: React.FC = () => {
                         <YAxis
                           tick={{ fontSize: 10, fill: '#9CA3AF' }}
                           axisLine={{ stroke: '#E5E7EB' }}
-                          tickFormatter={(value) => `$${value}`}
+                          tickFormatter={(value) => formatCurrency(Number(value))}
                         />
                         <Tooltip
                           contentStyle={{
