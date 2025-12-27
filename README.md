@@ -96,6 +96,42 @@ npm run dev:client   # Frontend on http://localhost:3000
 npm run dev:server   # Backend on http://localhost:5000
 ```
 
+## 🐳 Docker Setup
+
+You can run the entire FinPal stack (client, server, and MongoDB) using Docker and docker-compose.
+
+### Prerequisites
+- [Docker](https://www.docker.com/get-started) and [docker-compose](https://docs.docker.com/compose/) installed
+
+### Quick Start
+
+1. **Copy environment files:**
+   - Copy `server/.env.example` to `server/.env` and adjust values as needed.
+   - The client does not require changes for Docker by default.
+
+2. **Build and start all services:**
+   ```sh
+   docker-compose up --build
+   ```
+   This will start:
+   - MongoDB (port 27017)
+   - Server API (port 5000)
+   - Client (React, served by Nginx, port 3000)
+
+3. **Access the app:**
+   - Client: [http://localhost:3000](http://localhost:3000)
+   - API: [http://localhost:5000/api](http://localhost:5000/api)
+
+4. **Stop containers:**
+   ```sh
+   docker-compose down
+   ```
+
+### Notes
+- Uploaded files (avatars, etc.) are persisted in `server/uploads`.
+- MongoDB data is persisted in a Docker volume (`mongo_data`).
+- For development, you may still use `npm run dev` in `client` and `server` folders outside Docker.
+
 ## 📱 Responsive Design
 
 The app is fully responsive and works on:
