@@ -1,5 +1,4 @@
 import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
@@ -53,10 +52,10 @@ const typeLabels: Record<string, string> = {
 }
 
 export const RemindersPage: React.FC = () => {
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
   
-  const [editingReminder, setEditingReminder] = useState<Reminder | null>(null)
+  const [activeReminder, setActiveReminder] = useState<Reminder | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [filter, setFilter] = useState<'all' | 'upcoming' | 'paid'>('all')
 
@@ -188,7 +187,7 @@ export const RemindersPage: React.FC = () => {
                     <CheckCircle2 className="w-4 h-4" />
                   </button>
                 )}
-                <button onClick={() => setEditingReminder(reminder)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" title="Edit">
+                <button onClick={() => { setActiveReminder(reminder); setIsModalOpen(true) }} className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" title="Edit">
                   <Edit3 className="w-4 h-4" />
                 </button>
                 <button onClick={() => setDeleteId(reminder._id)} className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors" title="Delete">
@@ -210,7 +209,7 @@ export const RemindersPage: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900">Reminders</h1>
           <p className="text-gray-500 text-sm">Track your bills, loans & subscriptions</p>
         </div>
-        <Button onClick={() => navigate('/add-expense')} leftIcon={<Plus className="w-4 h-4" />}>
+        <Button onClick={() => { setActiveReminder(null); setIsModalOpen(true) }} leftIcon={<Plus className="w-4 h-4" />}>
           Add Reminder
         </Button>
       </div>
@@ -277,7 +276,7 @@ export const RemindersPage: React.FC = () => {
           </div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">No reminders yet</h3>
           <p className="text-gray-500 mb-6 max-w-sm mx-auto">Add your bills, loans, and subscriptions to never miss a payment</p>
-          <Button onClick={() => navigate('/add-expense')}>
+          <Button onClick={() => { setActiveReminder(null); setIsModalOpen(true) }}>
             <Plus className="w-4 h-4 mr-2" />Add Your First Reminder
           </Button>
         </div>
@@ -316,10 +315,13 @@ export const RemindersPage: React.FC = () => {
         </div>
       )}
 
-      {/* Edit Modal */}
+      {/* Add/Edit Modal */}
       <AnimatePresence>
-        {editingReminder && (
-          <ReminderModal reminder={editingReminder} onClose={() => setEditingReminder(null)} />
+        {isModalOpen && (
+          <ReminderModal
+            reminder={activeReminder}
+            onClose={() => { setIsModalOpen(false); setActiveReminder(null) }}
+          />
         )}
       </AnimatePresence>
 

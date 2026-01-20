@@ -5,6 +5,13 @@ services:
       context: ./server
     env_file:
       - ./server/.env
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      # Ensure the app uses the in-cluster Mongo service instead of localhost
+      MONGODB_URI: mongodb://mongo:27017/finpal
+      CLIENT_URL: http://localhost:3000
+      SERVER_URL: http://localhost:5000
     ports:
       - "5000:5000"
     volumes:
