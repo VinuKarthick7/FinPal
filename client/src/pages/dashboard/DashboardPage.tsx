@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
@@ -10,6 +10,7 @@ import {
   Plus,
   ArrowUpRight,
   Calendar,
+  Users,
 } from 'lucide-react'
 import {
   StatCard,
@@ -18,6 +19,8 @@ import {
   UpcomingReminders,
   BudgetProgress,
   Transaction,
+  FamilyModeModal,
+  FamilyModeCard,
 } from '@/components/dashboard'
 import { Button, DashboardSkeleton, ErrorDisplay } from '@/components/ui'
 import { dashboardApi } from '@/lib/api'
@@ -79,6 +82,7 @@ interface ReminderData {
 export const DashboardPage: React.FC = () => {
   const navigate = useNavigate()
   const user = useAuthStore((state) => state.user)
+  const [isFamilyModeOpen, setIsFamilyModeOpen] = useState(false)
 
   // Fetch dashboard stats
   const { data: statsData, isLoading: statsLoading, isError: statsError, refetch: refetchStats } = useQuery({
@@ -199,7 +203,14 @@ export const DashboardPage: React.FC = () => {
               <p className="text-primary-100 text-sm sm:text-base">Good morning,</p>
               <h1 className="text-2xl sm:text-3xl font-bold">{userName}! 👋</h1>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
+              <button
+                onClick={() => setIsFamilyModeOpen(true)}
+                className="flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-xl px-3 sm:px-4 py-2 transition-all hover:scale-105 text-sm sm:text-base font-medium"
+              >
+                <Users className="w-4 h-4" />
+                <span>Family</span>
+              </button>
               <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2">
                 <Calendar className="w-4 h-4" />
                 <span className="text-sm font-medium">{currentMonth}</span>
@@ -265,6 +276,11 @@ export const DashboardPage: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Transactions & Budget */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Family Mode Feature Card */}
+            <motion.div variants={itemVariants}>
+              <FamilyModeCard onClick={() => setIsFamilyModeOpen(true)} />
+            </motion.div>
+
             {/* Budget Progress */}
             <motion.div variants={itemVariants}>
               <BudgetProgress 
@@ -342,16 +358,22 @@ export const DashboardPage: React.FC = () => {
                 <span className="text-xs font-medium">Reminders</span>
               </button>
               <button
-                onClick={() => navigate('/family')}
-                className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-gray-50 text-gray-600"
+                onClick={() => setIsFamilyModeOpen(true)}
+                className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-purple-50 text-purple-600"
               >
-                <ArrowUpRight className="w-5 h-5" />
+                <Users className="w-5 h-5" />
                 <span className="text-xs font-medium">Family</span>
               </button>
             </div>
           </div>
         </motion.div>
       </motion.div>
+
+      {/* Family Mode Modal */}
+      <FamilyModeModal 
+        isOpen={isFamilyModeOpen} 
+        onClose={() => setIsFamilyModeOpen(false)} 
+      />
     </div>
   )
 }
