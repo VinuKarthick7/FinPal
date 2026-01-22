@@ -1,15 +1,26 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Users, Lock, TrendingUp, Shield } from 'lucide-react';
 
 interface FamilyModeCardProps {
-  onClick: () => void;
+  onClick?: () => void;
 }
 
 const FamilyModeCard: React.FC<FamilyModeCardProps> = ({ onClick }) => {
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    if (onClick) {
+      onClick();
+    } else {
+      navigate('/family');
+    }
+  };
+
   return (
     <div
-      onClick={onClick}
-      className="relative overflow-hidden bg-gradient-to-br from-purple-500 via-pink-500 to-blue-500 rounded-2xl cursor-pointer group hover:scale-[1.02] transition-all duration-300 shadow-lg hover:shadow-2xl"
+      onClick={handleClick}
+      className="relative overflow-hidden bg-gradient-to-br from-primary-600 via-primary-700 to-secondary-600 rounded-2xl cursor-pointer group hover:scale-[1.02] transition-all duration-300 shadow-lg hover:shadow-2xl"
     >
       {/* Animated Background Pattern */}
       <div className="absolute inset-0 opacity-10">
@@ -30,7 +41,7 @@ const FamilyModeCard: React.FC<FamilyModeCardProps> = ({ onClick }) => {
             <p className="text-sm opacity-90">Track expenses together</p>
           </div>
           <div className="p-2 bg-white/10 backdrop-blur-sm rounded-full animate-pulse">
-            <div className="w-2 h-2 bg-green-300 rounded-full"></div>
+            <div className="w-2 h-2 bg-secondary-300 rounded-full"></div>
           </div>
         </div>
 
@@ -63,9 +74,9 @@ const FamilyModeCard: React.FC<FamilyModeCardProps> = ({ onClick }) => {
         {/* Bottom badge */}
         <div className="mt-3 flex items-center gap-2">
           <div className="flex -space-x-2">
-            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 border-2 border-white flex items-center justify-center text-xs">👨</div>
-            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-pink-400 to-pink-600 border-2 border-white flex items-center justify-center text-xs">👩</div>
-            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 border-2 border-white flex items-center justify-center text-xs">👦</div>
+            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 border-2 border-white flex items-center justify-center text-xs">👨</div>
+            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-secondary-400 to-secondary-600 border-2 border-white flex items-center justify-center text-xs">👩</div>
+            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-gold-400 to-gold-600 border-2 border-white flex items-center justify-center text-xs">👦</div>
           </div>
           <span className="text-xs opacity-90">+2 more family members</span>
         </div>

@@ -194,9 +194,9 @@ export const DashboardPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-surface-50">
       {/* Header */}
-      <div className="bg-gradient-to-br from-primary-500 via-primary-600 to-primary-700 text-white">
+      <div className="bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
@@ -205,7 +205,7 @@ export const DashboardPage: React.FC = () => {
             </div>
             <div className="flex items-center gap-3 flex-wrap">
               <button
-                onClick={() => setIsFamilyModeOpen(true)}
+                onClick={() => navigate('/family')}
                 className="flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-xl px-3 sm:px-4 py-2 transition-all hover:scale-105 text-sm sm:text-base font-medium"
               >
                 <Users className="w-4 h-4" />
@@ -278,7 +278,7 @@ export const DashboardPage: React.FC = () => {
           <div className="lg:col-span-2 space-y-6">
             {/* Family Mode Feature Card */}
             <motion.div variants={itemVariants}>
-              <FamilyModeCard onClick={() => setIsFamilyModeOpen(true)} />
+              <FamilyModeCard onClick={() => navigate('/family')} />
             </motion.div>
 
             {/* Budget Progress */}
@@ -333,8 +333,8 @@ export const DashboardPage: React.FC = () => {
 
         {/* Quick Actions - Mobile Only */}
         <motion.div variants={itemVariants} className="mt-6 lg:hidden">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-            <h3 className="font-semibold text-gray-900 mb-3">Quick Actions</h3>
+          <div className="bg-white rounded-2xl border border-surface-200 shadow-sm p-4">
+            <h3 className="font-semibold text-surface-900 mb-3">Quick Actions</h3>
             <div className="grid grid-cols-4 gap-2">
               <button
                 onClick={() => navigate('/add-expense')}
@@ -352,14 +352,14 @@ export const DashboardPage: React.FC = () => {
               </button>
               <button
                 onClick={() => navigate('/reminders')}
-                className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-accent-50 text-accent-600"
+                className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-gold-50 text-gold-600"
               >
                 <Calendar className="w-5 h-5" />
                 <span className="text-xs font-medium">Reminders</span>
               </button>
               <button
-                onClick={() => setIsFamilyModeOpen(true)}
-                className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-purple-50 text-purple-600"
+                onClick={() => navigate('/family')}
+                className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-accent-50 text-accent-600"
               >
                 <Users className="w-5 h-5" />
                 <span className="text-xs font-medium">Family</span>

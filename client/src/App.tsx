@@ -12,6 +12,7 @@ import { RemindersPage } from './pages/reminders'
 import { ProfilePage } from './pages/profile'
 import { BudgetPage } from './pages/budget'
 import { ReportsPage } from './pages/reports/ReportsPage'
+import { FamilyModePage } from './pages/family'
 import { MainLayout } from './components/layout'
 import { ErrorBoundary } from './components/ui'
 import { useAuthStore } from './stores/authStore'
@@ -135,6 +136,13 @@ function App() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/auth/callback" element={<OAuthCallback />} />
           
+          {/* Family Mode - Full screen standalone page */}
+          <Route path="/family" element={
+            <ProtectedRoute>
+              <FamilyModePage />
+            </ProtectedRoute>
+          } />
+          
           {/* Protected Routes with MainLayout */}
           <Route element={
             <ProtectedRoute>
@@ -148,7 +156,6 @@ function App() {
             <Route path="/add-expense" element={<AddExpensePage />} />
             <Route path="/budget" element={<BudgetPage />} />
             <Route path="/reports" element={<ReportsPage />} />
-            <Route path="/family" element={<DashboardPage />} />
             <Route path="/reminders" element={<RemindersPage />} />
             <Route path="/profile" element={<ProfilePage />} />
           </Route>
