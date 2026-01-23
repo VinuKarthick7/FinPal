@@ -5,3 +5,5 @@ export { default as StatCard } from './StatCard';
 export { default as TransactionList } from './TransactionList';
 export { default as UpcomingReminders } from './UpcomingReminders';
 export { default as FamilyMode } from './FamilyMode';
+export { default as FamilyModeCard } from './FamilyModeCard';
+export { default as FamilyModeModal } from './FamilyModeModal';

@@ -196,6 +196,17 @@ export const ReportsPage: React.FC = () => {
     }
   }
 
+  // PDF-safe currency formatter (uses "Rs." instead of ₹ symbol for PDF compatibility)
+  const formatCurrencyForPDF = (value: number): string => {
+    const absValue = Math.abs(value)
+    const formatted = absValue.toLocaleString('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })
+    const prefix = value < 0 ? '-Rs. ' : 'Rs. '
+    return prefix + formatted
+  }
+
   const handleExportPDF = async () => {
     try {
       const response = await reportsApi.exportData({ month: selectedMonth, year: selectedYear })
@@ -205,105 +216,206 @@ export const ReportsPage: React.FC = () => {
       const doc = new jsPDF()
       const pageWidth = doc.internal.pageSize.getWidth()
 
-      // Title
-      doc.setFontSize(20)
-      doc.setTextColor(16, 185, 129) // Primary green
-      doc.text('FinPal Financial Report', pageWidth / 2, 20, { align: 'center' })
+      // ===== HEADER SECTION =====
+      // Title with professional green color
+      doc.setFontSize(24)
+      doc.setTextColor(16, 185, 129) // FinPal primary green
+      doc.text('FinPal Financial Report', pageWidth / 2, 25, { align: 'center' })
 
       // Month/Year subtitle
-      doc.setFontSize(14)
-      doc.setTextColor(100, 100, 100)
-      doc.text(`${monthNames[selectedMonth - 1]} ${selectedYear}`, pageWidth / 2, 30, { align: 'center' })
+      doc.setFontSize(16)
+      doc.setTextColor(75, 85, 99) // Gray-600
+      doc.text(`Monthly Report - ${monthNames[selectedMonth - 1]} ${selectedYear}`, pageWidth / 2, 35, { align: 'center' })
 
       // Generated date
-      doc.setFontSize(10)
-      doc.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth / 2, 38, { align: 'center' })
+      doc.setFontSize(11)
+      doc.setTextColor(107, 114, 128) // Gray-500
+      const generatedDate = new Date().toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      })
+      doc.text(`Generated: ${generatedDate}`, pageWidth / 2, 43, { align: 'center' })
 
-      // Summary section
+      // Horizontal divider line
+      doc.setDrawColor(229, 231, 235) // Gray-200
+      doc.setLineWidth(0.5)
+      doc.line(14, 48, pageWidth - 14, 48)
+
+      // ===== SUMMARY SECTION =====
       doc.setFontSize(14)
-      doc.setTextColor(50, 50, 50)
-      doc.text('Summary', 14, 52)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(31, 41, 55) // Gray-800
+      doc.text('Summary', 14, 58)
 
-      // Summary stats
+      // Calculate values with proper validation
+      const totalExpenses = data.summary?.totalExpenses || 0
+      const totalIncome = data.summary?.totalIncome || 0
+      const netSavings = totalIncome - totalExpenses // Always calculate correctly
+      const transactionCount = data.summary?.transactionCount || 0
+      const averageExpense = transactionCount > 0 ? totalExpenses / transactionCount : 0
+
+      // Summary table with clean formatting
       const summaryData = [
-        ['Total Expenses', formatCurrency(data.summary?.totalExpenses || 0)],
-        ['Total Income', formatCurrency(data.summary?.totalIncome || 0)],
-        ['Net Savings', formatCurrency(data.summary?.netSavings || 0)],
-        ['Transaction Count', String(data.summary?.transactionCount || 0)],
-        ['Average Expense', formatCurrency(data.summary?.averageExpense || 0)],
+        ['Total Income', formatCurrencyForPDF(totalIncome)],
+        ['Total Expenses', formatCurrencyForPDF(totalExpenses)],
+        ['Net Savings', formatCurrencyForPDF(netSavings)],
+        ['Transaction Count', String(transactionCount)],
+        ['Average Expense', formatCurrencyForPDF(averageExpense)],
       ]
 
       autoTable(doc, {
-        startY: 56,
+        startY: 62,
         head: [['Metric', 'Value']],
         body: summaryData,
         theme: 'striped',
-        headStyles: { fillColor: [16, 185, 129] },
+        headStyles: {
+          fillColor: [16, 185, 129],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 11,
+        },
+        bodyStyles: {
+          fontSize: 10,
+          textColor: [55, 65, 81],
+        },
+        alternateRowStyles: {
+          fillColor: [249, 250, 251],
+        },
+        columnStyles: {
+          0: { fontStyle: 'bold', cellWidth: 80 },
+          1: { halign: 'right', cellWidth: 80 },
+        },
         margin: { left: 14, right: 14 },
+        tableWidth: 'auto',
       })
 
-      // Category breakdown
+      // ===== SPENDING BY CATEGORY SECTION =====
       const lastY = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY || 100
       doc.setFontSize(14)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(31, 41, 55)
       doc.text('Spending by Category', 14, lastY + 15)
 
       if (data.categories && data.categories.length > 0) {
-        const categoryData = data.categories.map((cat: { name: string; amount: number; percentage: number; count: number }) => [
-          cat.name,
-          formatCurrency(cat.amount),
-          `${cat.percentage.toFixed(1)}%`,
-          String(cat.count),
-        ])
+        // Sort categories by amount (highest first)
+        const sortedCategories = [...data.categories].sort((a: { amount: number }, b: { amount: number }) => b.amount - a.amount)
+        
+        // Recalculate percentages to ensure they sum to 100%
+        const totalCategoryAmount = sortedCategories.reduce((sum: number, cat: { amount: number }) => sum + cat.amount, 0)
+        
+        const categoryData = sortedCategories.map((cat: { name: string; amount: number; percentage: number; count: number }) => {
+          const accuratePercentage = totalCategoryAmount > 0 
+            ? ((cat.amount / totalCategoryAmount) * 100).toFixed(1) 
+            : '0.0'
+          return [
+            cat.name || 'Uncategorized',
+            formatCurrencyForPDF(cat.amount),
+            `${accuratePercentage}%`,
+            String(cat.count || 0),
+          ]
+        })
 
         autoTable(doc, {
           startY: lastY + 20,
           head: [['Category', 'Amount', 'Percentage', 'Transactions']],
           body: categoryData,
           theme: 'striped',
-          headStyles: { fillColor: [16, 185, 129] },
+          headStyles: {
+            fillColor: [16, 185, 129],
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+            fontSize: 11,
+          },
+          bodyStyles: {
+            fontSize: 10,
+            textColor: [55, 65, 81],
+          },
+          alternateRowStyles: {
+            fillColor: [249, 250, 251],
+          },
+          columnStyles: {
+            0: { fontStyle: 'bold' },
+            1: { halign: 'right' },
+            2: { halign: 'center' },
+            3: { halign: 'center' },
+          },
           margin: { left: 14, right: 14 },
         })
       }
 
-      // Top merchants section
+      // ===== TOP MERCHANTS SECTION =====
       const categoryY = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY || 150
       
-      if (categoryY > 240) {
+      // Check if we need a new page
+      if (categoryY > 220) {
         doc.addPage()
         doc.setFontSize(14)
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(31, 41, 55)
         doc.text('Top Merchants', 14, 20)
       } else {
         doc.setFontSize(14)
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(31, 41, 55)
         doc.text('Top Merchants', 14, categoryY + 15)
       }
 
       if (data.topMerchants && data.topMerchants.length > 0) {
-        const merchantData = data.topMerchants.map((m: { merchant: string; amount: number; count: number }) => [
-          m.merchant,
-          formatCurrency(m.amount),
-          String(m.count),
+        // Sort merchants by amount (highest first)
+        const sortedMerchants = [...data.topMerchants].sort((a: { amount: number }, b: { amount: number }) => b.amount - a.amount)
+        
+        const merchantData = sortedMerchants.map((m: { merchant: string; amount: number; count: number }) => [
+          m.merchant || 'Unknown Merchant',
+          formatCurrencyForPDF(m.amount),
+          String(m.count || 0),
         ])
 
         autoTable(doc, {
-          startY: categoryY > 240 ? 25 : categoryY + 20,
+          startY: categoryY > 220 ? 25 : categoryY + 20,
           head: [['Merchant', 'Total Spent', 'Transactions']],
           body: merchantData,
           theme: 'striped',
-          headStyles: { fillColor: [16, 185, 129] },
+          headStyles: {
+            fillColor: [16, 185, 129],
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+            fontSize: 11,
+          },
+          bodyStyles: {
+            fontSize: 10,
+            textColor: [55, 65, 81],
+          },
+          alternateRowStyles: {
+            fillColor: [249, 250, 251],
+          },
+          columnStyles: {
+            0: { fontStyle: 'bold' },
+            1: { halign: 'right' },
+            2: { halign: 'center' },
+          },
           margin: { left: 14, right: 14 },
         })
       }
 
-      // Footer
+      // ===== FOOTER =====
       const pageCount = doc.getNumberOfPages()
       for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i)
-        doc.setFontSize(8)
-        doc.setTextColor(150, 150, 150)
+        doc.setFontSize(9)
+        doc.setFont('helvetica', 'normal')
+        doc.setTextColor(156, 163, 175) // Gray-400
+        
+        // Footer line
+        const footerY = doc.internal.pageSize.getHeight() - 15
+        doc.setDrawColor(229, 231, 235)
+        doc.setLineWidth(0.3)
+        doc.line(14, footerY, pageWidth - 14, footerY)
+        
         doc.text(
-          `Page ${i} of ${pageCount} | FinPal - Your Personal Finance Companion`,
+          `Page ${i} of ${pageCount}  |  FinPal - Your Personal Finance Companion`,
           pageWidth / 2,
-          doc.internal.pageSize.getHeight() - 10,
+          doc.internal.pageSize.getHeight() - 8,
           { align: 'center' }
         )
       }
