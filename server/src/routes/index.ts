@@ -8,6 +8,7 @@ import budgetRoutes from './budgets';
 import reportsRoutes from './reports';
 import expenseRoutes from './expenses';
 import insightsRoutes from './insights';
+import familyRoutes from './family';
 
 const router = Router();
 
@@ -30,5 +31,6 @@ router.use('/budgets', budgetRoutes);
 router.use('/reports', reportsRoutes);
 router.use('/expenses', expenseRoutes);
 router.use('/insights', insightsRoutes);
+router.use('/family', familyRoutes);
 
 export default router;
