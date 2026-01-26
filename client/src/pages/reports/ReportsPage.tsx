@@ -36,6 +36,7 @@ import {
 } from 'recharts'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import { useTranslation } from 'react-i18next'
 import { Button, ErrorDisplay } from '@/components/ui'
 import { reportsApi, familyReportsApi, familyApi } from '@/lib/api'
 import toast from 'react-hot-toast'
@@ -172,6 +173,7 @@ const StatSkeleton: React.FC = () => (
 )
 
 export const ReportsPage: React.FC = () => {
+  const { t } = useTranslation()
   const currentDate = new Date()
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth() + 1)
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear())
@@ -509,10 +511,10 @@ export const ReportsPage: React.FC = () => {
 
       // Save the PDF
       doc.save(`FinPal-Report-${monthNames[selectedMonth - 1]}-${selectedYear}.pdf`)
-      toast.success('Report exported successfully!')
+      toast.success(t('reports.exportSuccess'))
     } catch (error) {
       console.error('Export failed:', error)
-      toast.error('Failed to export report')
+      toast.error(t('reports.exportFailed'))
     }
   }
 
@@ -542,10 +544,10 @@ export const ReportsPage: React.FC = () => {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-2xl font-bold text-white">
-                {isFamilyMode ? 'Family Reports' : 'Reports & Analytics'}
+                {isFamilyMode ? t('reports.familyReports') : t('reports.reportsAnalytics')}
               </h1>
               <p className="text-white/70 text-sm mt-1">
-                {isFamilyMode && familyData ? `${familyData.familyName} • ${familyData.members?.length || 0} members` : 'Track your financial insights'}
+                {isFamilyMode && familyData ? `${familyData.familyName} • ${familyData.members?.length || 0} ${t('family.members')}` : t('reports.trackInsights')}
               </p>
             </div>
             <Button
@@ -555,7 +557,7 @@ export const ReportsPage: React.FC = () => {
               className="flex items-center gap-2 bg-white/20 text-white border-white/30 hover:bg-white/30"
             >
               <Download className="w-4 h-4" />
-              Export
+              {t('reports.export')}
             </Button>
           </div>
 
@@ -591,7 +593,7 @@ export const ReportsPage: React.FC = () => {
           {isFamilyMode && syncStatus && (
             <div className="flex items-center justify-center gap-2 mb-4 text-white/80 text-xs">
               <CheckCircle className="w-3 h-3 text-green-300" />
-              <span>Data synced • Last updated: {new Date(syncStatus.familyLastSynced).toLocaleTimeString()}</span>
+              <span>{t('reports.dataSynced')} • {t('reports.lastUpdated')}: {new Date(syncStatus.familyLastSynced).toLocaleTimeString()}</span>
             </div>
           )}
 
@@ -636,7 +638,7 @@ export const ReportsPage: React.FC = () => {
                     : 'text-gray-600 hover:bg-gray-50'
                 }`}
               >
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                {t(`reports.${tab}`)}
               </button>
             ))}
           </div>
@@ -653,7 +655,7 @@ export const ReportsPage: React.FC = () => {
             <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-2xl p-4 shadow-lg">
               <div className="flex items-center gap-2 mb-2">
                 <TrendingDown className="w-4 h-4 text-white/70" />
-                <p className="text-xs text-white/70">Total Expenses</p>
+                <p className="text-xs text-white/70">{t('reports.totalExpenses')}</p>
               </div>
               <p className="text-xl font-bold text-white">
                 {formatCurrency(monthlyData.totalExpenses || 0)}
@@ -663,7 +665,7 @@ export const ReportsPage: React.FC = () => {
             <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-4 shadow-lg">
               <div className="flex items-center gap-2 mb-2">
                 <TrendingUp className="w-4 h-4 text-white/70" />
-                <p className="text-xs text-white/70">Total Income</p>
+                <p className="text-xs text-white/70">{t('reports.totalIncome')}</p>
               </div>
               <p className="text-xl font-bold text-white">
                 {formatCurrency(monthlyData.totalIncome || 0)}
@@ -673,7 +675,7 @@ export const ReportsPage: React.FC = () => {
             <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-4 shadow-lg">
               <div className="flex items-center gap-2 mb-2">
                 <FileText className="w-4 h-4 text-white/70" />
-                <p className="text-xs text-white/70">Transactions</p>
+                <p className="text-xs text-white/70">{t('reports.transactions')}</p>
               </div>
               <p className="text-xl font-bold text-white">
                 {(monthlyData as FamilyMonthlyReport).transactionCount || 0}
@@ -683,7 +685,7 @@ export const ReportsPage: React.FC = () => {
             <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-4 shadow-lg">
               <div className="flex items-center gap-2 mb-2">
                 <DollarSign className="w-4 h-4 text-white/70" />
-                <p className="text-xs text-white/70">Avg. Expense</p>
+                <p className="text-xs text-white/70">{t('reports.avgExpense')}</p>
               </div>
               <p className="text-xl font-bold text-white">
                 {formatCurrency(
@@ -705,7 +707,7 @@ export const ReportsPage: React.FC = () => {
             className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-6"
           >
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-gray-800">Family Budget</h3>
+              <h3 className="text-sm font-semibold text-gray-800">{t('reports.familyBudget')}</h3>
               <span className={`text-xs font-bold px-2 py-1 rounded-full ${
                 ((monthlyData as FamilyMonthlyReport).budgetUsedPercentage || 0) > 90 
                   ? 'bg-red-100 text-red-600' 
@@ -713,15 +715,15 @@ export const ReportsPage: React.FC = () => {
                   ? 'bg-yellow-100 text-yellow-600' 
                   : 'bg-green-100 text-green-600'
               }`}>
-                {((monthlyData as FamilyMonthlyReport).budgetUsedPercentage || 0).toFixed(0)}% used
+                {t('reports.budgetUsed', { percentage: ((monthlyData as FamilyMonthlyReport).budgetUsedPercentage || 0).toFixed(0) })}
               </span>
             </div>
             <div className="flex items-center justify-between text-sm mb-2">
               <span className="text-gray-600">
-                Spent: {formatCurrency(monthlyData?.totalExpenses || 0)}
+                {t('reports.spent')}: {formatCurrency(monthlyData?.totalExpenses || 0)}
               </span>
               <span className="text-gray-600">
-                Budget: {formatCurrency((monthlyData as FamilyMonthlyReport)?.totalBudget || 0)}
+                {t('dashboard.budget')}: {formatCurrency((monthlyData as FamilyMonthlyReport)?.totalBudget || 0)}
               </span>
             </div>
             <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
@@ -737,7 +739,7 @@ export const ReportsPage: React.FC = () => {
               />
             </div>
             <p className="text-xs text-gray-500 mt-2 text-center">
-              Remaining: {formatCurrency((monthlyData as FamilyMonthlyReport).remainingBudget || 0)}
+              {t('reports.remaining')}: {formatCurrency((monthlyData as FamilyMonthlyReport).remainingBudget || 0)}
             </p>
           </motion.div>
         )}
@@ -756,7 +758,7 @@ export const ReportsPage: React.FC = () => {
             className="grid grid-cols-2 gap-4 mb-6"
           >
             <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-              <p className="text-xs text-gray-500 mb-1">vs Last Month</p>
+              <p className="text-xs text-gray-500 mb-1">{t('reports.vsLastMonth')}</p>
               <p className="text-lg font-bold text-gray-800">
                 {comparisonData.expenseChange.isIncrease ? '+' : '-'}
                 {formatCurrency(Math.abs(comparisonData.expenseChange.amount))}
@@ -770,26 +772,26 @@ export const ReportsPage: React.FC = () => {
                   <ArrowDownRight className="w-3 h-3" />
                 )}
                 <span className="text-xs font-medium">
-                  {comparisonData.expenseChange.percentage.toFixed(1)}% spending
+                  {comparisonData.expenseChange.percentage.toFixed(1)}% {t('reports.spending')}
                 </span>
               </div>
             </div>
 
             <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-              <p className="text-xs text-gray-500 mb-1">Net Savings</p>
+              <p className="text-xs text-gray-500 mb-1">{t('reports.netSavings')}</p>
               <p className="text-lg font-bold text-gray-800">
                 {formatCurrency(monthlyData?.netSavings || 0)}
               </p>
               <div className="flex items-center gap-1 mt-1 text-primary-500">
                 <TrendingUp className="w-3 h-3" />
-                <span className="text-xs font-medium">This month</span>
+                <span className="text-xs font-medium">{t('dashboard.thisMonth')}</span>
               </div>
             </div>
           </motion.div>
         ) : null)}
 
         {monthlyError ? (
-          <ErrorDisplay message="Failed to load reports" onRetry={() => window.location.reload()} />
+          <ErrorDisplay message={t('reports.loadFailed')} onRetry={() => window.location.reload()} />
         ) : (
           <>
             {/* Monthly Tab Content */}
@@ -803,15 +805,15 @@ export const ReportsPage: React.FC = () => {
                   className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100"
                 >
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-base font-semibold text-gray-800">Daily Spending</h2>
+                    <h2 className="text-base font-semibold text-gray-800">{t('reports.dailySpending')}</h2>
                     <div className="flex items-center gap-4 text-xs">
                       <div className="flex items-center gap-1">
                         <div className="w-2 h-2 rounded-full bg-red-400" />
-                        <span className="text-gray-500">Expenses</span>
+                        <span className="text-gray-500">{t('reports.expenses')}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <div className="w-2 h-2 rounded-full bg-green-400" />
-                        <span className="text-gray-500">Income</span>
+                        <span className="text-gray-500">{t('dashboard.income')}</span>
                       </div>
                     </div>
                   </div>
@@ -871,7 +873,7 @@ export const ReportsPage: React.FC = () => {
                     </ResponsiveContainer>
                   ) : (
                     <div className="h-48 flex items-center justify-center text-gray-400">
-                      No data for this month
+                      {t('reports.noDataThisMonth')}
                     </div>
                   )}
                 </motion.div>
@@ -884,7 +886,7 @@ export const ReportsPage: React.FC = () => {
                   className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100"
                 >
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-base font-semibold text-gray-800">Spending by Category</h2>
+                    <h2 className="text-base font-semibold text-gray-800">{t('dashboard.spendingByCategory')}</h2>
                     <PieChart className="w-4 h-4 text-gray-400" />
                   </div>
 
@@ -935,7 +937,7 @@ export const ReportsPage: React.FC = () => {
                     </div>
                   ) : (
                     <div className="h-40 flex items-center justify-center text-gray-400">
-                      No category data
+                      {t('reports.noCategoryData')}
                     </div>
                   )}
                 </motion.div>
@@ -949,7 +951,7 @@ export const ReportsPage: React.FC = () => {
                     className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100"
                   >
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-base font-semibold text-gray-800">Member Breakdown</h2>
+                      <h2 className="text-base font-semibold text-gray-800">{t('reports.memberBreakdown')}</h2>
                       <Users className="w-4 h-4 text-purple-500" />
                     </div>
 
@@ -991,7 +993,7 @@ export const ReportsPage: React.FC = () => {
                     {/* Data Accuracy Notice */}
                     <div className="mt-4 pt-3 border-t border-gray-100">
                       <p className="text-xs text-gray-500 text-center">
-                        ✓ Data mapped by email ID • No mixing between members
+                        {t('reports.dataMappedByEmail')}
                       </p>
                     </div>
                   </motion.div>
@@ -1004,7 +1006,7 @@ export const ReportsPage: React.FC = () => {
                   transition={{ delay: 0.4 }}
                   className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100"
                 >
-                  <h2 className="text-base font-semibold text-gray-800 mb-4">Top Merchants</h2>
+                  <h2 className="text-base font-semibold text-gray-800 mb-4">{t('reports.topMerchants')}</h2>
 
                   {monthlyLoading ? (
                     <div className="space-y-3">
@@ -1036,7 +1038,7 @@ export const ReportsPage: React.FC = () => {
                     </div>
                   ) : (
                     <div className="h-32 flex items-center justify-center text-gray-400">
-                      No merchant data
+                      {t('reports.noMerchantData')}
                     </div>
                   )}
                 </motion.div>
@@ -1050,28 +1052,28 @@ export const ReportsPage: React.FC = () => {
                 >
                   <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-2xl p-4 text-white">
                     <TrendingDown className="w-6 h-6 mb-2 opacity-80" />
-                    <p className="text-xs opacity-80">Total Expenses</p>
+                    <p className="text-xs opacity-80">{t('reports.totalExpenses')}</p>
                     <p className="text-xl font-bold">
                       {monthlyLoading ? '...' : formatCurrency(monthlyData?.totalExpenses || 0)}
                     </p>
                   </div>
                   <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-4 text-white">
                     <TrendingUp className="w-6 h-6 mb-2 opacity-80" />
-                    <p className="text-xs opacity-80">Total Income</p>
+                    <p className="text-xs opacity-80">{t('reports.totalIncome')}</p>
                     <p className="text-xl font-bold">
                       {monthlyLoading ? '...' : formatCurrency(monthlyData?.totalIncome || 0)}
                     </p>
                   </div>
                   <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-4 text-white">
                     <FileText className="w-6 h-6 mb-2 opacity-80" />
-                    <p className="text-xs opacity-80">Transactions</p>
+                    <p className="text-xs opacity-80">{t('reports.transactions')}</p>
                     <p className="text-xl font-bold">
                       {monthlyLoading ? '...' : monthlyData?.transactionCount || 0}
                     </p>
                   </div>
                   <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-4 text-white">
                     <DollarSign className="w-6 h-6 mb-2 opacity-80" />
-                    <p className="text-xs opacity-80">Avg. Expense</p>
+                    <p className="text-xs opacity-80">{t('reports.avgExpense')}</p>
                     <p className="text-xl font-bold">
                       {monthlyLoading ? '...' : formatCurrency((monthlyData as MonthlyReport)?.averageExpense || 0)}
                     </p>
@@ -1089,7 +1091,7 @@ export const ReportsPage: React.FC = () => {
                   className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100"
                 >
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-base font-semibold text-gray-800">Monthly Overview - {selectedYear}</h2>
+                    <h2 className="text-base font-semibold text-gray-800">{t('reports.monthlyOverview', { year: selectedYear })}</h2>
                     <BarChart3 className="w-4 h-4 text-gray-400" />
                   </div>
 
@@ -1125,7 +1127,7 @@ export const ReportsPage: React.FC = () => {
                     </ResponsiveContainer>
                   ) : (
                     <div className="h-72 flex items-center justify-center text-gray-400">
-                      No yearly data available
+                      {t('reports.noYearlyData')}
                     </div>
                   )}
                 </motion.div>
@@ -1141,19 +1143,19 @@ export const ReportsPage: React.FC = () => {
                     <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
                       <div className="grid grid-cols-3 gap-4 text-center">
                         <div>
-                          <p className="text-xs text-gray-500">Total Expenses</p>
+                          <p className="text-xs text-gray-500">{t('reports.totalExpenses')}</p>
                           <p className="text-lg font-bold text-red-500">
                             {formatCurrency(yearlyData.totalExpenses)}
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500">Total Income</p>
+                          <p className="text-xs text-gray-500">{t('reports.totalIncome')}</p>
                           <p className="text-lg font-bold text-green-500">
                             {formatCurrency(yearlyData.totalIncome)}
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500">Net Savings</p>
+                          <p className="text-xs text-gray-500">{t('reports.netSavings')}</p>
                           <p className={`text-lg font-bold ${yearlyData.netSavings >= 0 ? 'text-blue-500' : 'text-red-500'}`}>
                             {formatCurrency(yearlyData.netSavings)}
                           </p>
@@ -1162,26 +1164,26 @@ export const ReportsPage: React.FC = () => {
                     </div>
 
                     <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-                      <h3 className="text-sm font-semibold text-gray-800 mb-4">Year Highlights</h3>
+                      <h3 className="text-sm font-semibold text-gray-800 mb-4">{t('reports.yearHighlights')}</h3>
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">Avg. Monthly Expense</span>
+                          <span className="text-sm text-gray-600">{t('reports.avgMonthlyExpense')}</span>
                           <span className="text-sm font-medium">{formatCurrency(yearlyData.averageMonthlyExpense)}</span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">Highest Spending</span>
+                          <span className="text-sm text-gray-600">{t('reports.highestSpending')}</span>
                           <span className="text-sm font-medium text-red-500">
                             {yearlyData.highestSpendingMonth?.month} ({formatCurrency(yearlyData.highestSpendingMonth?.amount || 0)})
                           </span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">Lowest Spending</span>
+                          <span className="text-sm text-gray-600">{t('reports.lowestSpending')}</span>
                           <span className="text-sm font-medium text-green-500">
                             {yearlyData.lowestSpendingMonth?.month} ({formatCurrency(yearlyData.lowestSpendingMonth?.amount || 0)})
                           </span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">Spending Trend</span>
+                          <span className="text-sm text-gray-600">{t('reports.spendingTrend')}</span>
                           <span className={`text-sm font-medium capitalize ${
                             yearlyData.trend === 'increasing' ? 'text-red-500' :
                             yearlyData.trend === 'decreasing' ? 'text-green-500' : 'text-gray-500'
@@ -1205,7 +1207,7 @@ export const ReportsPage: React.FC = () => {
                   className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100"
                 >
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-base font-semibold text-gray-800">6-Month Category Trends</h2>
+                    <h2 className="text-base font-semibold text-gray-800">{t('reports.categoryTrends')}</h2>
                     <TrendingUp className="w-4 h-4 text-gray-400" />
                   </div>
 
@@ -1249,7 +1251,7 @@ export const ReportsPage: React.FC = () => {
                     </ResponsiveContainer>
                   ) : (
                     <div className="h-72 flex items-center justify-center text-gray-400">
-                      No trend data available
+                      {t('reports.noTrendData')}
                     </div>
                   )}
                 </motion.div>
@@ -1281,7 +1283,7 @@ export const ReportsPage: React.FC = () => {
                           <div>
                             <p className="text-sm font-medium text-gray-800">{trend.category}</p>
                             <p className="text-xs text-gray-500">
-                              Avg: {formatCurrency(trend.averageMonthly)}/mo
+                              {t('reports.avg')}: {formatCurrency(trend.averageMonthly)}/mo
                             </p>
                           </div>
                         </div>

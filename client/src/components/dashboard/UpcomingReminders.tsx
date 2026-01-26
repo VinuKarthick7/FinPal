@@ -1,6 +1,7 @@
 import React from 'react'
 import { format } from 'date-fns'
 import { Bell, Calendar, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 interface Reminder {
   id: string
@@ -22,6 +23,8 @@ export const UpcomingReminders: React.FC<UpcomingRemindersProps> = ({
   reminders,
   onViewAll,
 }) => {
+  const { t } = useTranslation()
+  
   const getStatusColor = (daysUntilDue: number, isPaid: boolean) => {
     if (isPaid) return 'bg-green-100 text-green-600'
     if (daysUntilDue < 0) return 'bg-red-100 text-red-600'
@@ -30,11 +33,11 @@ export const UpcomingReminders: React.FC<UpcomingRemindersProps> = ({
   }
 
   const getStatusText = (daysUntilDue: number, isPaid: boolean) => {
-    if (isPaid) return 'Paid'
-    if (daysUntilDue < 0) return 'Overdue'
-    if (daysUntilDue === 0) return 'Due Today'
-    if (daysUntilDue === 1) return 'Tomorrow'
-    return `${daysUntilDue} days`
+    if (isPaid) return t('dashboard.paid')
+    if (daysUntilDue < 0) return t('dashboard.overdue')
+    if (daysUntilDue === 0) return t('dashboard.dueToday')
+    if (daysUntilDue === 1) return t('dashboard.tomorrow')
+    return t('dashboard.daysUntil', { count: daysUntilDue })
   }
 
   return (
@@ -43,14 +46,14 @@ export const UpcomingReminders: React.FC<UpcomingRemindersProps> = ({
       <div className="flex items-center justify-between px-4 sm:px-5 py-4 border-b border-gray-100">
         <div className="flex items-center gap-2">
           <Bell className="w-5 h-5 text-primary-500" />
-          <h3 className="font-semibold text-gray-900">Upcoming Reminders</h3>
+          <h3 className="font-semibold text-gray-900">{t('dashboard.upcomingReminders')}</h3>
         </div>
         {onViewAll && (
           <button
             onClick={onViewAll}
             className="text-sm text-primary-500 hover:text-primary-600 font-medium"
           >
-            View All
+            {t('common.viewAll')}
           </button>
         )}
       </div>
@@ -86,7 +89,7 @@ export const UpcomingReminders: React.FC<UpcomingRemindersProps> = ({
 
               <div className="text-right flex-shrink-0">
                 <p className="font-semibold text-gray-900 text-sm sm:text-base">
-                  ₹{reminder.amount.toLocaleString('en-IN')}
+                  {t('currency.symbol')}{reminder.amount.toLocaleString('en-IN')}
                 </p>
                 <span
                   className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${getStatusColor(
@@ -105,7 +108,7 @@ export const UpcomingReminders: React.FC<UpcomingRemindersProps> = ({
             <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
               <Bell className="w-6 h-6 text-gray-400" />
             </div>
-            <p className="text-gray-500 text-sm">No upcoming reminders</p>
+            <p className="text-gray-500 text-sm">{t('dashboard.noRemindersDesc')}</p>
           </div>
         )}
       </div>

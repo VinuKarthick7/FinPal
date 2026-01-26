@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
+import { useTranslation } from 'react-i18next'
 import { Mail, ArrowLeft, CheckCircle, KeyRound } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button, Input } from '@/components/ui'
@@ -10,6 +11,7 @@ interface ForgotPasswordFormData {
 }
 
 export const ForgotPasswordPage: React.FC = () => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -62,7 +64,7 @@ export const ForgotPasswordPage: React.FC = () => {
                     className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors mb-8"
                   >
                     <ArrowLeft size={20} />
-                    <span className="text-sm font-medium">Back</span>
+                    <span className="text-sm font-medium">{t('common.back')}</span>
                   </button>
 
                   {/* Icon Section */}
@@ -71,34 +73,33 @@ export const ForgotPasswordPage: React.FC = () => {
                       <KeyRound className="w-10 h-10 sm:w-12 sm:h-12 text-primary-600" />
                     </div>
                     <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-                      Forgot Password?
+                      {t('auth.resetPassword')}
                     </h1>
                     <p className="text-gray-500 mt-2 text-sm sm:text-base leading-relaxed">
-                      No worries! Enter your email address and we'll send you a link to reset your
-                      password.
+                      {t('auth.resetPasswordDesc')}
                     </p>
                   </div>
 
                   {/* Form */}
                   <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                     <Input
-                      label="Email Address"
+                      label={t('auth.email')}
                       type="email"
-                      placeholder="Enter your registered email"
+                      placeholder={t('auth.enterEmail')}
                       leftIcon={Mail}
                       error={errors.email?.message}
                       required
                       {...register('email', {
-                        required: 'Email is required',
+                        required: t('auth.emailRequired'),
                         pattern: {
                           value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                          message: 'Please enter a valid email',
+                          message: t('auth.validEmail'),
                         },
                       })}
                     />
 
                     <Button type="submit" loading={loading} fullWidth size="lg" className="mt-6">
-                      Send Reset Link
+                      {t('auth.sendResetLink')}
                     </Button>
                   </form>
 
@@ -108,7 +109,7 @@ export const ForgotPasswordPage: React.FC = () => {
                     className="flex items-center justify-center gap-2 w-full mt-6 text-primary-500 hover:text-primary-600 font-medium transition-colors"
                   >
                     <ArrowLeft size={18} />
-                    <span>Back to Login</span>
+                    <span>{t('auth.backToLogin')}</span>
                   </button>
                 </motion.div>
               ) : (
@@ -124,27 +125,27 @@ export const ForgotPasswordPage: React.FC = () => {
                   </div>
 
                   <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3">
-                    Check Your Email
+                    {t('auth.resetLinkSent')}
                   </h2>
 
                   <p className="text-gray-500 mb-2">
-                    We've sent a password reset link to
+                    {t('auth.resetLinkSentTo')}
                   </p>
                   <p className="text-primary-500 font-semibold mb-6">{submittedEmail}</p>
 
                   <p className="text-sm text-gray-400 mb-8">
-                    Didn't receive the email? Check your spam folder or try again.
+                    {t('auth.checkSpamFolder')}
                   </p>
 
                   <Button fullWidth size="lg" onClick={() => navigate('/login')}>
-                    Back to Login
+                    {t('auth.backToLogin')}
                   </Button>
 
                   <button
                     onClick={() => setSuccess(false)}
                     className="mt-4 text-sm text-gray-500 hover:text-gray-700 transition-colors"
                   >
-                    Try with a different email
+                    {t('auth.tryDifferentEmail')}
                   </button>
                 </motion.div>
               )}

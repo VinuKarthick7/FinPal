@@ -1,12 +1,14 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, Lock, TrendingUp, Shield } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface FamilyModeCardProps {
   onClick?: () => void;
 }
 
 const FamilyModeCard: React.FC<FamilyModeCardProps> = ({ onClick }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const handleClick = () => {
@@ -35,10 +37,10 @@ const FamilyModeCard: React.FC<FamilyModeCardProps> = ({ onClick }) => {
               <div className="p-2 bg-white/20 backdrop-blur-sm rounded-lg">
                 <Users className="w-5 h-5" />
               </div>
-              <span className="font-bold text-sm tracking-wide uppercase opacity-90">Family Mode</span>
+              <span className="font-bold text-sm tracking-wide uppercase opacity-90">{t('family.title')}</span>
             </div>
-            <h3 className="text-2xl font-bold mb-1">Connect Your Family</h3>
-            <p className="text-sm opacity-90">Track expenses together</p>
+            <h3 className="text-2xl font-bold mb-1">{t('family.connectYourFamily')}</h3>
+            <p className="text-sm opacity-90">{t('family.trackExpensesTogether')}</p>
           </div>
           <div className="p-2 bg-white/10 backdrop-blur-sm rounded-full animate-pulse">
             <div className="w-2 h-2 bg-secondary-300 rounded-full"></div>
@@ -49,21 +51,21 @@ const FamilyModeCard: React.FC<FamilyModeCardProps> = ({ onClick }) => {
         <div className="grid grid-cols-3 gap-2 mb-4">
           <div className="flex flex-col items-center gap-1 p-2 bg-white/10 backdrop-blur-sm rounded-lg">
             <Lock className="w-4 h-4" />
-            <span className="text-xs font-medium">Secure</span>
+            <span className="text-xs font-medium">{t('family.secure')}</span>
           </div>
           <div className="flex flex-col items-center gap-1 p-2 bg-white/10 backdrop-blur-sm rounded-lg">
             <TrendingUp className="w-4 h-4" />
-            <span className="text-xs font-medium">Shared</span>
+            <span className="text-xs font-medium">{t('family.shared')}</span>
           </div>
           <div className="flex flex-col items-center gap-1 p-2 bg-white/10 backdrop-blur-sm rounded-lg">
             <Shield className="w-4 h-4" />
-            <span className="text-xs font-medium">Private</span>
+            <span className="text-xs font-medium">{t('family.private')}</span>
           </div>
         </div>
 
         {/* CTA */}
         <div className="flex items-center justify-between bg-white/20 backdrop-blur-sm rounded-lg p-3 group-hover:bg-white/30 transition-colors">
-          <span className="text-sm font-semibold">Enable Family Mode</span>
+          <span className="text-sm font-semibold">{t('family.enableFamilyMode')}</span>
           <div className="p-1.5 bg-white/30 rounded-full group-hover:translate-x-1 transition-transform">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -78,7 +80,7 @@ const FamilyModeCard: React.FC<FamilyModeCardProps> = ({ onClick }) => {
             <div className="w-7 h-7 rounded-full bg-gradient-to-br from-secondary-400 to-secondary-600 border-2 border-white flex items-center justify-center text-xs">👩</div>
             <div className="w-7 h-7 rounded-full bg-gradient-to-br from-gold-400 to-gold-600 border-2 border-white flex items-center justify-center text-xs">👦</div>
           </div>
-          <span className="text-xs opacity-90">+2 more family members</span>
+          <span className="text-xs opacity-90">{t('family.moreFamilyMembers', { count: 2 })}</span>
         </div>
       </div>
     </div>

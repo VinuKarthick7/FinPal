@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { Mail, Lock, Wallet } from 'lucide-react'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
+import { useTranslation } from 'react-i18next'
 import { Button, Input, Divider, SocialButton, LinkText } from '@/components/ui'
 import { authApi } from '@/lib/api'
 import { useAuthStore } from '@/stores/authStore'
@@ -14,6 +15,7 @@ interface LoginFormData {
 }
 
 const LoginPage: React.FC = () => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [loading, setLoading] = useState(false)
@@ -25,22 +27,22 @@ const LoginPage: React.FC = () => {
     const error = searchParams.get('error')
     if (error) {
       const errorMessages: Record<string, string> = {
-        'google_not_configured': 'Google login is not configured. Please use email/password.',
-        'google_failed': 'Google login failed. Please try again.',
-        'apple_not_configured': 'Apple login is not configured. Please use email/password.',
-        'apple_failed': 'Apple login failed. Please try again.',
-        'oauth_failed': 'Social login failed. Please try again.',
+        'google_not_configured': t('auth.googleNotConfigured'),
+        'google_failed': t('auth.googleFailed'),
+        'apple_not_configured': t('auth.appleNotConfigured'),
+        'apple_failed': t('auth.appleFailed'),
+        'oauth_failed': t('auth.oauthFailed'),
       }
-      toast.error(errorMessages[error] || 'Login failed. Please try again.')
+      toast.error(errorMessages[error] || t('auth.loginFailed'))
     }
 
     const verified = searchParams.get('verified')
     if (verified === '1') {
-      toast.success('Email verified. You can sign in now.')
+      toast.success(t('auth.emailVerified'))
     } else if (verified === '0') {
-      toast.error('Verification link is invalid or expired. Please resend the verification email.')
+      toast.error(t('auth.verificationFailed'))
     }
-  }, [searchParams])
+  }, [searchParams, t])
 
   const {
     register,
@@ -54,14 +56,14 @@ const LoginPage: React.FC = () => {
       const response = await authApi.login(data.email, data.password)
       if (response.success) {
         setAuth(response.data.user, response.data.token)
-        toast.success('Welcome back!')
+        toast.success(t('auth.welcomeBack'))
         navigate('/dashboard')
       } else {
-        toast.error(response.message || 'Login failed')
+        toast.error(response.message || t('auth.loginFailed'))
       }
     } catch (error: any) {
       const code = error.response?.data?.code
-      const message = error.response?.data?.message || 'Login failed. Please try again.'
+      const message = error.response?.data?.message || t('auth.loginFailed')
       toast.error(message)
       if (code === 'EMAIL_NOT_VERIFIED') {
         setUnverifiedEmail(data.email)
@@ -77,9 +79,9 @@ const LoginPage: React.FC = () => {
     if (!unverifiedEmail) return
     try {
       const response = await authApi.resendVerification(unverifiedEmail)
-      toast.success(response.message || 'Verification email sent. Please check your inbox.')
+      toast.success(response.message || t('auth.verificationSent'))
     } catch (error: any) {
-      const message = error.response?.data?.message || 'Failed to resend verification email.'
+      const message = error.response?.data?.message || t('auth.resendFailed')
       toast.error(message)
     }
   }
@@ -110,39 +112,39 @@ const LoginPage: React.FC = () => {
                 <Wallet className="w-8 h-8 sm:w-10 sm:h-10 text-primary-600" />
               </div>
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">FinPal</h1>
-              <p className="text-sm text-gray-500 mt-1">Smart Family Finance Tracker</p>
+              <p className="text-sm text-gray-500 mt-1">{t('auth.finpalTagline')}</p>
             </div>
 
             {/* Login Form */}
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <Input
-                label="Email Address"
+                label={t('auth.emailAddress')}
                 type="email"
-                placeholder="Enter your email"
+                placeholder={t('auth.enterEmail')}
                 leftIcon={Mail}
                 error={errors.email?.message}
                 required
                 {...register('email', {
-                  required: 'Email is required',
+                  required: t('auth.emailRequired'),
                   pattern: {
                     value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                    message: 'Please enter a valid email',
+                    message: t('auth.validEmail'),
                   },
                 })}
               />
 
               <Input
-                label="Password"
+                label={t('auth.password')}
                 type="password"
-                placeholder="Enter your password"
+                placeholder={t('auth.enterPassword')}
                 leftIcon={Lock}
                 error={errors.password?.message}
                 required
                 {...register('password', {
-                  required: 'Password is required',
+                  required: t('auth.passwordRequired'),
                   minLength: {
                     value: 6,
-                    message: 'Password must be at least 6 characters',
+                    message: t('auth.passwordMinLength'),
                   },
                 })}
               />
@@ -153,7 +155,7 @@ const LoginPage: React.FC = () => {
                   to="/forgot-password"
                   className="text-sm text-primary-500 hover:text-primary-600 font-medium transition-colors"
                 >
-                  Forgot Password?
+                  {t('auth.forgotPassword')}
                 </Link>
               </div>
 
@@ -165,7 +167,7 @@ const LoginPage: React.FC = () => {
                 size="lg"
                 className="mt-6"
               >
-                Sign In
+                {t('auth.signIn')}
               </Button>
 
               {unverifiedEmail && (
@@ -174,13 +176,13 @@ const LoginPage: React.FC = () => {
                   onClick={handleResendVerification}
                   className="w-full mt-3 text-sm text-primary-500 hover:text-primary-600 font-medium transition-colors"
                 >
-                  Resend verification email
+                  {t('auth.resendVerification')}
                 </button>
               )}
             </form>
 
             {/* Divider */}
-            <Divider text="or continue with" />
+            <Divider text={t('auth.orContinueWith')} />
 
             {/* Social Login Buttons */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -191,8 +193,8 @@ const LoginPage: React.FC = () => {
             {/* Sign Up Link */}
             <div className="mt-8">
               <LinkText
-                text="Don't have an account?"
-                linkText="Sign Up"
+                text={t('auth.dontHaveAccount')}
+                linkText={t('auth.signUp')}
                 onClick={() => navigate('/register')}
               />
             </div>
@@ -200,13 +202,13 @@ const LoginPage: React.FC = () => {
 
           {/* Terms Text */}
           <p className="text-center text-xs text-gray-500 mt-6 px-4">
-            By signing in, you agree to our{' '}
+            {t('auth.termsAgree')}{' '}
             <a href="#" className="text-primary-500 hover:underline">
-              Terms of Service
+              {t('auth.termsService')}
             </a>{' '}
-            and{' '}
+            {t('auth.and')}{' '}
             <a href="#" className="text-primary-500 hover:underline">
-              Privacy Policy
+              {t('auth.privacyPolicy')}
             </a>
           </p>
         </motion.div>

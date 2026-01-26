@@ -1,6 +1,7 @@
 import React from 'react'
 import { format } from 'date-fns'
 import { motion, useReducedMotion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import {
   ShoppingCart,
   Utensils,
@@ -58,6 +59,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
   transaction,
   onClick,
 }) => {
+  const { t } = useTranslation()
   const Icon = categoryIcons[transaction.category.toLowerCase()] || MoreHorizontal
   const colorClass = categoryColors[transaction.category.toLowerCase()] || categoryColors.other
   const shouldReduceMotion = useReducedMotion()
@@ -87,7 +89,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
             transaction.type === 'expense' ? 'text-red-500' : 'text-green-500'
           }`}
         >
-          {transaction.type === 'expense' ? '-' : '+'}₹{transaction.amount.toLocaleString('en-IN')}
+          {transaction.type === 'expense' ? '-' : '+'}{t('currency.symbol')}{transaction.amount.toLocaleString('en-IN')}
         </p>
         <p className="text-xs text-gray-400 uppercase">{transaction.paymentMethod}</p>
       </div>
@@ -105,22 +107,25 @@ interface TransactionListProps {
 
 export const TransactionList: React.FC<TransactionListProps> = ({
   transactions,
-  title = 'Recent Transactions',
+  title,
   showViewAll = true,
   onViewAll,
   onTransactionClick,
 }) => {
+  const { t } = useTranslation()
+  const displayTitle = title || t('dashboard.recentTransactions')
+  
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-4 sm:px-5 py-4 border-b border-gray-100">
-        <h3 className="font-semibold text-gray-900">{title}</h3>
+        <h3 className="font-semibold text-gray-900">{displayTitle}</h3>
         {showViewAll && (
           <button
             onClick={onViewAll}
             className="text-sm text-primary-500 hover:text-primary-600 font-medium flex items-center gap-1"
           >
-            View All
+            {t('common.viewAll')}
             <ArrowUpRight className="w-4 h-4" />
           </button>
         )}
@@ -141,8 +146,8 @@ export const TransactionList: React.FC<TransactionListProps> = ({
             <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
               <ShoppingCart className="w-8 h-8 text-gray-400" />
             </div>
-            <p className="text-gray-500 font-medium">No transactions yet</p>
-            <p className="text-sm text-gray-400 mt-1">Add your first expense to get started</p>
+            <p className="text-gray-500 font-medium">{t('dashboard.noTransactions')}</p>
+            <p className="text-sm text-gray-400 mt-1">{t('dashboard.noTransactionsDesc')}</p>
           </div>
         )}
       </div>

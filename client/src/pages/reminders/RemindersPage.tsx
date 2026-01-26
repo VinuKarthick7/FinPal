@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
+import { useTranslation } from 'react-i18next'
 import {
   Plus,
   Bell,
@@ -45,13 +46,8 @@ const typeColors: Record<string, string> = {
   subscription: 'bg-teal-100 text-teal-600',
 }
 
-const typeLabels: Record<string, string> = {
-  bill: '📄 Bill',
-  loan: '💳 Loan',
-  subscription: '🔄 Subscription',
-}
-
 export const RemindersPage: React.FC = () => {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   
   const [activeReminder, setActiveReminder] = useState<Reminder | null>(null)
@@ -67,21 +63,21 @@ export const RemindersPage: React.FC = () => {
   const markPaidMutation = useMutation({
     mutationFn: (id: string) => remindersApi.markAsPaid(id),
     onSuccess: () => {
-      toast.success('Marked as paid!')
+      toast.success(t('reminders.markedAsPaid'))
       queryClient.invalidateQueries({ queryKey: ['reminders'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
     },
-    onError: () => toast.error('Failed to update reminder'),
+    onError: () => toast.error(t('reminders.updateFailed')),
   })
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => remindersApi.delete(id),
     onSuccess: () => {
-      toast.success('Reminder deleted')
+      toast.success(t('reminders.deleted'))
       queryClient.invalidateQueries({ queryKey: ['reminders'] })
       setDeleteId(null)
     },
-    onError: () => toast.error('Failed to delete reminder'),
+    onError: () => toast.error(t('reminders.deleteFailed')),
   })
 
   const reminders: Reminder[] = data?.data || []
@@ -164,33 +160,33 @@ export const RemindersPage: React.FC = () => {
               <div>
                 {reminder.isPaid ? (
                   <span className="flex items-center gap-1 text-sm text-green-600">
-                    <CheckCircle2 className="w-4 h-4" />Paid {formatDate(reminder.paidDate!)}
+                    <CheckCircle2 className="w-4 h-4" />{t('reminders.paid')} {formatDate(reminder.paidDate!)}
                   </span>
                 ) : isOverdue ? (
                   <span className="flex items-center gap-1 text-sm text-red-600">
-                    <AlertTriangle className="w-4 h-4" />{Math.abs(daysUntil)} days overdue
+                    <AlertTriangle className="w-4 h-4" />{t('reminders.daysOverdue', { count: Math.abs(daysUntil) })}
                   </span>
                 ) : isDueSoon ? (
                   <span className="flex items-center gap-1 text-sm text-orange-600">
-                    <Clock className="w-4 h-4" />{daysUntil === 0 ? 'Due today!' : `${daysUntil} days left`}
+                    <Clock className="w-4 h-4" />{daysUntil === 0 ? t('reminders.dueToday') : t('reminders.daysLeft', { count: daysUntil })}
                   </span>
                 ) : (
                   <span className="flex items-center gap-1 text-sm text-gray-500">
-                    <Calendar className="w-4 h-4" />Due {formatDate(reminder.dueDate)}
+                    <Calendar className="w-4 h-4" />{t('reminders.due')} {formatDate(reminder.dueDate)}
                   </span>
                 )}
               </div>
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 {!reminder.isPaid && (
                   <button onClick={() => markPaidMutation.mutate(reminder._id)} disabled={markPaidMutation.isPending}
-                    className="p-2 rounded-lg hover:bg-green-50 text-gray-400 hover:text-green-600 transition-colors" title="Mark as paid">
+                    className="p-2 rounded-lg hover:bg-green-50 text-gray-400 hover:text-green-600 transition-colors" title={t('reminders.markAsPaid')}>
                     <CheckCircle2 className="w-4 h-4" />
                   </button>
                 )}
-                <button onClick={() => { setActiveReminder(reminder); setIsModalOpen(true) }} className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" title="Edit">
+                <button onClick={() => { setActiveReminder(reminder); setIsModalOpen(true) }} className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" title={t('common.edit')}>
                   <Edit3 className="w-4 h-4" />
                 </button>
-                <button onClick={() => setDeleteId(reminder._id)} className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors" title="Delete">
+                <button onClick={() => setDeleteId(reminder._id)} className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors" title={t('common.delete')}>
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
@@ -206,11 +202,11 @@ export const RemindersPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Reminders</h1>
-          <p className="text-gray-500 text-sm">Track your bills, loans & subscriptions</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('reminders.title')}</h1>
+          <p className="text-gray-500 text-sm">{t('reminders.subtitle')}</p>
         </div>
         <Button onClick={() => { setActiveReminder(null); setIsModalOpen(true) }} leftIcon={<Plus className="w-4 h-4" />}>
-          Add Reminder
+          {t('reminders.addReminder')}
         </Button>
       </div>
 
@@ -221,10 +217,10 @@ export const RemindersPage: React.FC = () => {
             <div className="p-2 bg-orange-100 rounded-lg">
               <Clock className="w-4 h-4 text-orange-600" />
             </div>
-            <span className="text-sm text-gray-500">Due Soon</span>
+            <span className="text-sm text-gray-500">{t('reminders.dueSoon')}</span>
           </div>
           <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalUpcoming)}</p>
-          <p className="text-xs text-gray-400 mt-1">{reminders.filter(r => !r.isPaid).length} pending payments</p>
+          <p className="text-xs text-gray-400 mt-1">{t('reminders.pendingPayments', { count: reminders.filter(r => !r.isPaid).length })}</p>
         </div>
 
         <div className={`rounded-xl border p-4 ${totalOverdue > 0 ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200'}`}>
@@ -232,10 +228,10 @@ export const RemindersPage: React.FC = () => {
             <div className={`p-2 rounded-lg ${totalOverdue > 0 ? 'bg-red-100' : 'bg-gray-100'}`}>
               <AlertTriangle className={`w-4 h-4 ${totalOverdue > 0 ? 'text-red-600' : 'text-gray-400'}`} />
             </div>
-            <span className="text-sm text-gray-500">Overdue</span>
+            <span className="text-sm text-gray-500">{t('reminders.overdue')}</span>
           </div>
           <p className={`text-2xl font-bold ${totalOverdue > 0 ? 'text-red-600' : 'text-gray-900'}`}>{formatCurrency(totalOverdue)}</p>
-          <p className="text-xs text-gray-400 mt-1">{overdueReminders.length} overdue</p>
+          <p className="text-xs text-gray-400 mt-1">{t('reminders.overdueCount', { count: overdueReminders.length })}</p>
         </div>
 
         <div className="bg-white rounded-xl border border-gray-200 p-4">
@@ -243,10 +239,10 @@ export const RemindersPage: React.FC = () => {
             <div className="p-2 bg-green-100 rounded-lg">
               <CheckCircle2 className="w-4 h-4 text-green-600" />
             </div>
-            <span className="text-sm text-gray-500">Paid This Month</span>
+            <span className="text-sm text-gray-500">{t('reminders.paidThisMonth')}</span>
           </div>
           <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalPaidThisMonth)}</p>
-          <p className="text-xs text-gray-400 mt-1">Great job! 🎉</p>
+          <p className="text-xs text-gray-400 mt-1">{t('reminders.greatJob')}</p>
         </div>
       </div>
 
@@ -257,9 +253,9 @@ export const RemindersPage: React.FC = () => {
             className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
               filter === f ? 'bg-primary-500 text-white' : 'text-gray-600 hover:bg-gray-50'
             }`}>
-            {f === 'all' && `All (${reminders.length})`}
-            {f === 'upcoming' && `Upcoming (${reminders.filter((r) => !r.isPaid).length})`}
-            {f === 'paid' && `Paid (${reminders.filter((r) => r.isPaid).length})`}
+            {f === 'all' && t('reminders.allCount', { count: reminders.length })}
+            {f === 'upcoming' && t('reminders.upcomingCount', { count: reminders.filter((r) => !r.isPaid).length })}
+            {f === 'paid' && t('reminders.paidCount', { count: reminders.filter((r) => r.isPaid).length })}
           </button>
         ))}
       </div>
@@ -274,10 +270,10 @@ export const RemindersPage: React.FC = () => {
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
             <Bell className="w-8 h-8 text-gray-400" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No reminders yet</h3>
-          <p className="text-gray-500 mb-6 max-w-sm mx-auto">Add your bills, loans, and subscriptions to never miss a payment</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('reminders.noReminders')}</h3>
+          <p className="text-gray-500 mb-6 max-w-sm mx-auto">{t('reminders.noRemindersDesc')}</p>
           <Button onClick={() => { setActiveReminder(null); setIsModalOpen(true) }}>
-            <Plus className="w-4 h-4 mr-2" />Add Your First Reminder
+            <Plus className="w-4 h-4 mr-2" />{t('reminders.addFirstReminder')}
           </Button>
         </div>
       ) : (
@@ -285,7 +281,7 @@ export const RemindersPage: React.FC = () => {
           {filter !== 'paid' && overdueReminders.length > 0 && (
             <div>
               <h2 className="text-sm font-semibold text-red-600 mb-3 flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4" />Overdue ({overdueReminders.length})
+                <AlertTriangle className="w-4 h-4" />{t('reminders.overdueSection', { count: overdueReminders.length })}
               </h2>
               <div className="space-y-3">
                 {overdueReminders.map((r, i) => <ReminderCard key={r._id} reminder={r} index={i} />)}
@@ -295,7 +291,7 @@ export const RemindersPage: React.FC = () => {
           {filter !== 'paid' && upcomingReminders.length > 0 && (
             <div>
               <h2 className="text-sm font-semibold text-gray-600 mb-3 flex items-center gap-2">
-                <Clock className="w-4 h-4" />Upcoming ({upcomingReminders.length})
+                <Clock className="w-4 h-4" />{t('reminders.upcomingSection', { count: upcomingReminders.length })}
               </h2>
               <div className="space-y-3">
                 {upcomingReminders.map((r, i) => <ReminderCard key={r._id} reminder={r} index={i} />)}
@@ -305,7 +301,7 @@ export const RemindersPage: React.FC = () => {
           {filter !== 'upcoming' && paidReminders.length > 0 && (
             <div>
               <h2 className="text-sm font-semibold text-green-600 mb-3 flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4" />Paid ({paidReminders.length})
+                <CheckCircle2 className="w-4 h-4" />{t('reminders.paidSection', { count: paidReminders.length })}
               </h2>
               <div className="space-y-3">
                 {paidReminders.map((r, i) => <ReminderCard key={r._id} reminder={r} index={i} />)}
@@ -336,12 +332,12 @@ export const RemindersPage: React.FC = () => {
                 <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
                   <Trash2 className="w-8 h-8 text-red-500" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete Reminder?</h3>
-                <p className="text-gray-500 mb-6">This action cannot be undone.</p>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('reminders.deleteReminder')}</h3>
+                <p className="text-gray-500 mb-6">{t('reminders.cannotBeUndone')}</p>
                 <div className="flex gap-3">
-                  <Button variant="outline" fullWidth onClick={() => setDeleteId(null)}>Cancel</Button>
+                  <Button variant="outline" fullWidth onClick={() => setDeleteId(null)}>{t('common.cancel')}</Button>
                   <Button fullWidth className="bg-red-500 hover:bg-red-600" loading={deleteMutation.isPending}
-                    onClick={() => deleteMutation.mutate(deleteId)}>Delete</Button>
+                    onClick={() => deleteMutation.mutate(deleteId)}>{t('common.delete')}</Button>
                 </div>
               </div>
             </motion.div>
@@ -354,6 +350,7 @@ export const RemindersPage: React.FC = () => {
 
 // Modal Component
 const ReminderModal: React.FC<{ reminder: Reminder | null; onClose: () => void }> = ({ reminder, onClose }) => {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const isEditing = !!reminder
   
@@ -369,14 +366,14 @@ const ReminderModal: React.FC<{ reminder: Reminder | null; onClose: () => void }
 
   const createMutation = useMutation({
     mutationFn: (data: any) => remindersApi.create(data),
-    onSuccess: () => { toast.success('Reminder created!'); queryClient.invalidateQueries({ queryKey: ['reminders'] }); onClose() },
-    onError: () => toast.error('Failed to create reminder'),
+    onSuccess: () => { toast.success(t('reminders.created')); queryClient.invalidateQueries({ queryKey: ['reminders'] }); onClose() },
+    onError: () => toast.error(t('reminders.createFailed')),
   })
 
   const updateMutation = useMutation({
     mutationFn: (data: any) => remindersApi.update(reminder!._id, data),
-    onSuccess: () => { toast.success('Reminder updated!'); queryClient.invalidateQueries({ queryKey: ['reminders'] }); onClose() },
-    onError: () => toast.error('Failed to update reminder'),
+    onSuccess: () => { toast.success(t('reminders.updated')); queryClient.invalidateQueries({ queryKey: ['reminders'] }); onClose() },
+    onError: () => toast.error(t('reminders.updateFailed')),
   })
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -401,7 +398,7 @@ const ReminderModal: React.FC<{ reminder: Reminder | null; onClose: () => void }
       <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
         onClick={(e) => e.stopPropagation()} className="bg-white rounded-2xl max-w-md w-full shadow-xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-5 border-b border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-900">{isEditing ? 'Edit Reminder' : 'Add Reminder'}</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{isEditing ? t('reminders.editReminder') : t('reminders.addReminder')}</h2>
           <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
             <X className="w-5 h-5 text-gray-500" />
           </button>
@@ -409,14 +406,14 @@ const ReminderModal: React.FC<{ reminder: Reminder | null; onClose: () => void }
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Title</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('reminders.formTitle')}</label>
             <input type="text" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              placeholder="e.g., Electricity Bill, Netflix"
+              placeholder={t('reminders.formTitlePlaceholder')}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20" required />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Amount</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('reminders.formAmount')}</label>
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">₹</span>
               <input type="number" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
@@ -426,20 +423,20 @@ const ReminderModal: React.FC<{ reminder: Reminder | null; onClose: () => void }
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Due Date</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('reminders.formDueDate')}</label>
             <input type="date" value={formData.dueDate} onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20" required />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Type</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('reminders.formType')}</label>
             <div className="grid grid-cols-3 gap-2">
               {(['bill', 'loan', 'subscription'] as const).map((type) => (
                 <button key={type} type="button" onClick={() => setFormData({ ...formData, type })}
                   className={`p-3 rounded-xl text-sm font-medium transition-all border ${
                     formData.type === type ? `${typeColors[type]} border-current` : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
                   }`}>
-                  {typeLabels[type]}
+                  {t(`reminders.type${type.charAt(0).toUpperCase()}${type.slice(1)}`)}
                 </button>
               ))}
             </div>
@@ -450,29 +447,29 @@ const ReminderModal: React.FC<{ reminder: Reminder | null; onClose: () => void }
               <input type="checkbox" checked={formData.recurring} onChange={(e) => setFormData({ ...formData, recurring: e.target.checked })}
                 className="w-5 h-5 rounded border-gray-300 text-primary-500 focus:ring-primary-500" />
               <div>
-                <span className="text-sm font-medium text-gray-700">Recurring payment</span>
-                <p className="text-xs text-gray-500">Auto-create next reminder when paid</p>
+                <span className="text-sm font-medium text-gray-700">{t('reminders.recurringPayment')}</span>
+                <p className="text-xs text-gray-500">{t('reminders.recurringPaymentDesc')}</p>
               </div>
             </label>
             {formData.recurring && (
               <select value={formData.recurringPeriod} onChange={(e) => setFormData({ ...formData, recurringPeriod: e.target.value as any })}
                 className="mt-3 w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-primary-500 focus:outline-none bg-white text-sm">
-                <option value="monthly">Every Month</option>
-                <option value="quarterly">Every 3 Months</option>
-                <option value="yearly">Every Year</option>
+                <option value="monthly">{t('reminders.everyMonth')}</option>
+                <option value="quarterly">{t('reminders.everyQuarter')}</option>
+                <option value="yearly">{t('reminders.everyYear')}</option>
               </select>
             )}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Notes <span className="font-normal text-gray-400">(optional)</span></label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('reminders.formNotes')} <span className="font-normal text-gray-400">({t('common.optional')})</span></label>
             <textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              placeholder="Any additional details..." rows={2}
+              placeholder={t('reminders.formNotesPlaceholder')} rows={2}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 resize-none" />
           </div>
 
           <Button type="submit" fullWidth loading={isPending}>
-            {isEditing ? 'Save Changes' : 'Add Reminder'}
+            {isEditing ? t('reminders.saveChanges') : t('reminders.addReminder')}
           </Button>
         </form>
       </motion.div>

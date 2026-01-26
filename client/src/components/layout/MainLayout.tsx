@@ -9,22 +9,25 @@ import {
   BarChart3,
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
+import { LanguageSwitcher } from '@/components/ui'
+import { useTranslation } from 'react-i18next'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
-const navItems = [
-  { path: '/dashboard', icon: LayoutDashboard, label: 'Home' },
-  { path: '/expenses', icon: Wallet, label: 'Expenses' },
-  { path: '/add-expense', icon: PlusCircle, label: 'Add' },
-  { path: '/budget', icon: PiggyBank, label: 'Budget' },
-  { path: '/reports', icon: BarChart3, label: 'Reports' },
-]
-
 export const MainLayout: React.FC = () => {
+  const { t } = useTranslation()
   const location = useLocation()
   const user = useAuthStore((state) => state.user)
   const mainRef = useRef<HTMLElement | null>(null)
   const shouldReduceMotion = useReducedMotion()
+
+  const navItems = [
+    { path: '/dashboard', icon: LayoutDashboard, label: t('nav.home') },
+    { path: '/expenses', icon: Wallet, label: t('nav.expenses') },
+    { path: '/add-expense', icon: PlusCircle, label: t('nav.add') },
+    { path: '/budget', icon: PiggyBank, label: t('nav.budget') },
+    { path: '/reports', icon: BarChart3, label: t('nav.reports') },
+  ]
 
   useEffect(() => {
     const el = mainRef.current
@@ -66,22 +69,26 @@ export const MainLayout: React.FC = () => {
             </div>
             <span className="font-bold text-gray-900">FinPal</span>
           </div>
-          <NavLink to="/profile" className="block">
-            <div className="w-9 h-9 rounded-full bg-primary-100 flex items-center justify-center overflow-hidden ring-2 ring-primary-200 hover:ring-primary-300 transition-all">
-              <img 
-                src={isValidAvatar(user?.avatar) ? getAvatarUrl(user?.avatar)! : '/default-avatar.svg'} 
-                alt="Profile" 
-                className="w-full h-full rounded-full object-cover"
-                style={{ padding: isValidAvatar(user?.avatar) ? 0 : '6px' }}
-                onError={(e) => {
-                  const img = e.currentTarget
-                  if (img.src.endsWith('/default-avatar.svg')) return
-                  img.src = '/default-avatar.svg'
-                  img.style.padding = '6px'
-                }}
-              />
-            </div>
-          </NavLink>
+          <div className="flex items-center gap-4">
+            {/* Make LanguageSwitcher more prominent */}
+            <LanguageSwitcher />
+            <NavLink to="/profile" className="block">
+              <div className="w-9 h-9 rounded-full bg-primary-100 flex items-center justify-center overflow-hidden ring-2 ring-primary-200 hover:ring-primary-300 transition-all">
+                <img 
+                  src={isValidAvatar(user?.avatar) ? getAvatarUrl(user?.avatar)! : '/default-avatar.svg'} 
+                  alt="Profile" 
+                  className="w-full h-full rounded-full object-cover"
+                  style={{ padding: isValidAvatar(user?.avatar) ? 0 : '6px' }}
+                  onError={(e) => {
+                    const img = e.currentTarget
+                    if (img.src.endsWith('/default-avatar.svg')) return
+                    img.src = '/default-avatar.svg'
+                    img.style.padding = '6px'
+                  }}
+                />
+              </div>
+            </NavLink>
+          </div>
         </div>
       </header>
 
@@ -116,7 +123,10 @@ export const MainLayout: React.FC = () => {
         </nav>
 
         {/* Profile Section */}
-        <div className="p-4 border-t border-gray-100">
+        <div className="p-4 border-t border-gray-100 space-y-3">
+          <div className="flex items-center justify-center px-4">
+            <LanguageSwitcher />
+          </div>
           <NavLink
             to="/profile"
             className={({ isActive }) =>

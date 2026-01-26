@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import {
   Wallet,
@@ -89,6 +90,7 @@ interface ReminderData {
 }
 
 export const DashboardPage: React.FC = () => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const user = useAuthStore((state) => state.user)
   const [isFamilyModeOpen, setIsFamilyModeOpen] = useState(false)
@@ -194,8 +196,8 @@ export const DashboardPage: React.FC = () => {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <ErrorDisplay
-          title="Failed to load dashboard"
-          message="We couldn't load your dashboard data. Please try again."
+          title={t('dashboard.loadFailed')}
+          message={t('dashboard.loadFailedMessage')}
           onRetry={() => refetchStats()}
         />
       </div>
@@ -209,7 +211,7 @@ export const DashboardPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <p className="text-primary-100 text-sm sm:text-base">Good morning,</p>
+              <p className="text-primary-100 text-sm sm:text-base">{t('dashboard.goodMorning')},</p>
               <h1 className="text-2xl sm:text-3xl font-bold">{userName}! 👋</h1>
             </div>
             <div className="flex items-center gap-3 flex-wrap">
@@ -218,7 +220,7 @@ export const DashboardPage: React.FC = () => {
                 className="flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-xl px-3 sm:px-4 py-2 transition-all hover:scale-105 text-sm sm:text-base font-medium"
               >
                 <Users className="w-4 h-4" />
-                <span>Family</span>
+                <span>{t('nav.family')}</span>
               </button>
               <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2">
                 <Calendar className="w-4 h-4" />
@@ -231,7 +233,7 @@ export const DashboardPage: React.FC = () => {
                 leftIcon={<Plus className="w-4 h-4" />}
                 className="hidden sm:flex"
               >
-                Add Expense
+                {t('expenses.addExpense')}
               </Button>
             </div>
           </div>
@@ -251,31 +253,31 @@ export const DashboardPage: React.FC = () => {
           className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6"
         >
           <StatCard
-            title="Total Spent"
+            title={t('dashboard.totalSpent')}
             value={formatCurrency(statsData?.totalSpent || 0)}
-            subtitle="This month"
+            subtitle={t('dashboard.thisMonth')}
             icon={Wallet}
             color="primary"
             trend={statsData?.trends?.spent}
           />
           <StatCard
-            title="Income"
+            title={t('dashboard.income')}
             value={formatCurrency(statsData?.totalIncome || 0)}
-            subtitle="This month"
+            subtitle={t('dashboard.thisMonth')}
             icon={TrendingUp}
             color="green"
           />
           <StatCard
-            title="Savings"
+            title={t('dashboard.savings')}
             value={formatCurrency(statsData?.savings || 0)}
-            subtitle="This month"
+            subtitle={t('dashboard.thisMonth')}
             icon={PiggyBank}
             color="secondary"
           />
           <StatCard
-            title="Pending Bills"
+            title={t('dashboard.pendingBills')}
             value={formatCurrency(statsData?.pendingBills?.amount || 0)}
-            subtitle={`${statsData?.pendingBills?.count || 0} upcoming`}
+            subtitle={t('dashboard.billsUpcoming', { count: statsData?.pendingBills?.count || 0 })}
             icon={TrendingDown}
             color="accent"
           />
@@ -344,35 +346,35 @@ export const DashboardPage: React.FC = () => {
         {/* Quick Actions - Mobile Only */}
         <motion.div variants={itemVariants} className="mt-6 lg:hidden">
           <div className="bg-white rounded-2xl border border-surface-200 shadow-sm p-4">
-            <h3 className="font-semibold text-surface-900 mb-3">Quick Actions</h3>
+            <h3 className="font-semibold text-surface-900 mb-3">{t('dashboard.quickActions')}</h3>
             <div className="grid grid-cols-4 gap-2">
               <button
                 onClick={() => navigate('/add-expense')}
                 className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-primary-50 text-primary-600"
               >
                 <Plus className="w-5 h-5" />
-                <span className="text-xs font-medium">Add</span>
+                <span className="text-xs font-medium">{t('common.add')}</span>
               </button>
               <button
                 onClick={() => navigate('/expenses')}
                 className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-secondary-50 text-secondary-600"
               >
                 <Wallet className="w-5 h-5" />
-                <span className="text-xs font-medium">Expenses</span>
+                <span className="text-xs font-medium">{t('nav.expenses')}</span>
               </button>
               <button
                 onClick={() => navigate('/reminders')}
                 className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-gold-50 text-gold-600"
               >
                 <Calendar className="w-5 h-5" />
-                <span className="text-xs font-medium">Reminders</span>
+                <span className="text-xs font-medium">{t('nav.reminders')}</span>
               </button>
               <button
                 onClick={() => navigate('/family')}
                 className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-accent-50 text-accent-600"
               >
                 <Users className="w-5 h-5" />
-                <span className="text-xs font-medium">Family</span>
+                <span className="text-xs font-medium">{t('nav.family')}</span>
               </button>
             </div>
           </div>

@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 
 interface CategoryData {
   name: string
@@ -16,9 +17,11 @@ export const CategoryBreakdown: React.FC<CategoryBreakdownProps> = ({
   categories,
   total,
 }) => {
+  const { t } = useTranslation()
+  
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5">
-      <h3 className="font-semibold text-gray-900 mb-4">Spending by Category</h3>
+      <h3 className="font-semibold text-gray-900 mb-4">{t('dashboard.spendingByCategory')}</h3>
 
       {/* Progress Bar */}
       <div className="h-3 sm:h-4 rounded-full bg-gray-100 overflow-hidden flex mb-6">
@@ -49,7 +52,7 @@ export const CategoryBreakdown: React.FC<CategoryBreakdownProps> = ({
                     {category.name}
                   </span>
                   <span className="text-sm font-semibold text-gray-900 ml-2">
-                    ₹{category.amount.toLocaleString('en-IN')}
+                    {t('currency.symbol')}{category.amount.toLocaleString('en-IN')}
                   </span>
                 </div>
                 <div className="flex items-center justify-between mt-0.5">
@@ -74,9 +77,9 @@ export const CategoryBreakdown: React.FC<CategoryBreakdownProps> = ({
 
       {/* Total */}
       <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
-        <span className="text-sm text-gray-500">Total Spent</span>
+        <span className="text-sm text-gray-500">{t('dashboard.totalSpentLabel')}</span>
         <span className="text-lg font-bold text-gray-900">
-          ₹{total.toLocaleString('en-IN')}
+          {t('currency.symbol')}{total.toLocaleString('en-IN')}
         </span>
       </div>
     </div>

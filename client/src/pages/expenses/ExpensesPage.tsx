@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
+import { useTranslation } from 'react-i18next'
 import {
   Search,
   Filter,
@@ -76,6 +77,7 @@ const categories = [
 export const ExpensesPage: React.FC = () => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { t } = useTranslation()
   
   // Filters state
   const [searchQuery, setSearchQuery] = useState('')
@@ -105,13 +107,13 @@ export const ExpensesPage: React.FC = () => {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => expensesApi.delete(id),
     onSuccess: () => {
-      toast.success('Transaction deleted')
+      toast.success(t('expenses.transactionDeleted'))
       queryClient.invalidateQueries({ queryKey: ['transactions'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
       setDeleteId(null)
     },
     onError: () => {
-      toast.error('Failed to delete transaction')
+      toast.error(t('expenses.deleteFailed'))
     },
   })
 
@@ -170,9 +172,9 @@ export const ExpensesPage: React.FC = () => {
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Transactions</h1>
+              <h1 className="text-2xl font-bold text-gray-900">{t('expenses.transactions')}</h1>
               <p className="text-sm text-gray-500">
-                {pagination.total} total transactions
+                {pagination.total} {t('expenses.totalTransactions')}
               </p>
             </div>
             <Button
@@ -180,7 +182,7 @@ export const ExpensesPage: React.FC = () => {
               leftIcon={<Plus className="w-4 h-4" />}
               size="sm"
             >
-              Add New
+              {t('expenses.addNew')}
             </Button>
           </div>
 
@@ -190,7 +192,7 @@ export const ExpensesPage: React.FC = () => {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search transactions..."
+                placeholder={t('expenses.searchTransactions')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all"
@@ -205,7 +207,7 @@ export const ExpensesPage: React.FC = () => {
               }`}
             >
               <Filter className="w-5 h-5" />
-              <span className="hidden sm:inline">Filters</span>
+              <span className="hidden sm:inline">{t('expenses.filters')}</span>
               {hasActiveFilters && (
                 <span className="w-2 h-2 rounded-full bg-primary-500" />
               )}
@@ -225,7 +227,7 @@ export const ExpensesPage: React.FC = () => {
                   {/* Type Filter */}
                   <div>
                     <label className="text-sm font-medium text-gray-700 mb-2 block">
-                      Type
+                      {t('expenses.type')}
                     </label>
                     <div className="flex gap-2">
                       {(['all', 'expense', 'income'] as const).map((type) => (
@@ -245,7 +247,7 @@ export const ExpensesPage: React.FC = () => {
                               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                           }`}
                         >
-                          {type === 'all' ? 'All' : type === 'expense' ? '💸 Expenses' : '💰 Income'}
+                          {type === 'all' ? t('expenses.all') : type === 'expense' ? `💸 ${t('expenses.expenses')}` : `💰 ${t('expenses.income')}`}
                         </button>
                       ))}
                     </div>
@@ -254,7 +256,7 @@ export const ExpensesPage: React.FC = () => {
                   {/* Category Filter */}
                   <div>
                     <label className="text-sm font-medium text-gray-700 mb-2 block">
-                      Category
+                      {t('expenses.category')}
                     </label>
                     <div className="flex flex-wrap gap-2">
                       {categories.map((cat) => (
@@ -270,7 +272,7 @@ export const ExpensesPage: React.FC = () => {
                               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                           }`}
                         >
-                          {cat !== 'All' && categoryIcons[cat]} {cat}
+                          {cat !== 'All' && categoryIcons[cat]} {t(`categories.${cat}`)}
                         </button>
                       ))}
                     </div>
@@ -279,7 +281,7 @@ export const ExpensesPage: React.FC = () => {
                   {/* Date Range */}
                   <div>
                     <label className="text-sm font-medium text-gray-700 mb-2 block">
-                      Date Range
+                      {t('expenses.dateRange')}
                     </label>
                     <div className="flex gap-2 items-center">
                       <input
@@ -291,7 +293,7 @@ export const ExpensesPage: React.FC = () => {
                         }}
                         className="flex-1 px-3 py-2 rounded-lg border border-gray-200 focus:border-primary-500 focus:outline-none text-sm"
                       />
-                      <span className="text-gray-400">to</span>
+                      <span className="text-gray-400">{t('expenses.to')}</span>
                       <input
                         type="date"
                         value={dateRange.end}
@@ -310,7 +312,7 @@ export const ExpensesPage: React.FC = () => {
                       onClick={clearFilters}
                       className="text-sm text-primary-600 hover:text-primary-700 font-medium"
                     >
-                      Clear all filters
+                      {t('expenses.clearAllFilters')}
                     </button>
                   )}
                 </div>
@@ -332,17 +334,17 @@ export const ExpensesPage: React.FC = () => {
               <Search className="w-10 h-10 text-gray-400" />
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              No transactions found
+              {t('expenses.noTransactionsFound')}
             </h3>
             <p className="text-gray-500 mb-6">
               {hasActiveFilters
-                ? 'Try adjusting your filters'
-                : 'Start by adding your first transaction'}
+                ? t('expenses.tryAdjustingFilters')
+                : t('expenses.startByAdding')}
             </p>
             {!hasActiveFilters && (
               <Button onClick={() => navigate('/add-expense')}>
                 <Plus className="w-4 h-4 mr-2" />
-                Add Transaction
+                {t('expenses.addTransaction')}
               </Button>
             )}
           </div>
@@ -436,17 +438,17 @@ export const ExpensesPage: React.FC = () => {
                   disabled={page === 1}
                   className="px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Previous
+                  {t('expenses.previous')}
                 </button>
                 <span className="px-4 py-2 text-gray-600">
-                  Page {page} of {pagination.pages}
+                  {t('expenses.page')} {page} {t('expenses.of')} {pagination.pages}
                 </span>
                 <button
                   onClick={() => setPage((p) => Math.min(pagination.pages, p + 1))}
                   disabled={page === pagination.pages}
                   className="px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Next
+                  {t('expenses.next')}
                 </button>
               </div>
             )}
@@ -483,10 +485,10 @@ export const ExpensesPage: React.FC = () => {
                   <Trash2 className="w-8 h-8 text-red-500" />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  Delete Transaction?
+                  {t('expenses.deleteTransaction')}
                 </h3>
                 <p className="text-gray-500 mb-6">
-                  This action cannot be undone. The transaction will be permanently removed.
+                  {t('expenses.deleteConfirmation')}
                 </p>
                 <div className="flex gap-3">
                   <Button
@@ -494,7 +496,7 @@ export const ExpensesPage: React.FC = () => {
                     fullWidth
                     onClick={() => setDeleteId(null)}
                   >
-                    Cancel
+                    {t('common.cancel')}
                   </Button>
                   <Button
                     fullWidth
@@ -502,7 +504,7 @@ export const ExpensesPage: React.FC = () => {
                     loading={deleteMutation.isPending}
                     onClick={() => deleteMutation.mutate(deleteId)}
                   >
-                    Delete
+                    {t('common.delete')}
                   </Button>
                 </div>
               </div>

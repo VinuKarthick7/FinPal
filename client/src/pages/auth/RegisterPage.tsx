@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { Mail, Lock, User, Phone, ArrowLeft, Wallet } from 'lucide-react'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
+import { useTranslation } from 'react-i18next'
 import { Button, Input, Divider, SocialButton, LinkText, Checkbox } from '@/components/ui'
 import { authApi } from '@/lib/api'
 import { useAuthStore } from '@/stores/authStore'
@@ -17,6 +18,7 @@ interface RegisterFormData {
 }
 
 export const RegisterPage: React.FC = () => {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [acceptTerms, setAcceptTerms] = useState(false)
@@ -33,7 +35,7 @@ export const RegisterPage: React.FC = () => {
 
   const onSubmit = async (data: RegisterFormData) => {
     if (!acceptTerms) {
-      toast.error('Please accept the terms and conditions')
+      toast.error(t('auth.acceptTerms'))
       return
     }
 
@@ -50,17 +52,17 @@ export const RegisterPage: React.FC = () => {
         if (response.data?.token) {
           // Backwards compatibility if token is returned
           setAuth(response.data.user, response.data.token)
-          toast.success('Account created successfully!')
+          toast.success(t('auth.registerSuccess'))
           navigate('/dashboard')
         } else {
-          toast.success('Account created! Please verify your email to activate your account.')
+          toast.success(t('auth.registerSuccess'))
           navigate('/login?verify=1')
         }
       } else {
-        toast.error(response.message || 'Registration failed')
+        toast.error(response.message || t('auth.registerFailed'))
       }
     } catch (error: any) {
-      const message = error.response?.data?.message || 'Registration failed. Please try again.'
+      const message = error.response?.data?.message || t('auth.registerFailed')
       toast.error(message)
     } finally {
       setLoading(false)
@@ -93,7 +95,7 @@ export const RegisterPage: React.FC = () => {
               className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors mb-6"
             >
               <ArrowLeft size={20} />
-              <span className="text-sm font-medium">Back</span>
+              <span className="text-sm font-medium">{t('common.back')}</span>
             </button>
 
             {/* Logo Section */}
@@ -101,42 +103,42 @@ export const RegisterPage: React.FC = () => {
               <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-3xl bg-primary-100 mb-3">
                 <Wallet className="w-7 h-7 sm:w-8 sm:h-8 text-primary-600" />
               </div>
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Create Account</h1>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{t('auth.signUp')}</h1>
               <p className="text-gray-500 mt-1 text-sm">
-                Start your journey to better financial management
+                {t('auth.finpalTagline')}
               </p>
             </div>
 
             {/* Register Form */}
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <Input
-                label="Full Name"
+                label={t('auth.fullName')}
                 type="text"
-                placeholder="Enter your full name"
+                placeholder={t('auth.enterFullName')}
                 leftIcon={User}
                 error={errors.fullName?.message}
                 required
                 {...register('fullName', {
-                  required: 'Full name is required',
+                  required: t('auth.fullNameRequired'),
                   minLength: {
                     value: 2,
-                    message: 'Name must be at least 2 characters',
+                    message: t('auth.fullNameRequired'),
                   },
                 })}
               />
 
               <Input
-                label="Email Address"
+                label={t('auth.email')}
                 type="email"
-                placeholder="Enter your email"
+                placeholder={t('auth.enterEmail')}
                 leftIcon={Mail}
                 error={errors.email?.message}
                 required
                 {...register('email', {
-                  required: 'Email is required',
+                  required: t('auth.emailRequired'),
                   pattern: {
                     value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                    message: 'Please enter a valid email',
+                    message: t('auth.validEmail'),
                   },
                 })}
               />
@@ -159,37 +161,37 @@ export const RegisterPage: React.FC = () => {
               />
 
               <Input
-                label="Password"
+                label={t('auth.password')}
                 type="password"
-                placeholder="Create a strong password"
+                placeholder={t('auth.enterPassword')}
                 leftIcon={Lock}
                 error={errors.password?.message}
-                hint="Min 8 characters with uppercase, lowercase & number"
+                hint={t('auth.passwordMinLength')}
                 required
                 {...register('password', {
-                  required: 'Password is required',
+                  required: t('auth.passwordRequired'),
                   minLength: {
                     value: 8,
-                    message: 'Password must be at least 8 characters',
+                    message: t('auth.passwordMinLength'),
                   },
                   pattern: {
                     value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-                    message: 'Must contain uppercase, lowercase, and number',
+                    message: t('auth.passwordMinLength'),
                   },
                 })}
               />
 
               <Input
-                label="Confirm Password"
+                label={t('auth.confirmPassword')}
                 type="password"
-                placeholder="Confirm your password"
+                placeholder={t('auth.confirmPasswordPlaceholder')}
                 leftIcon={Lock}
                 error={errors.confirmPassword?.message}
                 required
                 {...register('confirmPassword', {
-                  required: 'Please confirm your password',
+                  required: t('auth.passwordRequired'),
                   validate: (value) =>
-                    value === password || 'Passwords do not match',
+                    value === password || t('auth.passwordsMatch'),
                 })}
               />
 
@@ -199,13 +201,13 @@ export const RegisterPage: React.FC = () => {
                 onChange={setAcceptTerms}
                 label={
                   <>
-                    I agree to the{' '}
+                    {t('auth.termsAgree')}{' '}
                     <a href="#" className="text-primary-500 hover:underline">
-                      Terms of Service
+                      {t('auth.termsService')}
                     </a>{' '}
-                    and{' '}
+                    {t('auth.and')}{' '}
                     <a href="#" className="text-primary-500 hover:underline">
-                      Privacy Policy
+                      {t('auth.privacyPolicy')}
                     </a>
                   </>
                 }
@@ -221,12 +223,12 @@ export const RegisterPage: React.FC = () => {
                 size="lg"
                 className="mt-6"
               >
-                Create Account
+                {t('auth.signUp')}
               </Button>
             </form>
 
             {/* Divider */}
-            <Divider text="or sign up with" />
+            <Divider text={t('auth.orContinueWith')} />
 
             {/* Social Login Buttons */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -237,8 +239,8 @@ export const RegisterPage: React.FC = () => {
             {/* Login Link */}
             <div className="mt-8">
               <LinkText
-                text="Already have an account?"
-                linkText="Sign In"
+                text={t('auth.alreadyHaveAccount')}
+                linkText={t('auth.signIn')}
                 onClick={() => navigate('/login')}
               />
             </div>

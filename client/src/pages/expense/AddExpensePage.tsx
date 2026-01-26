@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import toast from 'react-hot-toast'
+import { useTranslation } from 'react-i18next'
 import {
   ArrowLeft,
   Store,
@@ -73,6 +74,7 @@ export const AddExpensePage: React.FC = () => {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const queryClient = useQueryClient()
+  const { t } = useTranslation()
   
   // Get initial tab from URL params
   const initialTab = (searchParams.get('tab') as TabType) || 'expense'
@@ -137,7 +139,7 @@ export const AddExpensePage: React.FC = () => {
         notes: data.notes,
       }),
     onSuccess: () => {
-      toast.success(`${activeTab === 'expense' ? 'Expense' : 'Income'} added successfully!`)
+      toast.success(activeTab === 'expense' ? t('expenses.expenseAdded') : t('expenses.incomeAdded'))
       // Invalidate common dashboard queries
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
       queryClient.invalidateQueries({ queryKey: ['recent-transactions'] })
@@ -161,7 +163,7 @@ export const AddExpensePage: React.FC = () => {
     },
 
     onError: (error: any) => {
-      const message = error.response?.data?.message || 'Failed to add transaction'
+      const message = error.response?.data?.message || t('expenses.addTransactionFailed')
       toast.error(message)
     },
   })
@@ -179,7 +181,7 @@ export const AddExpensePage: React.FC = () => {
         notes: data.notes || undefined,
       }),
     onSuccess: () => {
-      toast.success('Reminder added successfully!')
+      toast.success(t('reminders.reminderAdded'))
       queryClient.invalidateQueries({ queryKey: ['reminders'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] })
       queryClient.invalidateQueries({ queryKey: ['upcoming-reminders'] })
@@ -187,7 +189,7 @@ export const AddExpensePage: React.FC = () => {
       navigate('/reminders')
     },
     onError: (error: any) => {
-      const message = error.response?.data?.message || 'Failed to add reminder'
+      const message = error.response?.data?.message || t('reminders.reminderFailed')
       toast.error(message)
     },
   })
@@ -218,17 +220,17 @@ export const AddExpensePage: React.FC = () => {
 
   const getHeaderTitle = () => {
     switch (activeTab) {
-      case 'expense': return 'Add Expense'
-      case 'income': return 'Add Income'
-      case 'reminder': return 'Add Reminder'
+      case 'expense': return t('expenses.addExpense')
+      case 'income': return t('expenses.addIncome')
+      case 'reminder': return t('reminders.addReminder')
     }
   }
 
   const getHeaderSubtitle = () => {
     switch (activeTab) {
-      case 'expense': return 'Track your spending'
-      case 'income': return 'Record your earnings'
-      case 'reminder': return 'Never miss a payment'
+      case 'expense': return t('expenses.trackSpending')
+      case 'income': return t('expenses.recordEarnings')
+      case 'reminder': return t('reminders.neverMissPayment')
     }
   }
 
@@ -310,11 +312,11 @@ export const AddExpensePage: React.FC = () => {
               {/* Amount */}
               <div className="bg-white rounded-3xl border border-gray-200 p-5">
                 <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Amount
+                  {t('expenses.amount')}
                 </label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl text-gray-400">
-                    ₹
+                    {t('currency.symbol')}
                   </span>
                   <input
                     type="number"
@@ -326,8 +328,8 @@ export const AddExpensePage: React.FC = () => {
                         : 'border-gray-200 focus:border-primary-500'
                     } focus:outline-none`}
                     {...registerExpense('amount', {
-                      required: 'Amount is required',
-                      min: { value: 0.01, message: 'Amount must be greater than 0' },
+                      required: t('expenses.amountRequired'),
+                      min: { value: 0.01, message: t('expenses.amountGreaterThanZero') },
                     })}
                   />
                 </div>
@@ -339,7 +341,7 @@ export const AddExpensePage: React.FC = () => {
               {/* Category */}
               <div className="bg-white rounded-3xl border border-gray-200 p-5">
                 <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Category
+                  {t('expenses.category')}
                 </label>
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                   {categories

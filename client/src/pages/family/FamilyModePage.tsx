@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import {
   Users, ArrowLeft, Plus, Lock, Shield, Settings, TrendingUp, TrendingDown,
   PieChart, Calendar, Bell, RefreshCw, Copy, CheckCircle, XCircle, Edit3,
@@ -70,6 +71,7 @@ const relationColors: Record<string, string> = {
 };
 
 const FamilyModePage: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'expenses' | 'budget' | 'reminders' | 'connect' | 'join'>('overview');
@@ -114,7 +116,7 @@ const FamilyModePage: React.FC = () => {
     if (dashboardData?.family.familyCode) {
       await navigator.clipboard.writeText(dashboardData.family.familyCode);
       setCopiedCode(true);
-      toast.success('Family code copied!');
+      toast.success(t('common.copied'));
       setTimeout(() => setCopiedCode(false), 2000);
     }
   };
@@ -123,7 +125,7 @@ const FamilyModePage: React.FC = () => {
     setIsRefreshing(true);
     await loadFamilyData();
     setIsRefreshing(false);
-    toast.success('Data refreshed!');
+    toast.success(t('common.refresh') + '!');
   };
 
   useEffect(() => {
@@ -131,10 +133,10 @@ const FamilyModePage: React.FC = () => {
   }, []);
 
   const handleCreateFamily = async () => {
-    if (!createForm.familyName.trim()) { toast.error('Please enter a family name'); return; }
+    if (!createForm.familyName.trim()) { toast.error(t('family.familyName') + ' required'); return; }
     try {
       const response = await familyApi.createFamily({ familyName: createForm.familyName, nickname: createForm.nickname, relation: createForm.relation, sharedBudget: { amount: createForm.budgetAmount, period: 'monthly' } });
-      if (response.success) { toast.success('Family created!'); setShowCreateModal(false); loadFamilyData(); }
+      if (response.success) { toast.success(t('family.createFamily') + '!'); setShowCreateModal(false); loadFamilyData(); }
     } catch (error: any) { toast.error(error.response?.data?.message || 'Failed to create family'); }
   };
 
@@ -142,27 +144,27 @@ const FamilyModePage: React.FC = () => {
     if (joinForm.familyCode.length !== 6) { toast.error('Enter valid 6-digit code'); return; }
     try {
       const response = await familyApi.joinFamily({ familyCode: joinForm.familyCode.toUpperCase(), nickname: joinForm.nickname, relation: joinForm.relation });
-      if (response.success) { toast.success(response.message || 'Joined!'); setShowJoinModal(false); loadFamilyData(); }
+      if (response.success) { toast.success(response.message || t('family.joinFamily') + '!'); setShowJoinModal(false); loadFamilyData(); }
     } catch (error: any) { toast.error(error.response?.data?.message || 'Failed to join'); }
   };
 
   const handleInviteMember = async () => {
-    if (!inviteForm.email.trim()) { toast.error('Enter email'); return; }
+    if (!inviteForm.email.trim()) { toast.error(t('auth.email') + ' required'); return; }
     try {
       const response = await familyApi.inviteMember({ email: inviteForm.email, relation: inviteForm.relation, role: inviteForm.role === 'Admin' ? 'Member' : inviteForm.role });
-      if (response.success) { toast.success(`Invitation sent to ${inviteForm.email}`); setShowInviteModal(false); setInviteForm({ email: '', relation: 'Other', role: 'Member' }); }
+      if (response.success) { toast.success(`${t('family.inviteMember')} sent to ${inviteForm.email}`); setShowInviteModal(false); setInviteForm({ email: '', relation: 'Other', role: 'Member' }); }
     } catch (error: any) { toast.error(error.response?.data?.message || 'Failed'); }
   };
 
   const handleLeaveFamily = async () => {
-    if (!confirm('Leave this family?')) return;
-    try { const response = await familyApi.leaveFamily(); if (response.success) { toast.success('Left family'); setHasFamily(false); setDashboardData(null); } }
+    if (!confirm(t('family.leaveFamily') + '?')) return;
+    try { const response = await familyApi.leaveFamily(); if (response.success) { toast.success(t('family.leaveFamily')); setHasFamily(false); setDashboardData(null); } }
     catch (error: any) { toast.error(error.response?.data?.message || 'Failed'); }
   };
 
   const handleRegenerateCode = async () => {
-    if (!confirm('Regenerate code?')) return;
-    try { const response = await familyApi.regenerateCode(); if (response.success) { toast.success('New code generated'); loadFamilyData(); } }
+    if (!confirm(t('family.regenerateCode') + '?')) return;
+    try { const response = await familyApi.regenerateCode(); if (response.success) { toast.success(t('family.regenerateCode')); loadFamilyData(); } }
     catch (error: any) { toast.error(error.response?.data?.message || 'Failed'); }
   };
 
@@ -178,7 +180,7 @@ const FamilyModePage: React.FC = () => {
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-white/80 text-lg">Loading Family Mode...</p>
+          <p className="text-white/80 text-lg">{t('common.loading')} {t('family.title')}...</p>
         </div>
       </div>
     );
@@ -194,7 +196,7 @@ const FamilyModePage: React.FC = () => {
               <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="p-2 text-white hover:bg-white/10"><ArrowLeft className="w-5 h-5" /></Button>
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl shadow-lg shadow-blue-500/30"><Users className="w-7 h-7 text-white" /></div>
-                <div><h1 className="text-2xl font-bold text-white">Family Mode</h1><p className="text-sm text-white/60">Manage finances together</p></div>
+                <div><h1 className="text-2xl font-bold text-white">{t('family.title')}</h1><p className="text-sm text-white/60">{t('family.trackExpensesTogether')}</p></div>
               </div>
             </div>
           </div>
@@ -203,14 +205,14 @@ const FamilyModePage: React.FC = () => {
         <div className="max-w-4xl mx-auto px-4 py-12">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-12">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-full border border-green-500/30 mb-6">
-              <Shield className="w-4 h-4 text-green-400" /><span className="text-green-400 text-sm font-medium">Secure & Private</span>
+              <Shield className="w-4 h-4 text-green-400" /><span className="text-green-400 text-sm font-medium">{t('family.secure')} & {t('family.private')}</span>
             </div>
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">Welcome to <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">Family Mode</span></h2>
-            <p className="text-xl text-white/70 max-w-2xl mx-auto">Connect with your family members and track expenses together. Share budgets, monitor spending, and achieve financial goals as a family.</p>
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">{t('common.welcome')} to <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">{t('family.title')}</span></h2>
+            <p className="text-xl text-white/70 max-w-2xl mx-auto">{t('family.connectYourFamily')}. {t('family.trackExpensesTogether')}. Share budgets, monitor spending, and achieve financial goals as a family.</p>
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="grid md:grid-cols-3 gap-6 mb-12">
-            {[{ icon: <Wallet className="w-6 h-6" />, title: 'Shared Budget', desc: 'Set and track family budgets together' },
+            {[{ icon: <Wallet className="w-6 h-6" />, title: t('family.shared') + ' ' + t('family.budget'), desc: 'Set and track family budgets together' },
               { icon: <TrendingUp className="w-6 h-6" />, title: 'Real-time Sync', desc: 'See expenses as they happen' },
               { icon: <Lock className="w-6 h-6" />, title: 'Privacy Controls', desc: 'Control who sees what' }].map((f, i) => (
               <div key={i} className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all">
@@ -221,8 +223,8 @@ const FamilyModePage: React.FC = () => {
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button onClick={() => setShowCreateModal(true)} className="px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-2xl shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all hover:scale-105 flex items-center justify-center gap-3"><Plus className="w-5 h-5" />Create New Family</button>
-            <button onClick={() => setShowJoinModal(true)} className="px-8 py-4 bg-white/10 backdrop-blur-sm border border-white/20 text-white font-semibold rounded-2xl hover:bg-white/20 transition-all hover:scale-105 flex items-center justify-center gap-3"><UserPlus className="w-5 h-5" />Join with Code</button>
+            <button onClick={() => setShowCreateModal(true)} className="px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-2xl shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all hover:scale-105 flex items-center justify-center gap-3"><Plus className="w-5 h-5" />{t('family.createFamily')}</button>
+            <button onClick={() => setShowJoinModal(true)} className="px-8 py-4 bg-white/10 backdrop-blur-sm border border-white/20 text-white font-semibold rounded-2xl hover:bg-white/20 transition-all hover:scale-105 flex items-center justify-center gap-3"><UserPlus className="w-5 h-5" />{t('family.joinFamily')}</button>
           </motion.div>
 
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="mt-16 flex flex-wrap items-center justify-center gap-6 text-white/40 text-sm">
@@ -250,13 +252,13 @@ const FamilyModePage: React.FC = () => {
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl shadow-lg shadow-blue-500/30"><Users className="w-7 h-7 text-white" /></div>
                 <div><h1 className="text-xl font-bold text-white">{dashboardData?.family.familyName}</h1>
-                  <div className="flex items-center gap-2"><div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div><span className="text-xs text-green-400 font-medium">Connected</span><span className="text-white/40">•</span><span className="text-xs text-white/60">{dashboardData?.family.members.length} members</span></div>
+                  <div className="flex items-center gap-2"><div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div><span className="text-xs text-green-400 font-medium">{t('family.connected')}</span><span className="text-white/40">•</span><span className="text-xs text-white/60">{dashboardData?.family.members.length} {t('family.members').toLowerCase()}</span></div>
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <button onClick={handleCopyCode} className="hidden sm:flex items-center gap-2 px-3 py-2 bg-white/10 rounded-xl border border-white/10 hover:bg-white/20 transition-all">
-                <Share2 className="w-4 h-4 text-white/60" /><span className="text-white/60 text-xs">Share Code</span>
+                <Share2 className="w-4 h-4 text-white/60" /><span className="text-white/60 text-xs">{t('family.shareCode')}</span>
                 {copiedCode ? <CheckCircle className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4 text-white/60" />}
               </button>
               <button onClick={handleRefresh} disabled={isRefreshing} className="p-2 bg-white/10 rounded-xl border border-white/10 hover:bg-white/20 transition-all"><RefreshCw className={`w-5 h-5 text-white ${isRefreshing ? 'animate-spin' : ''}`} /></button>
@@ -270,7 +272,7 @@ const FamilyModePage: React.FC = () => {
       <div className="bg-white/5 border-b border-white/10 sticky top-[73px] z-10 relative">
         <div className="max-w-7xl mx-auto px-2 sm:px-4">
           <div className="flex gap-1 overflow-x-auto hide-scrollbar py-2 -mx-2 px-2 scroll-smooth" style={{ WebkitOverflowScrolling: 'touch' }}>
-            {[{ id: 'overview', label: 'Overview', icon: <Home className="w-4 h-4" /> }, { id: 'members', label: 'Members', icon: <Users className="w-4 h-4" /> }, { id: 'expenses', label: 'Expenses', icon: <TrendingDown className="w-4 h-4" /> }, { id: 'budget', label: 'Budget', icon: <PieChart className="w-4 h-4" /> }, { id: 'reminders', label: 'Reminders', icon: <Bell className="w-4 h-4" /> }].map((tab) => (
+            {[{ id: 'overview', label: t('family.overview'), icon: <Home className="w-4 h-4" /> }, { id: 'members', label: t('family.members'), icon: <Users className="w-4 h-4" /> }, { id: 'expenses', label: t('family.expenses'), icon: <TrendingDown className="w-4 h-4" /> }, { id: 'budget', label: t('family.budget'), icon: <PieChart className="w-4 h-4" /> }, { id: 'reminders', label: t('family.reminders'), icon: <Bell className="w-4 h-4" /> }].map((tab) => (
               <button key={tab.id} onClick={() => setActiveTab(tab.id as typeof activeTab)} className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 rounded-xl font-medium text-xs sm:text-sm whitespace-nowrap transition-all flex-shrink-0 min-w-fit ${activeTab === tab.id ? 'bg-white/20 text-white shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/10'}`}>{tab.icon}<span>{tab.label}</span></button>
             ))}
           </div>
@@ -287,15 +289,15 @@ const FamilyModePage: React.FC = () => {
               {/* Summary Cards */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/10 backdrop-blur-sm border border-blue-500/20 rounded-2xl p-5">
-                  <div className="flex items-center justify-between mb-3"><div className="p-2 bg-blue-500/20 rounded-lg"><Wallet className="w-5 h-5 text-blue-400" /></div><span className="text-xs text-blue-400 font-medium uppercase">Budget</span></div>
+                  <div className="flex items-center justify-between mb-3"><div className="p-2 bg-blue-500/20 rounded-lg"><Wallet className="w-5 h-5 text-blue-400" /></div><span className="text-xs text-blue-400 font-medium uppercase">{t('dashboard.budget')}</span></div>
                   <p className="text-2xl font-bold text-white mb-1">{formatCurrency(dashboardData?.summary.totalBudget || 0)}</p><p className="text-xs text-white/60">Monthly allocation</p>
                 </div>
                 <div className="bg-gradient-to-br from-rose-500/20 to-rose-600/10 backdrop-blur-sm border border-rose-500/20 rounded-2xl p-5">
-                  <div className="flex items-center justify-between mb-3"><div className="p-2 bg-rose-500/20 rounded-lg"><TrendingDown className="w-5 h-5 text-rose-400" /></div><span className="text-xs text-rose-400 font-medium uppercase">Spent</span></div>
+                  <div className="flex items-center justify-between mb-3"><div className="p-2 bg-rose-500/20 rounded-lg"><TrendingDown className="w-5 h-5 text-rose-400" /></div><span className="text-xs text-rose-400 font-medium uppercase">{t('dashboard.spent')}</span></div>
                   <p className="text-2xl font-bold text-white mb-1">{formatCurrency(dashboardData?.summary.totalExpenses || 0)}</p><p className="text-xs text-white/60">This month</p>
                 </div>
                 <div className="bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 backdrop-blur-sm border border-emerald-500/20 rounded-2xl p-5">
-                  <div className="flex items-center justify-between mb-3"><div className="p-2 bg-emerald-500/20 rounded-lg"><TrendingUp className="w-5 h-5 text-emerald-400" /></div><span className="text-xs text-emerald-400 font-medium uppercase">Remaining</span></div>
+                  <div className="flex items-center justify-between mb-3"><div className="p-2 bg-emerald-500/20 rounded-lg"><TrendingUp className="w-5 h-5 text-emerald-400" /></div><span className="text-xs text-emerald-400 font-medium uppercase">{t('dashboard.remaining')}</span></div>
                   <p className="text-2xl font-bold text-white mb-1">{formatCurrency(dashboardData?.summary.remainingBudget || 0)}</p><p className="text-xs text-white/60">Left to spend</p>
                 </div>
                 <div className="bg-gradient-to-br from-purple-500/20 to-purple-600/10 backdrop-blur-sm border border-purple-500/20 rounded-2xl p-5">
@@ -320,11 +322,11 @@ const FamilyModePage: React.FC = () => {
                 </div>
 
                 <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
-                  <h3 className="text-white/80 font-medium mb-4">Quick Actions</h3>
+                  <h3 className="text-white/80 font-medium mb-4">{t('dashboard.quickActions')}</h3>
                   <div className="grid grid-cols-2 gap-3">
-                    <button onClick={() => setShowInviteModal(true)} className="flex flex-col items-center gap-2 p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-all border border-white/5 hover:border-white/20"><UserPlus className="w-6 h-6 text-blue-400" /><span className="text-white/80 text-xs font-medium">Add Member</span></button>
-                    <button onClick={() => setShowBudgetModal(true)} className="flex flex-col items-center gap-2 p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-all border border-white/5 hover:border-white/20"><Edit3 className="w-6 h-6 text-emerald-400" /><span className="text-white/80 text-xs font-medium">Edit Budget</span></button>
-                    <button onClick={handleCopyCode} className="flex flex-col items-center gap-2 p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-all border border-white/5 hover:border-white/20"><Share2 className="w-6 h-6 text-purple-400" /><span className="text-white/80 text-xs font-medium">Share Code</span></button>
+                    <button onClick={() => setShowInviteModal(true)} className="flex flex-col items-center gap-2 p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-all border border-white/5 hover:border-white/20"><UserPlus className="w-6 h-6 text-blue-400" /><span className="text-white/80 text-xs font-medium">{t('family.inviteMember')}</span></button>
+                    <button onClick={() => setShowBudgetModal(true)} className="flex flex-col items-center gap-2 p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-all border border-white/5 hover:border-white/20"><Edit3 className="w-6 h-6 text-emerald-400" /><span className="text-white/80 text-xs font-medium">{t('budget.editBudget')}</span></button>
+                    <button onClick={handleCopyCode} className="flex flex-col items-center gap-2 p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-all border border-white/5 hover:border-white/20"><Share2 className="w-6 h-6 text-purple-400" /><span className="text-white/80 text-xs font-medium">{t('family.shareCode')}</span></button>
                     <button onClick={handleRefresh} className="flex flex-col items-center gap-2 p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-all border border-white/5 hover:border-white/20"><RefreshCw className={`w-6 h-6 text-amber-400 ${isRefreshing ? 'animate-spin' : ''}`} /><span className="text-white/80 text-xs font-medium">Sync Data</span></button>
                   </div>
                 </div>
@@ -339,7 +341,7 @@ const FamilyModePage: React.FC = () => {
               {/* Category & Recent */}
               <div className="grid lg:grid-cols-2 gap-6">
                 <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
-                  <h3 className="text-white font-semibold mb-4 flex items-center gap-2"><PieChart className="w-5 h-5 text-blue-400" />Category Breakdown</h3>
+                  <h3 className="text-white font-semibold mb-4 flex items-center gap-2"><PieChart className="w-5 h-5 text-blue-400" />{t('dashboard.categoryBreakdown')}</h3>
                   <div className="space-y-3">
                     {dashboardData?.summary.categoryBreakdown.slice(0, 6).map((cat, idx) => (
                       <div key={idx} className="space-y-1">
@@ -351,7 +353,7 @@ const FamilyModePage: React.FC = () => {
                 </div>
 
                 <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
-                  <h3 className="text-white font-semibold mb-4 flex items-center gap-2"><TrendingDown className="w-5 h-5 text-rose-400" />Recent Family Expenses</h3>
+                  <h3 className="text-white font-semibold mb-4 flex items-center gap-2"><TrendingDown className="w-5 h-5 text-rose-400" />{t('dashboard.recentTransactions')} ({t('family.title')})</h3>
                   <div className="space-y-3 max-h-80 overflow-y-auto">
                     {dashboardData?.recentTransactions.slice(0, 8).map((tx) => {
                       const member = dashboardData.family.members.find(m => m.userId === tx.user);
@@ -362,7 +364,7 @@ const FamilyModePage: React.FC = () => {
                         </div>
                       );
                     })}
-                    {(!dashboardData?.recentTransactions || dashboardData.recentTransactions.length === 0) && <div className="text-center py-8 text-white/40"><TrendingDown className="w-10 h-10 mx-auto mb-2 opacity-50" /><p>No transactions yet</p></div>}
+                    {(!dashboardData?.recentTransactions || dashboardData.recentTransactions.length === 0) && <div className="text-center py-8 text-white/40"><TrendingDown className="w-10 h-10 mx-auto mb-2 opacity-50" /><p>{t('dashboard.noTransactions')}</p></div>}
                   </div>
                 </div>
               </div>
@@ -371,7 +373,7 @@ const FamilyModePage: React.FC = () => {
 
           {activeTab === 'members' && (
             <motion.div key="members" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
-              <div className="flex items-center justify-between"><h2 className="text-xl font-semibold text-white">Family Members</h2>{isAdmin && <button onClick={() => setShowInviteModal(true)} className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-xl hover:shadow-lg hover:shadow-blue-500/30 transition-all"><UserPlus className="w-4 h-4" />Add Member</button>}</div>
+              <div className="flex items-center justify-between"><h2 className="text-xl font-semibold text-white">{t('family.members')}</h2>{isAdmin && <button onClick={() => setShowInviteModal(true)} className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-xl hover:shadow-lg hover:shadow-blue-500/30 transition-all"><UserPlus className="w-4 h-4" />{t('family.inviteMember')}</button>}</div>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {dashboardData?.family.members.map((member) => (
                   <MemberCard key={member.userId} member={member} isCurrentUser={member.userId === (user as any)?._id || member.email === user?.email} isAdmin={isAdmin} formatCurrency={formatCurrency} formatDate={formatDate} onEdit={() => { setMemberToEdit(member); setShowMemberModal(true); }} onViewExpenses={() => { setSelectedMember(member.userId); setActiveTab('expenses'); }} />
@@ -379,11 +381,11 @@ const FamilyModePage: React.FC = () => {
               </div>
 
               <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
-                <div className="flex items-center justify-between mb-4"><div className="flex items-center gap-3"><div className="p-2 bg-purple-500/20 rounded-lg"><Share2 className="w-5 h-5 text-purple-400" /></div><div><h3 className="text-white font-semibold">Invite Family</h3><p className="text-white/60 text-sm">Share invite code with family members to join</p></div></div></div>
+                <div className="flex items-center justify-between mb-4"><div className="flex items-center gap-3"><div className="p-2 bg-purple-500/20 rounded-lg"><Share2 className="w-5 h-5 text-purple-400" /></div><div><h3 className="text-white font-semibold">{t('family.inviteMember')}</h3><p className="text-white/60 text-sm">Share invite code with family members to join</p></div></div></div>
                 <div className="flex items-center gap-4">
                   <div className="flex-1 bg-white/10 rounded-xl p-4 flex items-center justify-center"><span className="text-white/60 text-sm">Code hidden for security</span></div>
                   <div className="flex flex-col gap-2">
-                    <button onClick={handleCopyCode} className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl hover:shadow-lg transition-all">{copiedCode ? <CheckCircle className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4 text-white" />}<span className="text-white text-sm font-medium">{copiedCode ? 'Copied!' : 'Copy Code'}</span></button>
+                    <button onClick={handleCopyCode} className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl hover:shadow-lg transition-all">{copiedCode ? <CheckCircle className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4 text-white" />}<span className="text-white text-sm font-medium">{copiedCode ? t('common.copied') : t('common.copy') + ' Code'}</span></button>
                     {isAdmin && <button onClick={handleRegenerateCode} className="flex items-center gap-2 px-4 py-2 bg-white/10 rounded-xl hover:bg-white/20 transition-all"><RefreshCw className="w-4 h-4 text-white" /><span className="text-white text-sm">New Code</span></button>}
                   </div>
                 </div>
@@ -394,12 +396,12 @@ const FamilyModePage: React.FC = () => {
           {activeTab === 'expenses' && (
             <motion.div key="expenses" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
               <div className="flex items-center gap-4 overflow-x-auto pb-2">
-                <button onClick={() => setSelectedMember(null)} className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${!selectedMember ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}><Users className="w-4 h-4" />All Members</button>
+                <button onClick={() => setSelectedMember(null)} className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${!selectedMember ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}><Users className="w-4 h-4" />{t('family.allMembers')}</button>
                 {dashboardData?.family.members.map((member) => (<button key={member.userId} onClick={() => setSelectedMember(member.userId)} className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${selectedMember === member.userId ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}><span>{relationAvatars[member.relation]}</span>{member.nickname}</button>))}
               </div>
 
               <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl overflow-hidden">
-                <div className="p-4 border-b border-white/10"><h3 className="text-white font-semibold">{selectedMember ? `${dashboardData?.family.members.find(m => m.userId === selectedMember)?.nickname}'s Expenses` : 'All Family Expenses'}</h3></div>
+                <div className="p-4 border-b border-white/10"><h3 className="text-white font-semibold">{selectedMember ? `${dashboardData?.family.members.find(m => m.userId === selectedMember)?.nickname}'s ${t('family.expenses')}` : `All ${t('family.title')} ${t('family.expenses')}`}</h3></div>
                 <div className="divide-y divide-white/5">
                   {dashboardData?.recentTransactions.filter(tx => !selectedMember || tx.user === selectedMember).map((tx) => {
                     const member = dashboardData.family.members.find(m => m.userId === tx.user);
@@ -410,7 +412,7 @@ const FamilyModePage: React.FC = () => {
                       </div>
                     );
                   })}
-                  {(!dashboardData?.recentTransactions || dashboardData.recentTransactions.filter(tx => !selectedMember || tx.user === selectedMember).length === 0) && <div className="text-center py-12 text-white/40"><TrendingDown className="w-12 h-12 mx-auto mb-3 opacity-50" /><p className="text-lg">No expenses found</p></div>}
+                  {(!dashboardData?.recentTransactions || dashboardData.recentTransactions.filter(tx => !selectedMember || tx.user === selectedMember).length === 0) && <div className="text-center py-12 text-white/40"><TrendingDown className="w-12 h-12 mx-auto mb-3 opacity-50" /><p className="text-lg">{t('family.noExpensesFound')}</p></div>}
                 </div>
               </div>
             </motion.div>
@@ -420,13 +422,13 @@ const FamilyModePage: React.FC = () => {
             <motion.div key="budget" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
               <div className="bg-gradient-to-br from-blue-500/20 to-purple-600/20 backdrop-blur-sm border border-blue-500/20 rounded-2xl p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <div><h3 className="text-white/80 text-sm font-medium uppercase tracking-wide mb-1">Family Budget ({dashboardData?.family.sharedBudget.period})</h3><p className="text-4xl font-bold text-white">{formatCurrency(dashboardData?.family.sharedBudget.amount || 0)}</p></div>
-                  {isAdmin && <button onClick={() => setShowBudgetModal(true)} className="flex items-center gap-2 px-4 py-2 bg-white/10 rounded-xl hover:bg-white/20 transition-all"><Edit3 className="w-4 h-4 text-white" /><span className="text-white text-sm">Edit</span></button>}
+                  <div><h3 className="text-white/80 text-sm font-medium uppercase tracking-wide mb-1">{t('family.title')} {t('family.budget')} ({dashboardData?.family.sharedBudget.period})</h3><p className="text-4xl font-bold text-white">{formatCurrency(dashboardData?.family.sharedBudget.amount || 0)}</p></div>
+                  {isAdmin && <button onClick={() => setShowBudgetModal(true)} className="flex items-center gap-2 px-4 py-2 bg-white/10 rounded-xl hover:bg-white/20 transition-all"><Edit3 className="w-4 h-4 text-white" /><span className="text-white text-sm">{t('common.edit')}</span></button>}
                 </div>
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm"><span className="text-white/60">Spent: {formatCurrency(dashboardData?.summary.totalExpenses || 0)}</span><span className="text-white font-medium">{dashboardData?.summary.budgetUsedPercentage || 0}% used</span></div>
+                  <div className="flex items-center justify-between text-sm"><span className="text-white/60">{t('dashboard.spent')}: {formatCurrency(dashboardData?.summary.totalExpenses || 0)}</span><span className="text-white font-medium">{dashboardData?.summary.budgetUsedPercentage || 0}% used</span></div>
                   <div className="w-full h-4 bg-white/10 rounded-full overflow-hidden"><div className={`h-full rounded-full transition-all ${(dashboardData?.summary.budgetUsedPercentage || 0) > 90 ? 'bg-gradient-to-r from-rose-500 to-red-500' : (dashboardData?.summary.budgetUsedPercentage || 0) > 70 ? 'bg-gradient-to-r from-amber-500 to-orange-500' : 'bg-gradient-to-r from-emerald-500 to-green-500'}`} style={{ width: `${Math.min(dashboardData?.summary.budgetUsedPercentage || 0, 100)}%` }} /></div>
-                  <div className="flex items-center justify-between text-sm"><span className="text-white/60">Remaining: {formatCurrency(dashboardData?.summary.remainingBudget || 0)}</span></div>
+                  <div className="flex items-center justify-between text-sm"><span className="text-white/60">{t('dashboard.remaining')}: {formatCurrency(dashboardData?.summary.remainingBudget || 0)}</span></div>
                 </div>
               </div>
 
@@ -446,7 +448,7 @@ const FamilyModePage: React.FC = () => {
               </div>
 
               <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
-                <h3 className="text-white font-semibold mb-4 flex items-center gap-2"><Users className="w-5 h-5 text-blue-400" />Member Spending Overview</h3>
+                <h3 className="text-white font-semibold mb-4 flex items-center gap-2"><Users className="w-5 h-5 text-blue-400" />{t('family.members')} Spending Overview</h3>
                 <div className="space-y-4">
                   {dashboardData?.family.members.map((member) => {
                     const limit = member.monthlySpendingLimit || dashboardData.family.sharedBudget.amount / dashboardData.family.members.length;
@@ -468,7 +470,7 @@ const FamilyModePage: React.FC = () => {
 
           {activeTab === 'reminders' && (
             <motion.div key="reminders" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
-              <div className="flex items-center justify-between"><h2 className="text-xl font-semibold text-white">Upcoming Bills & Reminders</h2></div>
+              <div className="flex items-center justify-between"><h2 className="text-xl font-semibold text-white">Upcoming Bills & {t('family.reminders')}</h2></div>
               <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl overflow-hidden">
                 {dashboardData?.upcomingReminders && dashboardData.upcomingReminders.length > 0 ? (
                   <div className="divide-y divide-white/5">
@@ -480,19 +482,19 @@ const FamilyModePage: React.FC = () => {
                       return (
                         <div key={reminder._id} className="flex items-center justify-between p-4 hover:bg-white/5 transition-all">
                           <div className="flex items-center gap-4"><div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isOverdue ? 'bg-rose-500/20 text-rose-400' : isDueSoon ? 'bg-amber-500/20 text-amber-400' : 'bg-blue-500/20 text-blue-400'}`}><Bell className="w-5 h-5" /></div><div><p className="text-white font-medium">{reminder.title}</p><div className="flex items-center gap-2 text-white/50 text-sm"><span>{relationAvatars[member?.relation || 'Other']}</span><span>{member?.nickname}</span><span>•</span><span className="capitalize">{reminder.type}</span></div></div></div>
-                          <div className="text-right"><p className="text-white font-bold">{formatCurrency(reminder.amount)}</p><p className={`text-sm ${isOverdue ? 'text-rose-400' : isDueSoon ? 'text-amber-400' : 'text-white/50'}`}>{isOverdue ? 'Overdue' : formatDate(reminder.dueDate)}</p></div>
+                          <div className="text-right"><p className="text-white font-bold">{formatCurrency(reminder.amount)}</p><p className={`text-sm ${isOverdue ? 'text-rose-400' : isDueSoon ? 'text-amber-400' : 'text-white/50'}`}>{isOverdue ? t('dashboard.overdue') : formatDate(reminder.dueDate)}</p></div>
                         </div>
                       );
                     })}
                   </div>
-                ) : (<div className="text-center py-12 text-white/40"><Bell className="w-12 h-12 mx-auto mb-3 opacity-50" /><p className="text-lg">No upcoming reminders</p><p className="text-sm">Bills and EMIs will appear here</p></div>)}
+                ) : (<div className="text-center py-12 text-white/40"><Bell className="w-12 h-12 mx-auto mb-3 opacity-50" /><p className="text-lg">{t('dashboard.noReminders')}</p><p className="text-sm">{t('dashboard.noRemindersDesc')}</p></div>)}
               </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-8 border-t border-white/10"><button onClick={handleLeaveFamily} className="flex items-center gap-2 text-rose-400 hover:text-rose-300 transition-colors text-sm"><LogOut className="w-4 h-4" />Leave Family</button></div>
+      <div className="max-w-7xl mx-auto px-4 py-8 border-t border-white/10"><button onClick={handleLeaveFamily} className="flex items-center gap-2 text-rose-400 hover:text-rose-300 transition-colors text-sm"><LogOut className="w-4 h-4" />{t('family.leaveFamily')}</button></div>
 
       {showCreateModal && <CreateFamilyModal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} form={createForm} setForm={setCreateForm} onSubmit={handleCreateFamily} />}
       {showJoinModal && <JoinFamilyModal isOpen={showJoinModal} onClose={() => setShowJoinModal(false)} form={joinForm} setForm={setJoinForm} onSubmit={handleJoinFamily} />}
@@ -505,7 +507,9 @@ const FamilyModePage: React.FC = () => {
 };
 
 // Member Card Component
-const MemberCard: React.FC<{ member: FamilyMember; isCurrentUser: boolean; isAdmin: boolean; formatCurrency: (n: number) => string; formatDate: (d: string) => string; onEdit: () => void; onViewExpenses: () => void; }> = ({ member, isCurrentUser, isAdmin, formatCurrency, formatDate, onEdit, onViewExpenses }) => (
+const MemberCard: React.FC<{ member: FamilyMember; isCurrentUser: boolean; isAdmin: boolean; formatCurrency: (n: number) => string; formatDate: (d: string) => string; onEdit: () => void; onViewExpenses: () => void; }> = ({ member, isCurrentUser, isAdmin, formatCurrency, formatDate, onEdit, onViewExpenses }) => {
+  const { t } = useTranslation();
+  return (
   <div className={`bg-white/5 backdrop-blur-sm border rounded-2xl p-5 transition-all hover:bg-white/10 ${isCurrentUser ? 'border-blue-500/30 ring-1 ring-blue-500/20' : 'border-white/10'}`}>
     <div className="flex items-start justify-between mb-4">
       <div className="flex items-center gap-3">
@@ -521,109 +525,116 @@ const MemberCard: React.FC<{ member: FamilyMember; isCurrentUser: boolean; isAdm
     </div>
     <div className="bg-white/5 rounded-xl p-3 mb-4"><div className="flex items-center justify-between"><span className="text-white/60 text-sm">Monthly Spending</span><span className="text-white font-bold">{formatCurrency(member.monthlySpending)}</span></div></div>
     <div className="flex items-center justify-between text-xs text-white/40 mb-4"><div className="flex items-center gap-1"><Calendar className="w-3 h-3" /><span>Joined {formatDate(member.joinedAt)}</span></div>{member.lastActive && <div className="flex items-center gap-1"><Clock className="w-3 h-3" /><span>Active recently</span></div>}</div>
-    <div className="flex gap-2"><button onClick={onViewExpenses} className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-white/5 rounded-xl hover:bg-white/10 transition-all text-white/80 text-sm"><Eye className="w-4 h-4" />Expenses</button>{(isAdmin || isCurrentUser) && <button onClick={onEdit} className="flex items-center justify-center gap-2 px-3 py-2 bg-white/5 rounded-xl hover:bg-white/10 transition-all text-white/80 text-sm"><Edit3 className="w-4 h-4" /></button>}</div>
+    <div className="flex gap-2"><button onClick={onViewExpenses} className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-white/5 rounded-xl hover:bg-white/10 transition-all text-white/80 text-sm"><Eye className="w-4 h-4" />{t('family.expenses')}</button>{(isAdmin || isCurrentUser) && <button onClick={onEdit} className="flex items-center justify-center gap-2 px-3 py-2 bg-white/5 rounded-xl hover:bg-white/10 transition-all text-white/80 text-sm"><Edit3 className="w-4 h-4" /></button>}</div>
   </div>
-);
+  );
+};
 
 // Modal Components
 const CreateFamilyModal: React.FC<{ isOpen: boolean; onClose: () => void; form: any; setForm: any; onSubmit: () => void; }> = ({ isOpen, onClose, form, setForm, onSubmit }) => {
+  const { t } = useTranslation();
   if (!isOpen) return null;
   const relations = ['Father', 'Mother', 'Son', 'Daughter', 'Spouse', 'Grandparent', 'Other'];
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-slate-900 border border-white/10 rounded-3xl w-full max-w-md overflow-hidden">
-        <div className="p-6 border-b border-white/10"><div className="flex items-center justify-between"><h2 className="text-xl font-bold text-white">Create Your Family</h2><button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-all"><XCircle className="w-5 h-5 text-white/60" /></button></div></div>
+        <div className="p-6 border-b border-white/10"><div className="flex items-center justify-between"><h2 className="text-xl font-bold text-white">{t('family.createFamily')}</h2><button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-all"><XCircle className="w-5 h-5 text-white/60" /></button></div></div>
         <div className="p-6 space-y-4">
-          <div><label className="block text-sm font-medium text-white/80 mb-2">Family Name</label><input type="text" value={form.familyName} onChange={(e) => setForm({ ...form, familyName: e.target.value })} placeholder="e.g., Kumar Family" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50" /></div>
+          <div><label className="block text-sm font-medium text-white/80 mb-2">{t('family.familyName')}</label><input type="text" value={form.familyName} onChange={(e) => setForm({ ...form, familyName: e.target.value })} placeholder="e.g., Kumar Family" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50" /></div>
           <div><label className="block text-sm font-medium text-white/80 mb-2">Your Nickname</label><input type="text" value={form.nickname} onChange={(e) => setForm({ ...form, nickname: e.target.value })} placeholder="How family members call you" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50" /></div>
           <div><label className="block text-sm font-medium text-white/80 mb-2">Your Role</label><div className="grid grid-cols-4 gap-2">{relations.map((rel) => (<button key={rel} onClick={() => setForm({ ...form, relation: rel })} className={`p-2 rounded-xl text-xs font-medium transition-all ${form.relation === rel ? 'bg-blue-500 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}><span className="text-lg block mb-1">{relationAvatars[rel]}</span>{rel}</button>))}</div></div>
-          <div><label className="block text-sm font-medium text-white/80 mb-2">Monthly Family Budget (₹)</label><input type="number" value={form.budgetAmount} onChange={(e) => setForm({ ...form, budgetAmount: Number(e.target.value) })} placeholder="50000" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50" /></div>
+          <div><label className="block text-sm font-medium text-white/80 mb-2">Monthly {t('family.title')} {t('family.budget')} ({t('currency.symbol')})</label><input type="number" value={form.budgetAmount} onChange={(e) => setForm({ ...form, budgetAmount: Number(e.target.value) })} placeholder="50000" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50" /></div>
         </div>
-        <div className="p-6 border-t border-white/10 flex gap-3"><button onClick={onClose} className="flex-1 px-4 py-3 bg-white/5 text-white rounded-xl hover:bg-white/10 transition-all font-medium">Cancel</button><button onClick={onSubmit} className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:shadow-lg hover:shadow-blue-500/30 transition-all font-medium">Create Family</button></div>
+        <div className="p-6 border-t border-white/10 flex gap-3"><button onClick={onClose} className="flex-1 px-4 py-3 bg-white/5 text-white rounded-xl hover:bg-white/10 transition-all font-medium">{t('common.cancel')}</button><button onClick={onSubmit} className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:shadow-lg hover:shadow-blue-500/30 transition-all font-medium">{t('family.createFamily')}</button></div>
       </motion.div>
     </div>
   );
 };
 
 const JoinFamilyModal: React.FC<{ isOpen: boolean; onClose: () => void; form: any; setForm: any; onSubmit: () => void; }> = ({ isOpen, onClose, form, setForm, onSubmit }) => {
+  const { t } = useTranslation();
   if (!isOpen) return null;
   const relations = ['Father', 'Mother', 'Son', 'Daughter', 'Spouse', 'Grandparent', 'Other'];
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-slate-900 border border-white/10 rounded-3xl w-full max-w-md overflow-hidden">
-        <div className="p-6 border-b border-white/10"><div className="flex items-center justify-between"><h2 className="text-xl font-bold text-white">Join a Family</h2><button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-all"><XCircle className="w-5 h-5 text-white/60" /></button></div></div>
+        <div className="p-6 border-b border-white/10"><div className="flex items-center justify-between"><h2 className="text-xl font-bold text-white">{t('family.joinFamily')}</h2><button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-all"><XCircle className="w-5 h-5 text-white/60" /></button></div></div>
         <div className="p-6 space-y-4">
-          <div><label className="block text-sm font-medium text-white/80 mb-2">6-Digit Family Code</label><input type="text" value={form.familyCode} onChange={(e) => setForm({ ...form, familyCode: e.target.value.toUpperCase().slice(0, 6) })} placeholder="ABC123" className="w-full px-4 py-4 bg-white/5 border border-white/10 rounded-xl text-white text-center text-2xl font-mono tracking-widest placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 uppercase" maxLength={6} /><p className="text-white/40 text-xs mt-2 text-center">Ask your family member for this code</p></div>
+          <div><label className="block text-sm font-medium text-white/80 mb-2">6-Digit {t('family.familyCode')}</label><input type="text" value={form.familyCode} onChange={(e) => setForm({ ...form, familyCode: e.target.value.toUpperCase().slice(0, 6) })} placeholder="ABC123" className="w-full px-4 py-4 bg-white/5 border border-white/10 rounded-xl text-white text-center text-2xl font-mono tracking-widest placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 uppercase" maxLength={6} /><p className="text-white/40 text-xs mt-2 text-center">Ask your family member for this code</p></div>
           <div><label className="block text-sm font-medium text-white/80 mb-2">Your Nickname</label><input type="text" value={form.nickname} onChange={(e) => setForm({ ...form, nickname: e.target.value })} placeholder="How family members call you" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50" /></div>
           <div><label className="block text-sm font-medium text-white/80 mb-2">Your Relation</label><div className="grid grid-cols-4 gap-2">{relations.map((rel) => (<button key={rel} onClick={() => setForm({ ...form, relation: rel })} className={`p-2 rounded-xl text-xs font-medium transition-all ${form.relation === rel ? 'bg-blue-500 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}><span className="text-lg block mb-1">{relationAvatars[rel]}</span>{rel}</button>))}</div></div>
         </div>
-        <div className="p-6 border-t border-white/10 flex gap-3"><button onClick={onClose} className="flex-1 px-4 py-3 bg-white/5 text-white rounded-xl hover:bg-white/10 transition-all font-medium">Cancel</button><button onClick={onSubmit} disabled={form.familyCode.length !== 6} className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:shadow-lg hover:shadow-blue-500/30 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed">Join Family</button></div>
+        <div className="p-6 border-t border-white/10 flex gap-3"><button onClick={onClose} className="flex-1 px-4 py-3 bg-white/5 text-white rounded-xl hover:bg-white/10 transition-all font-medium">{t('common.cancel')}</button><button onClick={onSubmit} disabled={form.familyCode.length !== 6} className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:shadow-lg hover:shadow-blue-500/30 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed">{t('family.joinFamily')}</button></div>
       </motion.div>
     </div>
   );
 };
 
 const InviteMemberModal: React.FC<{ isOpen: boolean; onClose: () => void; form: any; setForm: any; onSubmit: () => void; familyCode?: string; }> = ({ isOpen, onClose, form, setForm, onSubmit, familyCode }) => {
+  const { t } = useTranslation();
   if (!isOpen) return null;
   const relations = ['Father', 'Mother', 'Son', 'Daughter', 'Spouse', 'Grandparent', 'Other'];
   const roles = ['Member', 'Viewer'];
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-slate-900 border border-white/10 rounded-3xl w-full max-w-md overflow-hidden">
-        <div className="p-6 border-b border-white/10"><div className="flex items-center justify-between"><h2 className="text-xl font-bold text-white">Add Family Member</h2><button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-all"><XCircle className="w-5 h-5 text-white/60" /></button></div></div>
+        <div className="p-6 border-b border-white/10"><div className="flex items-center justify-between"><h2 className="text-xl font-bold text-white">{t('family.inviteMember')}</h2><button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-all"><XCircle className="w-5 h-5 text-white/60" /></button></div></div>
         <div className="p-6 space-y-4">
-          <div className="bg-gradient-to-br from-purple-500/20 to-blue-500/20 border border-purple-500/20 rounded-xl p-4"><p className="text-white/80 text-sm mb-2">Share invite code with family members:</p><div className="flex items-center justify-between bg-white/10 rounded-lg p-3"><span className="text-white/60 text-sm">Click to copy code</span><button onClick={() => { navigator.clipboard.writeText(familyCode || ''); toast.success('Code copied to clipboard!'); }} className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg hover:shadow-lg transition-all flex items-center gap-2"><Copy className="w-4 h-4 text-white" /><span className="text-white text-sm font-medium">Copy Code</span></button></div></div>
+          <div className="bg-gradient-to-br from-purple-500/20 to-blue-500/20 border border-purple-500/20 rounded-xl p-4"><p className="text-white/80 text-sm mb-2">Share invite code with family members:</p><div className="flex items-center justify-between bg-white/10 rounded-lg p-3"><span className="text-white/60 text-sm">Click to copy code</span><button onClick={() => { navigator.clipboard.writeText(familyCode || ''); toast.success(t('common.copied')); }} className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg hover:shadow-lg transition-all flex items-center gap-2"><Copy className="w-4 h-4 text-white" /><span className="text-white text-sm font-medium">{t('common.copy')} Code</span></button></div></div>
           <div className="flex items-center gap-4 text-white/40 text-sm"><div className="flex-1 h-px bg-white/10"></div><span>Or send invitation</span><div className="flex-1 h-px bg-white/10"></div></div>
-          <div><label className="block text-sm font-medium text-white/80 mb-2">Email Address</label><input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="member@example.com" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50" /></div>
+          <div><label className="block text-sm font-medium text-white/80 mb-2">{t('auth.emailAddress')}</label><input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="member@example.com" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50" /></div>
           <div><label className="block text-sm font-medium text-white/80 mb-2">Relation</label><div className="grid grid-cols-4 gap-2">{relations.map((rel) => (<button key={rel} onClick={() => setForm({ ...form, relation: rel })} className={`p-2 rounded-xl text-xs font-medium transition-all ${form.relation === rel ? 'bg-blue-500 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}><span className="text-lg block mb-1">{relationAvatars[rel]}</span>{rel}</button>))}</div></div>
           <div><label className="block text-sm font-medium text-white/80 mb-2">Access Level</label><div className="grid grid-cols-2 gap-2">{roles.map((role) => (<button key={role} onClick={() => setForm({ ...form, role })} className={`p-3 rounded-xl text-sm font-medium transition-all ${form.role === role ? 'bg-blue-500 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}>{role === 'Member' ? <><Edit3 className="w-4 h-4 inline mr-2" />Member</> : <><Eye className="w-4 h-4 inline mr-2" />Viewer</>}</button>))}</div></div>
         </div>
-        <div className="p-6 border-t border-white/10 flex gap-3"><button onClick={onClose} className="flex-1 px-4 py-3 bg-white/5 text-white rounded-xl hover:bg-white/10 transition-all font-medium">Cancel</button><button onClick={onSubmit} className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:shadow-lg hover:shadow-blue-500/30 transition-all font-medium">Send Invite</button></div>
+        <div className="p-6 border-t border-white/10 flex gap-3"><button onClick={onClose} className="flex-1 px-4 py-3 bg-white/5 text-white rounded-xl hover:bg-white/10 transition-all font-medium">{t('common.cancel')}</button><button onClick={onSubmit} className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:shadow-lg hover:shadow-blue-500/30 transition-all font-medium">{t('family.inviteMember')}</button></div>
       </motion.div>
     </div>
   );
 };
 
 const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; family?: Family; onUpdate: () => void; onRegenerateCode: () => void; }> = ({ isOpen, onClose, family, onUpdate, onRegenerateCode }) => {
+  const { t } = useTranslation();
   const [familyName, setFamilyName] = useState(family?.familyName || '');
   const [isLoading, setIsLoading] = useState(false);
   useEffect(() => { if (family) setFamilyName(family.familyName); }, [family]);
-  const handleSave = async () => { try { setIsLoading(true); await familyApi.updateFamily({ familyName }); toast.success('Settings updated'); onUpdate(); onClose(); } catch (error: any) { toast.error(error.response?.data?.message || 'Failed'); } finally { setIsLoading(false); } };
+  const handleSave = async () => { try { setIsLoading(true); await familyApi.updateFamily({ familyName }); toast.success(t('common.settings') + ' updated'); onUpdate(); onClose(); } catch (error: any) { toast.error(error.response?.data?.message || 'Failed'); } finally { setIsLoading(false); } };
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-slate-900 border border-white/10 rounded-3xl w-full max-w-md overflow-hidden">
-        <div className="p-6 border-b border-white/10"><div className="flex items-center justify-between"><h2 className="text-xl font-bold text-white">Family Settings</h2><button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-all"><XCircle className="w-5 h-5 text-white/60" /></button></div></div>
-        <div className="p-6 space-y-4"><div><label className="block text-sm font-medium text-white/80 mb-2">Family Name</label><input type="text" value={familyName} onChange={(e) => setFamilyName(e.target.value)} className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50" /></div><div><label className="block text-sm font-medium text-white/80 mb-2">Family Code</label><div className="flex items-center gap-2"><div className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl"><span className="text-white/60 text-sm">Hidden for security</span></div><button onClick={() => { navigator.clipboard.writeText(family?.familyCode || ''); toast.success('Code copied!'); }} className="px-4 py-3 bg-white/10 rounded-xl hover:bg-white/20 transition-all flex items-center gap-2"><Copy className="w-4 h-4 text-white" /><span className="text-white text-sm">Copy</span></button><button onClick={onRegenerateCode} className="px-4 py-3 bg-white/10 rounded-xl hover:bg-white/20 transition-all"><RefreshCw className="w-5 h-5 text-white" /></button></div></div></div>
-        <div className="p-6 border-t border-white/10 flex gap-3"><button onClick={onClose} className="flex-1 px-4 py-3 bg-white/5 text-white rounded-xl hover:bg-white/10 transition-all font-medium">Cancel</button><button onClick={handleSave} disabled={isLoading} className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:shadow-lg hover:shadow-blue-500/30 transition-all font-medium disabled:opacity-50">{isLoading ? 'Saving...' : 'Save Changes'}</button></div>
+        <div className="p-6 border-b border-white/10"><div className="flex items-center justify-between"><h2 className="text-xl font-bold text-white">{t('family.title')} {t('common.settings')}</h2><button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-all"><XCircle className="w-5 h-5 text-white/60" /></button></div></div>
+        <div className="p-6 space-y-4"><div><label className="block text-sm font-medium text-white/80 mb-2">{t('family.familyName')}</label><input type="text" value={familyName} onChange={(e) => setFamilyName(e.target.value)} className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50" /></div><div><label className="block text-sm font-medium text-white/80 mb-2">{t('family.familyCode')}</label><div className="flex items-center gap-2"><div className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl"><span className="text-white/60 text-sm">Hidden for security</span></div><button onClick={() => { navigator.clipboard.writeText(family?.familyCode || ''); toast.success(t('common.copied')); }} className="px-4 py-3 bg-white/10 rounded-xl hover:bg-white/20 transition-all flex items-center gap-2"><Copy className="w-4 h-4 text-white" /><span className="text-white text-sm">{t('common.copy')}</span></button><button onClick={onRegenerateCode} className="px-4 py-3 bg-white/10 rounded-xl hover:bg-white/20 transition-all"><RefreshCw className="w-5 h-5 text-white" /></button></div></div></div>
+        <div className="p-6 border-t border-white/10 flex gap-3"><button onClick={onClose} className="flex-1 px-4 py-3 bg-white/5 text-white rounded-xl hover:bg-white/10 transition-all font-medium">{t('common.cancel')}</button><button onClick={handleSave} disabled={isLoading} className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:shadow-lg hover:shadow-blue-500/30 transition-all font-medium disabled:opacity-50">{isLoading ? t('common.loading') : t('common.save')}</button></div>
       </motion.div>
     </div>
   );
 };
 
 const EditBudgetModal: React.FC<{ isOpen: boolean; onClose: () => void; family?: Family; onUpdate: () => void; }> = ({ isOpen, onClose, family, onUpdate }) => {
+  const { t } = useTranslation();
   const [budgetAmount, setBudgetAmount] = useState(family?.sharedBudget.amount || 50000);
   const [categories, setCategories] = useState(family?.sharedBudget.categories || []);
   const [isLoading, setIsLoading] = useState(false);
   useEffect(() => { if (family) { setBudgetAmount(family.sharedBudget.amount); setCategories(family.sharedBudget.categories); } }, [family]);
-  const handleSave = async () => { try { setIsLoading(true); await familyApi.updateFamily({ sharedBudget: { amount: budgetAmount, categories } }); toast.success('Budget updated'); onUpdate(); onClose(); } catch (error: any) { toast.error(error.response?.data?.message || 'Failed'); } finally { setIsLoading(false); } };
+  const handleSave = async () => { try { setIsLoading(true); await familyApi.updateFamily({ sharedBudget: { amount: budgetAmount, categories } }); toast.success(t('budget.budgetUpdated')); onUpdate(); onClose(); } catch (error: any) { toast.error(error.response?.data?.message || 'Failed'); } finally { setIsLoading(false); } };
   const updateCategory = (index: number, field: string, value: number) => { const updated = [...categories]; (updated[index] as any)[field] = value; setCategories(updated); };
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-slate-900 border border-white/10 rounded-3xl w-full max-w-lg overflow-hidden max-h-[90vh] flex flex-col">
-        <div className="p-6 border-b border-white/10"><div className="flex items-center justify-between"><h2 className="text-xl font-bold text-white">Edit Family Budget</h2><button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-all"><XCircle className="w-5 h-5 text-white/60" /></button></div></div>
+        <div className="p-6 border-b border-white/10"><div className="flex items-center justify-between"><h2 className="text-xl font-bold text-white">{t('budget.editBudget')}</h2><button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-all"><XCircle className="w-5 h-5 text-white/60" /></button></div></div>
         <div className="p-6 space-y-4 overflow-y-auto flex-1">
-          <div><label className="block text-sm font-medium text-white/80 mb-2">Total Monthly Budget (₹)</label><input type="number" value={budgetAmount} onChange={(e) => setBudgetAmount(Number(e.target.value))} className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white text-xl font-bold placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50" /></div>
+          <div><label className="block text-sm font-medium text-white/80 mb-2">Total Monthly {t('family.budget')} ({t('currency.symbol')})</label><input type="number" value={budgetAmount} onChange={(e) => setBudgetAmount(Number(e.target.value))} className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white text-xl font-bold placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50" /></div>
           <div><label className="block text-sm font-medium text-white/80 mb-3">Category Allocation</label><div className="space-y-3">{categories.map((cat, idx) => (<div key={idx} className="flex items-center gap-3 bg-white/5 rounded-xl p-3"><div className="p-2 bg-white/10 rounded-lg">{categoryIcons[cat.name] || <Wallet className="w-4 h-4 text-white/60" />}</div><span className="flex-1 text-white font-medium">{cat.name}</span><input type="number" value={cat.allocated} onChange={(e) => updateCategory(idx, 'allocated', Number(e.target.value))} className="w-24 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-right focus:outline-none focus:ring-2 focus:ring-blue-500/50" /></div>))}</div></div>
         </div>
-        <div className="p-6 border-t border-white/10 flex gap-3"><button onClick={onClose} className="flex-1 px-4 py-3 bg-white/5 text-white rounded-xl hover:bg-white/10 transition-all font-medium">Cancel</button><button onClick={handleSave} disabled={isLoading} className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:shadow-lg hover:shadow-blue-500/30 transition-all font-medium disabled:opacity-50">{isLoading ? 'Saving...' : 'Save Budget'}</button></div>
+        <div className="p-6 border-t border-white/10 flex gap-3"><button onClick={onClose} className="flex-1 px-4 py-3 bg-white/5 text-white rounded-xl hover:bg-white/10 transition-all font-medium">{t('common.cancel')}</button><button onClick={handleSave} disabled={isLoading} className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:shadow-lg hover:shadow-blue-500/30 transition-all font-medium disabled:opacity-50">{isLoading ? t('common.loading') : t('common.save')}</button></div>
       </motion.div>
     </div>
   );
 };
 
 const EditMemberModal: React.FC<{ isOpen: boolean; onClose: () => void; member: FamilyMember; isAdmin: boolean; onUpdate: () => void; }> = ({ isOpen, onClose, member, isAdmin, onUpdate }) => {
+  const { t } = useTranslation();
   const [nickname, setNickname] = useState(member.nickname);
   const [relation, setRelation] = useState(member.relation);
   const [role, setRole] = useState(member.role);
@@ -636,15 +647,15 @@ const EditMemberModal: React.FC<{ isOpen: boolean; onClose: () => void; member: 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-slate-900 border border-white/10 rounded-3xl w-full max-w-md overflow-hidden">
-        <div className="p-6 border-b border-white/10"><div className="flex items-center justify-between"><h2 className="text-xl font-bold text-white">Edit Member</h2><button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-all"><XCircle className="w-5 h-5 text-white/60" /></button></div></div>
+        <div className="p-6 border-b border-white/10"><div className="flex items-center justify-between"><h2 className="text-xl font-bold text-white">{t('common.edit')} Member</h2><button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-all"><XCircle className="w-5 h-5 text-white/60" /></button></div></div>
         <div className="p-6 space-y-4">
-          <div><label className="block text-sm font-medium text-white/80 mb-2">Email (Read-only)</label><div className="flex items-center gap-2 px-4 py-3 bg-white/5 border border-white/10 rounded-xl"><Lock className="w-4 h-4 text-white/40" /><span className="text-white/60">{member.email}</span></div></div>
+          <div><label className="block text-sm font-medium text-white/80 mb-2">{t('auth.email')} (Read-only)</label><div className="flex items-center gap-2 px-4 py-3 bg-white/5 border border-white/10 rounded-xl"><Lock className="w-4 h-4 text-white/40" /><span className="text-white/60">{member.email}</span></div></div>
           <div><label className="block text-sm font-medium text-white/80 mb-2">Nickname</label><input type="text" value={nickname} onChange={(e) => setNickname(e.target.value)} className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50" /></div>
           <div><label className="block text-sm font-medium text-white/80 mb-2">Relation</label><div className="grid grid-cols-4 gap-2">{relations.map((rel) => (<button key={rel} onClick={() => setRelation(rel as any)} className={`p-2 rounded-xl text-xs font-medium transition-all ${relation === rel ? 'bg-blue-500 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}><span className="text-lg block mb-1">{relationAvatars[rel]}</span>{rel}</button>))}</div></div>
           {isAdmin && <div><label className="block text-sm font-medium text-white/80 mb-2">Role</label><div className="grid grid-cols-3 gap-2">{roles.map((r) => (<button key={r} onClick={() => setRole(r as any)} className={`p-3 rounded-xl text-sm font-medium transition-all ${role === r ? 'bg-blue-500 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}>{r === 'Admin' && <Crown className="w-4 h-4 inline mr-1" />}{r}</button>))}</div></div>}
-          {isAdmin && <div><label className="block text-sm font-medium text-white/80 mb-2">Monthly Spending Limit (₹)</label><input type="number" value={spendingLimit} onChange={(e) => setSpendingLimit(Number(e.target.value))} placeholder="No limit" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50" /><p className="text-white/40 text-xs mt-1">Leave 0 for no limit</p></div>}
+          {isAdmin && <div><label className="block text-sm font-medium text-white/80 mb-2">Monthly Spending Limit ({t('currency.symbol')})</label><input type="number" value={spendingLimit} onChange={(e) => setSpendingLimit(Number(e.target.value))} placeholder="No limit" className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50" /><p className="text-white/40 text-xs mt-1">Leave 0 for no limit</p></div>}
         </div>
-        <div className="p-6 border-t border-white/10 flex gap-3"><button onClick={onClose} className="flex-1 px-4 py-3 bg-white/5 text-white rounded-xl hover:bg-white/10 transition-all font-medium">Cancel</button><button onClick={handleSave} disabled={isLoading} className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:shadow-lg hover:shadow-blue-500/30 transition-all font-medium disabled:opacity-50">{isLoading ? 'Saving...' : 'Save Changes'}</button></div>
+        <div className="p-6 border-t border-white/10 flex gap-3"><button onClick={onClose} className="flex-1 px-4 py-3 bg-white/5 text-white rounded-xl hover:bg-white/10 transition-all font-medium">{t('common.cancel')}</button><button onClick={handleSave} disabled={isLoading} className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:shadow-lg hover:shadow-blue-500/30 transition-all font-medium disabled:opacity-50">{isLoading ? t('common.loading') : t('common.save')}</button></div>
       </motion.div>
     </div>
   );

@@ -16,6 +16,7 @@ import {
   Copy,
   RefreshCw,
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui'
 import { budgetApi } from '@/lib/api'
 import toast from 'react-hot-toast'
@@ -79,6 +80,7 @@ const MONTHS = [
 ]
 
 export const BudgetPage: React.FC = () => {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [showModal, setShowModal] = useState(false)
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null)
@@ -134,11 +136,11 @@ export const BudgetPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['current-budget'] })
       queryClient.invalidateQueries({ queryKey: ['budget-overview'] })
       queryClient.invalidateQueries({ queryKey: ['budget-progress'] })
-      toast.success('Budget created successfully!')
+      toast.success(t('budget.budgetCreated'))
       closeModal()
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to create budget')
+      toast.error(error.response?.data?.message || t('budget.createFailed'))
     },
   })
 
@@ -150,11 +152,11 @@ export const BudgetPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['current-budget'] })
       queryClient.invalidateQueries({ queryKey: ['budget-overview'] })
       queryClient.invalidateQueries({ queryKey: ['budget-progress'] })
-      toast.success('Budget updated successfully!')
+      toast.success(t('budget.budgetUpdated'))
       closeModal()
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to update budget')
+      toast.error(error.response?.data?.message || t('budget.updateFailed'))
     },
   })
 
@@ -166,11 +168,11 @@ export const BudgetPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['current-budget'] })
       queryClient.invalidateQueries({ queryKey: ['budget-overview'] })
       queryClient.invalidateQueries({ queryKey: ['budget-progress'] })
-      toast.success('Budget deleted successfully!')
+      toast.success(t('budget.budgetDeleted'))
       setShowDeleteConfirm(null)
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to delete budget')
+      toast.error(error.response?.data?.message || t('budget.deleteFailed'))
     },
   })
 
@@ -182,10 +184,10 @@ export const BudgetPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['current-budget'] })
       queryClient.invalidateQueries({ queryKey: ['budget-overview'] })
       queryClient.invalidateQueries({ queryKey: ['budget-progress'] })
-      toast.success('Budget copied from last month!')
+      toast.success(t('budget.budgetCopied'))
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Failed to copy budget')
+      toast.error(error.response?.data?.message || t('budget.copyFailed'))
     },
   })
 
@@ -239,7 +241,7 @@ export const BudgetPage: React.FC = () => {
 
   const handleSubmit = () => {
     if (!totalBudget || parseFloat(totalBudget) <= 0) {
-      toast.error('Please enter a valid budget amount')
+      toast.error(t('budget.enterValidAmount'))
       return
     }
 
@@ -285,20 +287,20 @@ export const BudgetPage: React.FC = () => {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Budget</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('budget.title')}</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Set and track your monthly spending limits
+            {t('budget.setAndTrack')}
           </p>
         </div>
         {currentBudgetData ? (
           <Button onClick={() => openEditModal(currentBudgetData)}>
             <Edit2 className="w-4 h-4 mr-2" />
-            Edit Budget
+            {t('budget.editBudget')}
           </Button>
         ) : (
           <Button onClick={() => setShowModal(true)}>
             <Plus className="w-4 h-4 mr-2" />
-            Set Budget
+            {t('budget.setBudget')}
           </Button>
         )}
       </div>
@@ -318,12 +320,12 @@ export const BudgetPage: React.FC = () => {
             <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-4">
               <RefreshCw className="w-8 h-8 text-amber-600" />
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">New Month, New Budget!</h3>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">{t('budget.newMonthBudget')}</h3>
             <p className="text-gray-500 mb-2">
-              It's {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}. Would you like to set up your budget?
+              {t('budget.setupForMonth', { month: new Date().toLocaleString('default', { month: 'long', year: 'numeric' }) })}
             </p>
             <p className="text-sm text-gray-400 mb-6">
-              Last month's budget was <span className="font-semibold text-gray-600">{formatCurrency(previousBudgetData.totalBudget)}</span>
+              {t('budget.lastMonthWas')} <span className="font-semibold text-gray-600">{formatCurrency(previousBudgetData.totalBudget)}</span>
             </p>
             
             <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
@@ -337,7 +339,7 @@ export const BudgetPage: React.FC = () => {
                 ) : (
                   <Copy className="w-4 h-4 mr-2" />
                 )}
-                Continue with {formatCurrency(previousBudgetData.totalBudget)}
+                {t('budget.continueWith', { amount: formatCurrency(previousBudgetData.totalBudget) })}
               </Button>
               <Button
                 variant="outline"
@@ -345,14 +347,14 @@ export const BudgetPage: React.FC = () => {
                 className="flex-1"
               >
                 <Edit2 className="w-4 h-4 mr-2" />
-                Set New Budget
+                {t('budget.setNewBudget')}
               </Button>
             </div>
 
             {/* Previous Budget Details */}
             {previousBudgetData.categoryBudgets && previousBudgetData.categoryBudgets.length > 0 && (
               <div className="mt-6 pt-6 border-t border-gray-100">
-                <p className="text-xs text-gray-400 mb-3">Last month's category breakdown:</p>
+                <p className="text-xs text-gray-400 mb-3">{t('budget.lastMonthBreakdown')}</p>
                 <div className="flex flex-wrap gap-2 justify-center">
                   {previousBudgetData.categoryBudgets.slice(0, 5).map((cat, idx) => (
                     <span key={idx} className="px-3 py-1 bg-gray-100 rounded-full text-xs text-gray-600">
@@ -378,13 +380,13 @@ export const BudgetPage: React.FC = () => {
             <div className="w-16 h-16 rounded-full bg-primary-100 flex items-center justify-center mx-auto mb-4">
               <PiggyBank className="w-8 h-8 text-primary-600" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Budget Set</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('budget.noBudgetSet')}</h3>
             <p className="text-gray-500 mb-6 max-w-sm mx-auto">
-              Create a budget to start tracking your spending and stay on top of your finances.
+              {t('budget.createToTrack')}
             </p>
             <Button onClick={() => setShowModal(true)}>
               <Plus className="w-4 h-4 mr-2" />
-              Create Your First Budget
+              {t('budget.createFirstBudget')}
             </Button>
           </motion.div>
         )
@@ -403,7 +405,7 @@ export const BudgetPage: React.FC = () => {
                   <div className="w-10 h-10 rounded-lg bg-primary-100 flex items-center justify-center">
                     <Target className="w-5 h-5 text-primary-600" />
                   </div>
-                  <span className="text-sm text-gray-500">Monthly Budget</span>
+                  <span className="text-sm text-gray-500">{t('dashboard.monthlyBudget')}</span>
                 </div>
                 {currentBudgetData && (
                   <button
@@ -418,7 +420,7 @@ export const BudgetPage: React.FC = () => {
               <p className="text-2xl font-bold text-gray-900">
                 {formatCurrency(overviewData.totalBudget)}
               </p>
-              <p className="text-xs text-gray-400 mt-1">Click edit to adjust</p>
+              <p className="text-xs text-gray-400 mt-1">{t('budget.clickToAdjust')}</p>
             </motion.div>
 
             {/* Spent */}
@@ -432,13 +434,13 @@ export const BudgetPage: React.FC = () => {
                 <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
                   <TrendingDown className="w-5 h-5 text-red-600" />
                 </div>
-                <span className="text-sm text-gray-500">Spent</span>
+                <span className="text-sm text-gray-500">{t('dashboard.spent')}</span>
               </div>
               <p className="text-2xl font-bold text-gray-900">
                 {formatCurrency(overviewData.totalSpent)}
               </p>
               <p className="text-sm text-gray-500 mt-1">
-                {overviewData.percentage.toFixed(1)}% of budget
+                {t('budget.ofBudget', { percentage: overviewData.percentage.toFixed(1) })}
               </p>
             </motion.div>
 
@@ -459,13 +461,13 @@ export const BudgetPage: React.FC = () => {
                     <TrendingUp className="w-5 h-5 text-green-600" />
                   )}
                 </div>
-                <span className="text-sm text-gray-500">Remaining</span>
+                <span className="text-sm text-gray-500">{t('dashboard.remaining')}</span>
               </div>
               <p className={`text-2xl font-bold ${
                 overviewData.isOverBudget ? 'text-red-600' : 'text-green-600'
               }`}>
                 {formatCurrency(Math.abs(overviewData.remaining))}
-                {overviewData.isOverBudget && ' over'}
+                {overviewData.isOverBudget && ' ' + t('budget.over')}
               </p>
             </motion.div>
 
@@ -480,13 +482,13 @@ export const BudgetPage: React.FC = () => {
                 <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
                   <Calendar className="w-5 h-5 text-amber-600" />
                 </div>
-                <span className="text-sm text-gray-500">Daily Average</span>
+                <span className="text-sm text-gray-500">{t('dashboard.dailyAverage')}</span>
               </div>
               <p className="text-2xl font-bold text-gray-900">
                 {formatCurrency(overviewData.dailyAverage)}
               </p>
               <p className="text-sm text-gray-500 mt-1">
-                {overviewData.daysRemaining} days left
+                {t('budget.daysLeft', { count: overviewData.daysRemaining })}
               </p>
             </motion.div>
           </div>
@@ -499,7 +501,7 @@ export const BudgetPage: React.FC = () => {
             className="bg-white rounded-3xl border border-gray-200 p-6"
           >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Budget Progress</h3>
+              <h3 className="text-lg font-semibold text-gray-900">{t('dashboard.budgetProgress')}</h3>
               <span className={`text-sm font-medium ${
                 overviewData.percentage >= 100
                   ? 'text-red-600'
@@ -519,8 +521,8 @@ export const BudgetPage: React.FC = () => {
               />
             </div>
             <div className="flex justify-between mt-2 text-sm text-gray-500">
-              <span>{formatCurrency(overviewData.totalSpent)} spent</span>
-              <span>{formatCurrency(overviewData.totalBudget)} budget</span>
+              <span>{formatCurrency(overviewData.totalSpent)} {t('dashboard.spent')}</span>
+              <span>{formatCurrency(overviewData.totalBudget)} {t('dashboard.budget')}</span>
             </div>
 
             {/* Projected spending alert */}
@@ -529,10 +531,10 @@ export const BudgetPage: React.FC = () => {
                 <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
                 <div>
                   <p className="text-sm font-medium text-amber-800">
-                    Projected overspending
+                    {t('budget.projectedOverspending')}
                   </p>
                   <p className="text-sm text-amber-700">
-                    At your current rate, you'll spend {formatCurrency(overviewData.projectedTotal)} by month end.
+                    {t('budget.projectedMessage', { amount: formatCurrency(overviewData.projectedTotal) })}
                   </p>
                 </div>
               </div>
@@ -548,14 +550,14 @@ export const BudgetPage: React.FC = () => {
               className="bg-white rounded-3xl border border-gray-200 p-6"
             >
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-gray-900">Category Budgets</h3>
+                <h3 className="text-lg font-semibold text-gray-900">{t('budget.categoryBudgets')}</h3>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => openEditModal(currentBudgetData)}
                 >
                   <Edit2 className="w-4 h-4 mr-1" />
-                  Edit
+                  {t('common.edit')}
                 </Button>
               </div>
 
@@ -606,7 +608,7 @@ export const BudgetPage: React.FC = () => {
               transition={{ delay: 0.6 }}
               className="bg-white rounded-3xl border border-gray-200 p-6"
             >
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Budget History</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('budget.budgetHistory')}</h3>
               <div className="space-y-3">
                 {budgetsData.slice(1).map((budget) => {
                   const percentage = budget.totalBudget > 0 
@@ -674,7 +676,7 @@ export const BudgetPage: React.FC = () => {
               <div className="p-6 border-b border-gray-100">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-bold text-gray-900">
-                    {editingBudget ? 'Edit Budget' : 'Set Budget'}
+                    {editingBudget ? t('budget.editBudget') : t('budget.setBudget')}
                   </h2>
                   <button
                     onClick={closeModal}
@@ -690,7 +692,7 @@ export const BudgetPage: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Month
+                      {t('budget.month')}
                     </label>
                     <select
                       value={selectedMonth}
@@ -707,7 +709,7 @@ export const BudgetPage: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Year
+                      {t('budget.year')}
                     </label>
                     <select
                       value={selectedYear}
@@ -727,10 +729,10 @@ export const BudgetPage: React.FC = () => {
                 {/* Total Budget */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Total Monthly Budget
+                    {t('budget.totalMonthlyBudget')}
                   </label>
                   <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">{t('currency.symbol')}</span>
                     <input
                       type="number"
                       value={totalBudget}
@@ -744,7 +746,7 @@ export const BudgetPage: React.FC = () => {
                 {/* Alert Threshold */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Alert Threshold ({alertThreshold}%)
+                    {t('budget.alertThreshold', { percentage: alertThreshold })}
                   </label>
                   <input
                     type="range"
@@ -755,7 +757,7 @@ export const BudgetPage: React.FC = () => {
                     className="w-full"
                   />
                   <p className="text-sm text-gray-500 mt-1">
-                    Get warned when spending reaches {alertThreshold}% of budget
+                    {t('budget.alertDescription', { percentage: alertThreshold })}
                   </p>
                 </div>
 
@@ -763,13 +765,13 @@ export const BudgetPage: React.FC = () => {
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <label className="block text-sm font-medium text-gray-700">
-                      Category Budgets (Optional)
+                      {t('budget.categoryBudgetsOptional')}
                     </label>
                     <button
                       onClick={addCategoryBudget}
                       className="text-sm text-primary-600 hover:text-primary-700 font-medium"
                     >
-                      + Add Category
+                      {t('budget.addCategory')}
                     </button>
                   </div>
 
@@ -781,7 +783,7 @@ export const BudgetPage: React.FC = () => {
                           onChange={(e) => updateCategoryBudget(index, 'category', e.target.value)}
                           className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                         >
-                          <option value="">Select category</option>
+                          <option value="">{t('budget.selectCategory')}</option>
                           {CATEGORY_OPTIONS.map((opt) => (
                             <option key={opt.value} value={opt.value}>
                               {opt.emoji} {opt.value}
@@ -789,7 +791,7 @@ export const BudgetPage: React.FC = () => {
                           ))}
                         </select>
                         <div className="relative w-32">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">₹</span>
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">{t('currency.symbol')}</span>
                           <input
                             type="number"
                             value={cb.amount}
@@ -812,7 +814,7 @@ export const BudgetPage: React.FC = () => {
 
               <div className="p-6 border-t border-gray-100 flex gap-3">
                 <Button variant="outline" className="flex-1" onClick={closeModal}>
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
                 <Button
                   className="flex-1"
@@ -822,7 +824,7 @@ export const BudgetPage: React.FC = () => {
                   {(createMutation.isPending || updateMutation.isPending) && (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   )}
-                  {editingBudget ? 'Update Budget' : 'Create Budget'}
+                  {editingBudget ? t('budget.updateBudget') : t('budget.createBudget')}
                 </Button>
               </div>
             </motion.div>
@@ -852,13 +854,13 @@ export const BudgetPage: React.FC = () => {
                   <AlertTriangle className="w-6 h-6 text-red-600" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Delete Budget</h3>
-                  <p className="text-sm text-gray-500">This action cannot be undone</p>
+                  <h3 className="text-lg font-semibold text-gray-900">{t('budget.deleteBudget')}</h3>
+                  <p className="text-sm text-gray-500">{t('budget.cannotUndo')}</p>
                 </div>
               </div>
 
               <p className="text-gray-600 mb-6">
-                Are you sure you want to delete this budget? This will not affect your transactions.
+                {t('budget.deleteConfirmation')}
               </p>
 
               <div className="flex gap-3">
@@ -867,7 +869,7 @@ export const BudgetPage: React.FC = () => {
                   className="flex-1"
                   onClick={() => setShowDeleteConfirm(null)}
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
                 <Button
                   className="flex-1 bg-red-600 hover:bg-red-700"
@@ -877,7 +879,7 @@ export const BudgetPage: React.FC = () => {
                   {deleteMutation.isPending && (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   )}
-                  Delete
+                  {t('common.delete')}
                 </Button>
               </div>
             </motion.div>
