@@ -81,6 +81,69 @@ const transactionSchema = new Schema<ITransaction>(
   }
 );
 
+// Pre-save validation to ensure data integrity
+transactionSchema.pre('save', function(next) {
+  // Validate amount is not null or undefined
+  if (this.amount === null || this.amount === undefined) {
+    return next(new Error('Transaction amount cannot be null or undefined'));
+  }
+  
+  // Validate amount is a positive number
+  if (this.amount < 0) {
+    return next(new Error('Transaction amount cannot be negative'));
+  }
+  
+  // Ensure amount is rounded to 2 decimal places
+  this.amount = Math.round(this.amount * 100) / 100;
+  
+  // Validate date is not in the future
+  const now = new Date();
+  if (new Date(this.date) > now) {
+    // Allow up to end of current day
+    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+    if (new Date(this.date) > endOfToday) {
+      return next(new Error('Transaction date cannot be in the future'));
+    }
+  }
+  
+  // Validate merchant is not empty
+  if (!this.merchant || this.merchant.trim() === '') {
+    return next(new Error('Merchant/Description is required'));
+  }
+  
+  next();
+});
+
+// Static method to validate transaction data before saving
+transactionSchema.statics.validateTransactionData = function(data: any) {
+  const errors: string[] = [];
+  
+  if (data.amount === null || data.amount === undefined) {
+    errors.push('Amount is required');
+  } else if (typeof data.amount !== 'number' || isNaN(data.amount)) {
+    errors.push('Amount must be a valid number');
+  } else if (data.amount <= 0) {
+    errors.push('Amount must be greater than 0');
+  }
+  
+  if (!data.category) {
+    errors.push('Category is required');
+  }
+  
+  if (!data.merchant || data.merchant.trim() === '') {
+    errors.push('Merchant/Description is required');
+  }
+  
+  if (!data.date) {
+    errors.push('Date is required');
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    errors,
+  };
+};
+
 // Compound index for user queries with date sorting
 transactionSchema.index({ user: 1, date: -1 });
 transactionSchema.index({ user: 1, category: 1, date: -1 });

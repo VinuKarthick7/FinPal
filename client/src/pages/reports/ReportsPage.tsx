@@ -13,6 +13,10 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   FileText,
+  Users,
+  User,
+  RefreshCw,
+  CheckCircle,
 } from 'lucide-react'
 import {
   AreaChart,
@@ -34,7 +38,7 @@ import {
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { Button, ErrorDisplay } from '@/components/ui'
-import { reportsApi } from '@/lib/api'
+import { reportsApi, familyReportsApi, familyApi } from '@/lib/api'
 import toast from 'react-hot-toast'
 
 // Types
@@ -112,6 +116,45 @@ interface ComparisonReport {
   }
 }
 
+// Family Report Types
+interface FamilyMonthlyReport {
+  familyId: string
+  familyName: string
+  month: string
+  monthNumber: number
+  year: number
+  totalExpenses: number
+  totalIncome: number
+  netSavings: number
+  totalBudget: number
+  budgetUsedPercentage: number
+  remainingBudget: number
+  transactionCount: number
+  memberCount: number
+  categories: Array<{
+    name: string
+    amount: number
+    percentage: number
+  }>
+  dailyBreakdown: Array<{
+    date: string
+    day: number
+    expenses: number
+    income: number
+  }>
+  memberBreakdown: Array<{
+    userId: string
+    email: string
+    nickname: string
+    relation: string
+    expenses: number
+    income: number
+    transactionCount: number
+    percentage: number
+  }>
+  lastUpdated: string
+}
+
 // Chart colors
 const COLORS = ['#10B981', '#3B82F6', '#8B5CF6', '#F59E0B', '#EF4444', '#EC4899', '#06B6D4', '#84CC16']
 
@@ -134,20 +177,54 @@ export const ReportsPage: React.FC = () => {
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth() + 1)
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear())
   const [activeTab, setActiveTab] = useState<'monthly' | 'yearly' | 'trends'>('monthly')
+  const [isFamilyMode, setIsFamilyMode] = useState(false)
 
-  // Fetch monthly report
-  const { data: monthlyData, isLoading: monthlyLoading, isError: monthlyError } = useQuery({
-    queryKey: ['reports-monthly', selectedMonth, selectedYear],
+  // Check if user is part of a family
+  const { data: familyData } = useQuery({
+    queryKey: ['user-family'],
     queryFn: async () => {
+      try {
+        const response = await familyApi.getMyFamily()
+        return response.data
+      } catch {
+        return null
+      }
+    },
+  })
+
+  const hasFamily = !!familyData
+
+  // Fetch monthly report - Individual mode
+  const { data: monthlyData, isLoading: monthlyLoading, isError: monthlyError } = useQuery({
+    queryKey: ['reports-monthly', selectedMonth, selectedYear, isFamilyMode],
+    queryFn: async () => {
+      if (isFamilyMode && hasFamily) {
+        const response = await familyReportsApi.getMonthly({ month: selectedMonth, year: selectedYear })
+        return response.data as FamilyMonthlyReport
+      }
       const response = await reportsApi.getMonthly({ month: selectedMonth, year: selectedYear })
       return response.data as MonthlyReport
     },
   })
 
+  // Fetch family monthly report - Only when in family mode
+  const { data: familyMonthlyData, isLoading: familyMonthlyLoading } = useQuery({
+    queryKey: ['family-reports-monthly', selectedMonth, selectedYear],
+    queryFn: async () => {
+      const response = await familyReportsApi.getMonthly({ month: selectedMonth, year: selectedYear })
+      return response.data as FamilyMonthlyReport
+    },
+    enabled: isFamilyMode && hasFamily,
+  })
+
   // Fetch yearly report
   const { data: yearlyData, isLoading: yearlyLoading } = useQuery({
-    queryKey: ['reports-yearly', selectedYear],
+    queryKey: ['reports-yearly', selectedYear, isFamilyMode],
     queryFn: async () => {
+      if (isFamilyMode && hasFamily) {
+        const response = await familyReportsApi.getYearly({ year: selectedYear })
+        return response.data as YearlyReport
+      }
       const response = await reportsApi.getYearly({ year: selectedYear })
       return response.data as YearlyReport
     },
@@ -171,6 +248,17 @@ export const ReportsPage: React.FC = () => {
       return response.data
     },
     enabled: activeTab === 'trends',
+  })
+
+  // Get sync status for family mode
+  const { data: syncStatus } = useQuery({
+    queryKey: ['family-sync-status'],
+    queryFn: async () => {
+      const response = await familyReportsApi.getSyncStatus()
+      return response.data
+    },
+    enabled: isFamilyMode && hasFamily,
+    refetchInterval: 30000, // Refresh every 30 seconds
   })
 
   const handlePreviousMonth = () => {
@@ -446,16 +534,20 @@ export const ReportsPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
       {/* Header */}
-      <div className="bg-gradient-to-br from-primary-600 via-primary-500 to-accent-500 pt-14 pb-8 px-4">
+      <div className={`pt-14 pb-8 px-4 ${isFamilyMode ? 'bg-gradient-to-br from-purple-600 via-indigo-500 to-blue-500' : 'bg-gradient-to-br from-primary-600 via-primary-500 to-accent-500'}`}>
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="max-w-lg mx-auto"
         >
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-2xl font-bold text-white">Reports & Analytics</h1>
-              <p className="text-primary-100 text-sm mt-1">Track your financial insights</p>
+              <h1 className="text-2xl font-bold text-white">
+                {isFamilyMode ? 'Family Reports' : 'Reports & Analytics'}
+              </h1>
+              <p className="text-white/70 text-sm mt-1">
+                {isFamilyMode && familyData ? `${familyData.familyName} • ${familyData.members?.length || 0} members` : 'Track your financial insights'}
+              </p>
             </div>
             <Button
               variant="secondary"
@@ -467,6 +559,42 @@ export const ReportsPage: React.FC = () => {
               Export
             </Button>
           </div>
+
+          {/* Family Mode Toggle - Only show if user has a family */}
+          {hasFamily && (
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <button
+                onClick={() => setIsFamilyMode(false)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                  !isFamilyMode 
+                    ? 'bg-white text-gray-800 shadow-lg' 
+                    : 'bg-white/20 text-white hover:bg-white/30'
+                }`}
+              >
+                <User className="w-4 h-4" />
+                Personal
+              </button>
+              <button
+                onClick={() => setIsFamilyMode(true)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                  isFamilyMode 
+                    ? 'bg-white text-gray-800 shadow-lg' 
+                    : 'bg-white/20 text-white hover:bg-white/30'
+                }`}
+              >
+                <Users className="w-4 h-4" />
+                Family
+              </button>
+            </div>
+          )}
+
+          {/* Sync Status for Family Mode */}
+          {isFamilyMode && syncStatus && (
+            <div className="flex items-center justify-center gap-2 mb-4 text-white/80 text-xs">
+              <CheckCircle className="w-3 h-3 text-green-300" />
+              <span>Data synced • Last updated: {new Date(syncStatus.familyLastSynced).toLocaleTimeString()}</span>
+            </div>
+          )}
 
           {/* Month Selector */}
           <div className="flex items-center justify-center gap-4 bg-white/10 rounded-xl p-3 backdrop-blur-sm">
@@ -515,8 +643,108 @@ export const ReportsPage: React.FC = () => {
           </div>
         </motion.div>
 
-        {/* Comparison Cards */}
-        {comparisonLoading ? (
+        {/* Family Mode Summary Cards */}
+        {isFamilyMode && monthlyData && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="grid grid-cols-2 gap-3 mb-6"
+          >
+            <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-2xl p-4 shadow-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingDown className="w-4 h-4 text-white/70" />
+                <p className="text-xs text-white/70">Total Expenses</p>
+              </div>
+              <p className="text-xl font-bold text-white">
+                {formatCurrency(monthlyData.totalExpenses || 0)}
+              </p>
+            </div>
+
+            <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-4 shadow-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingUp className="w-4 h-4 text-white/70" />
+                <p className="text-xs text-white/70">Total Income</p>
+              </div>
+              <p className="text-xl font-bold text-white">
+                {formatCurrency(monthlyData.totalIncome || 0)}
+              </p>
+            </div>
+
+            <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-4 shadow-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <FileText className="w-4 h-4 text-white/70" />
+                <p className="text-xs text-white/70">Transactions</p>
+              </div>
+              <p className="text-xl font-bold text-white">
+                {(monthlyData as FamilyMonthlyReport).transactionCount || 0}
+              </p>
+            </div>
+
+            <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-4 shadow-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <DollarSign className="w-4 h-4 text-white/70" />
+                <p className="text-xs text-white/70">Avg. Expense</p>
+              </div>
+              <p className="text-xl font-bold text-white">
+                {formatCurrency(
+                  (monthlyData as FamilyMonthlyReport).transactionCount > 0 
+                    ? monthlyData.totalExpenses / (monthlyData as FamilyMonthlyReport).transactionCount 
+                    : 0
+                )}
+              </p>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Budget Progress for Family Mode */}
+        {isFamilyMode && (monthlyData as FamilyMonthlyReport)?.totalBudget && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-6"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-gray-800">Family Budget</h3>
+              <span className={`text-xs font-bold px-2 py-1 rounded-full ${
+                ((monthlyData as FamilyMonthlyReport).budgetUsedPercentage || 0) > 90 
+                  ? 'bg-red-100 text-red-600' 
+                  : ((monthlyData as FamilyMonthlyReport).budgetUsedPercentage || 0) > 70 
+                  ? 'bg-yellow-100 text-yellow-600' 
+                  : 'bg-green-100 text-green-600'
+              }`}>
+                {((monthlyData as FamilyMonthlyReport).budgetUsedPercentage || 0).toFixed(0)}% used
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-sm mb-2">
+              <span className="text-gray-600">
+                Spent: {formatCurrency(monthlyData.totalExpenses)}
+              </span>
+              <span className="text-gray-600">
+                Budget: {formatCurrency((monthlyData as FamilyMonthlyReport).totalBudget)}
+              </span>
+            </div>
+            <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+              <div 
+                className={`h-full rounded-full transition-all ${
+                  ((monthlyData as FamilyMonthlyReport).budgetUsedPercentage || 0) > 90 
+                    ? 'bg-red-500' 
+                    : ((monthlyData as FamilyMonthlyReport).budgetUsedPercentage || 0) > 70 
+                    ? 'bg-yellow-500' 
+                    : 'bg-green-500'
+                }`}
+                style={{ width: `${Math.min((monthlyData as FamilyMonthlyReport).budgetUsedPercentage || 0, 100)}%` }}
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-2 text-center">
+              Remaining: {formatCurrency((monthlyData as FamilyMonthlyReport).remainingBudget || 0)}
+            </p>
+          </motion.div>
+        )}
+
+        {/* Comparison Cards - Only show in Personal Mode */}
+        {!isFamilyMode && (comparisonLoading ? (
           <div className="grid grid-cols-2 gap-4 mb-6">
             <StatSkeleton />
             <StatSkeleton />
@@ -559,7 +787,7 @@ export const ReportsPage: React.FC = () => {
               </div>
             </div>
           </motion.div>
-        ) : null}
+        ) : null)}
 
         {monthlyError ? (
           <ErrorDisplay message="Failed to load reports" onRetry={() => window.location.reload()} />
@@ -712,6 +940,63 @@ export const ReportsPage: React.FC = () => {
                     </div>
                   )}
                 </motion.div>
+
+                {/* Family Member Breakdown - Only show in Family Mode */}
+                {isFamilyMode && (monthlyData as FamilyMonthlyReport)?.memberBreakdown && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.35 }}
+                    className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100"
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-base font-semibold text-gray-800">Member Breakdown</h2>
+                      <Users className="w-4 h-4 text-purple-500" />
+                    </div>
+
+                    <div className="space-y-3">
+                      {(monthlyData as FamilyMonthlyReport).memberBreakdown.map((member, index) => (
+                        <div key={member.userId} className="bg-gray-50 rounded-xl p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <div 
+                                className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold"
+                                style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                              >
+                                {member.nickname?.charAt(0).toUpperCase() || '?'}
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-gray-800">{member.nickname}</p>
+                                <p className="text-xs text-gray-500">{member.relation} • {member.email}</p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-bold text-gray-800">{formatCurrency(member.expenses)}</p>
+                              <p className="text-xs text-gray-500">{member.percentage.toFixed(1)}%</p>
+                            </div>
+                          </div>
+                          {/* Progress bar */}
+                          <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full rounded-full transition-all"
+                              style={{ 
+                                width: `${member.percentage}%`,
+                                backgroundColor: COLORS[index % COLORS.length]
+                              }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Data Accuracy Notice */}
+                    <div className="mt-4 pt-3 border-t border-gray-100">
+                      <p className="text-xs text-gray-500 text-center">
+                        ✓ Data mapped by email ID • No mixing between members
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
 
                 {/* Top Merchants */}
                 <motion.div
