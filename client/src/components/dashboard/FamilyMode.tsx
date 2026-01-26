@@ -22,7 +22,7 @@ interface FamilyModeState {
 }
 
 const FamilyMode: React.FC = () => {
-  const [familyMode, setFamilyMode] = useState<FamilyModeState>({
+  const [familyMode] = useState<FamilyModeState>({
     isEnabled: true,
     familyHead: 'Father',
     members: [

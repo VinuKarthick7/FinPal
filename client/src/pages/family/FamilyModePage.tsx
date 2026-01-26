@@ -30,7 +30,7 @@ const FamilyModePage: React.FC = () => {
   const [joinCode, setJoinCode] = useState('');
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'connect' | 'join'>('connect');
-  const [connectedMembers, setConnectedMembers] = useState<FamilyMember[]>([]);
+  const [connectedMembers] = useState<FamilyMember[]>([]);
   const [showSuccess, setShowSuccess] = useState(false);
 
   // Generate a random 6-digit code

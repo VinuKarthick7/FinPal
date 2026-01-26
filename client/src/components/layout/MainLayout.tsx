@@ -56,7 +56,7 @@ export const MainLayout: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen min-h-[100dvh] bg-gray-50">
+    <div className="min-h-screen bg-gray-50">
       {/* Mobile Header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-white/90 supports-[backdrop-filter]:bg-white/70 backdrop-blur-md border-b border-gray-100/70 safe-top">
         <div className="flex items-center justify-between px-4 h-14">
@@ -154,7 +154,7 @@ export const MainLayout: React.FC = () => {
         ref={(node) => {
           mainRef.current = node
         }}
-        className="lg:ml-64 pt-14 lg:pt-0 pb-20 lg:pb-0 min-h-screen max-h-[100dvh] lg:max-h-none scroll-container"
+        className="lg:ml-64 pt-14 lg:pt-0 pb-20 lg:pb-0 min-h-screen"
       >
         <AnimatePresence mode="wait" initial={false}>
           <motion.div

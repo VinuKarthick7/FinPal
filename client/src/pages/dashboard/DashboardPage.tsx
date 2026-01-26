@@ -8,7 +8,6 @@ import {
   TrendingUp,
   PiggyBank,
   Plus,
-  ArrowUpRight,
   Calendar,
   Users,
 } from 'lucide-react'
@@ -18,13 +17,23 @@ import {
   CategoryBreakdown,
   UpcomingReminders,
   BudgetProgress,
-  Transaction,
   FamilyModeModal,
   FamilyModeCard,
 } from '@/components/dashboard'
 import { Button, DashboardSkeleton, ErrorDisplay } from '@/components/ui'
 import { dashboardApi } from '@/lib/api'
 import { useAuthStore } from '@/stores/authStore'
+
+interface Transaction {
+  id: string
+  description: string
+  amount: number
+  category: string
+  date: string
+  type: 'expense' | 'income'
+  merchant: string
+  paymentMethod: string | any
+}
 
 interface DashboardStats {
   totalSpent: number
@@ -297,12 +306,13 @@ export const DashboardPage: React.FC = () => {
               <TransactionList
                 transactions={(transactionsData || []).map(t => ({
                   id: (t as any)._id || t.id,
+                  description: (t as any).description || t.category,
                   amount: t.amount,
                   category: t.category,
-                  merchant: t.merchant,
+                  merchant: t.merchant || '',
                   date: t.date,
                   type: t.type,
-                  paymentMethod: t.paymentMethod,
+                  paymentMethod: t.paymentMethod || '',
                 }))}
                 onViewAll={() => navigate('/expenses')}
                 onTransactionClick={(t) => console.log('Clicked:', t)}

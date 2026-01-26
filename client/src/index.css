@@ -28,11 +28,6 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-html,
-body {
-  height: 100%;
-}
-
 #root {
   min-height: 100vh;
   min-height: 100dvh;
