@@ -250,15 +250,17 @@ const FamilyModePage: React.FC = () => {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="bg-white/5 border-b border-white/10 sticky top-[73px] z-10">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex gap-1 overflow-x-auto hide-scrollbar py-2">
+      {/* Tabs - Mobile optimized with horizontal scroll */}
+      <div className="bg-white/5 border-b border-white/10 sticky top-[73px] z-10 relative">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4">
+          <div className="flex gap-1 overflow-x-auto hide-scrollbar py-2 -mx-2 px-2 scroll-smooth" style={{ WebkitOverflowScrolling: 'touch' }}>
             {[{ id: 'overview', label: 'Overview', icon: <Home className="w-4 h-4" /> }, { id: 'members', label: 'Members', icon: <Users className="w-4 h-4" /> }, { id: 'expenses', label: 'Expenses', icon: <TrendingDown className="w-4 h-4" /> }, { id: 'budget', label: 'Budget', icon: <PieChart className="w-4 h-4" /> }, { id: 'reminders', label: 'Reminders', icon: <Bell className="w-4 h-4" /> }].map((tab) => (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id as typeof activeTab)} className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${activeTab === tab.id ? 'bg-white/20 text-white' : 'text-white/60 hover:text-white hover:bg-white/10'}`}>{tab.icon}{tab.label}</button>
+              <button key={tab.id} onClick={() => setActiveTab(tab.id as typeof activeTab)} className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 rounded-xl font-medium text-xs sm:text-sm whitespace-nowrap transition-all flex-shrink-0 min-w-fit ${activeTab === tab.id ? 'bg-white/20 text-white shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/10'}`}>{tab.icon}<span>{tab.label}</span></button>
             ))}
           </div>
         </div>
+        {/* Right fade indicator for mobile scroll hint */}
+        <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-slate-900/80 to-transparent pointer-events-none sm:hidden" />
       </div>
 
       {/* Content */}
