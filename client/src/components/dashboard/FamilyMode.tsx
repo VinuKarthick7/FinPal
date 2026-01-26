@@ -240,9 +240,6 @@ const FamilyMode: React.FC = () => {
           <Share2 size={14} className="text-purple-600" />
         </div>
         <p className="text-xs text-gray-600 font-medium">End-to-End Encrypted • Real-time Sync • Privacy Protected</p>
-        {familyMode.familyCode && (
-          <p className="text-xs text-gray-500 mt-2">Family ID: <span className="font-bold text-green-600">{familyMode.familyCode}</span></p>
-        )}
       </div>
     </div>
   );

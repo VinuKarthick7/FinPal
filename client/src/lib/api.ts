@@ -335,4 +335,194 @@ export const reportsApi = {
   },
 }
 
+// Family API
+export const familyApi = {
+  // Get user's family
+  getMyFamily: async () => {
+    const response = await api.get('/family')
+    return response.data
+  },
+
+  // Get full family dashboard with real data
+  getDashboard: async () => {
+    const response = await api.get('/family/dashboard')
+    return response.data
+  },
+
+  // Create a new family
+  createFamily: async (data: {
+    familyName: string
+    nickname?: string
+    relation?: string
+    sharedBudget?: {
+      amount: number
+      period: 'weekly' | 'monthly' | 'yearly'
+      categories?: Array<{
+        name: string
+        allocated: number
+      }>
+    }
+  }) => {
+    const response = await api.post('/family/create', data)
+    return response.data
+  },
+
+  // Join family using 6-digit code
+  joinFamily: async (data: {
+    familyCode: string
+    nickname?: string
+    relation: string
+  }) => {
+    const response = await api.post('/family/join', data)
+    return response.data
+  },
+
+  // Update family settings
+  updateFamily: async (data: {
+    familyName?: string
+    sharedBudget?: {
+      amount?: number
+      period?: 'weekly' | 'monthly' | 'yearly'
+      categories?: Array<{
+        name: string
+        allocated: number
+        spent?: number
+      }>
+    }
+    settings?: {
+      currency?: string
+      timezone?: string
+      notificationsEnabled?: boolean
+      autoSyncEnabled?: boolean
+      privacyLevel?: 'open' | 'restricted' | 'private'
+    }
+  }) => {
+    const response = await api.put('/family/update', data)
+    return response.data
+  },
+
+  // Leave family
+  leaveFamily: async () => {
+    const response = await api.post('/family/leave')
+    return response.data
+  },
+
+  // Regenerate family code
+  regenerateCode: async () => {
+    const response = await api.post('/family/regenerate-code')
+    return response.data
+  },
+
+  // Invite member
+  inviteMember: async (data: {
+    email: string
+    relation: string
+    role?: 'Member' | 'Viewer'
+  }) => {
+    const response = await api.post('/family/invite', data)
+    return response.data
+  },
+
+  // Update member
+  updateMember: async (memberId: string, data: {
+    nickname?: string
+    relation?: string
+    role?: 'Admin' | 'Member' | 'Viewer'
+    permissions?: {
+      canViewBudget?: boolean
+      canEditBudget?: boolean
+      canViewExpenses?: boolean
+      canAddExpenses?: boolean
+      canViewReminders?: boolean
+      canManageMembers?: boolean
+    }
+    monthlySpendingLimit?: number
+  }) => {
+    const response = await api.put(`/family/members/${memberId}`, data)
+    return response.data
+  },
+
+  // Remove member
+  removeMember: async (memberId: string) => {
+    const response = await api.delete(`/family/members/${memberId}`)
+    return response.data
+  },
+
+  // Get member's expenses
+  getMemberExpenses: async (memberId: string, params?: {
+    startDate?: string
+    endDate?: string
+    category?: string
+    page?: number
+    limit?: number
+  }) => {
+    const response = await api.get(`/family/members/${memberId}/expenses`, { params })
+    return response.data
+  },
+}
+
+// Family Reports API - Comprehensive family financial reporting
+export const familyReportsApi = {
+  // Get family monthly report with member-wise breakdown
+  getMonthly: async (params?: { month?: number; year?: number }) => {
+    const response = await api.get('/family-reports/monthly', { params })
+    return response.data
+  },
+
+  // Get specific member's report within family context
+  getMemberReport: async (memberId: string, params?: { month?: number; year?: number }) => {
+    const response = await api.get(`/family-reports/member/${memberId}`, { params })
+    return response.data
+  },
+
+  // Get family yearly report
+  getYearly: async (params?: { year?: number }) => {
+    const response = await api.get('/family-reports/yearly', { params })
+    return response.data
+  },
+
+  // Get or create family budget for a month
+  getBudget: async (month: number, year: number) => {
+    const response = await api.get(`/family-reports/budget/${month}/${year}`)
+    return response.data
+  },
+
+  // Save family budget for a month
+  saveBudget: async (data: {
+    month: number
+    year: number
+    totalBudget: number
+    categoryBudgets?: Array<{
+      category: string
+      allocated: number
+      color?: string
+    }>
+    memberBudgets?: Array<{
+      email: string
+      allocated: number
+    }>
+  }) => {
+    const response = await api.post('/family-reports/budget', data)
+    return response.data
+  },
+
+  // Export family report data
+  exportReport: async (params?: { month?: number; year?: number; type?: 'monthly' | 'yearly' }) => {
+    const response = await api.get('/family-reports/export', { params })
+    return response.data
+  },
+
+  // Get data sync status
+  getSyncStatus: async () => {
+    const response = await api.get('/family-reports/sync-status')
+    return response.data
+  },
+
+  // Validate and reconcile family data
+  validateData: async (data?: { month?: number; year?: number }) => {
+    const response = await api.post('/family-reports/validate', data)
+    return response.data
+  },
+}
+
 export default api
