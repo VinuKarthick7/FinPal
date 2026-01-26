@@ -15,7 +15,6 @@ import {
   FileText,
   Users,
   User,
-  RefreshCw,
   CheckCircle,
 } from 'lucide-react'
 import {
@@ -208,7 +207,7 @@ export const ReportsPage: React.FC = () => {
   })
 
   // Fetch family monthly report - Only when in family mode
-  const { data: familyMonthlyData, isLoading: familyMonthlyLoading } = useQuery({
+  useQuery({
     queryKey: ['family-reports-monthly', selectedMonth, selectedYear],
     queryFn: async () => {
       const response = await familyReportsApi.getMonthly({ month: selectedMonth, year: selectedYear })
@@ -719,10 +718,10 @@ export const ReportsPage: React.FC = () => {
             </div>
             <div className="flex items-center justify-between text-sm mb-2">
               <span className="text-gray-600">
-                Spent: {formatCurrency(monthlyData.totalExpenses)}
+                Spent: {formatCurrency(monthlyData?.totalExpenses || 0)}
               </span>
               <span className="text-gray-600">
-                Budget: {formatCurrency((monthlyData as FamilyMonthlyReport).totalBudget)}
+                Budget: {formatCurrency((monthlyData as FamilyMonthlyReport)?.totalBudget || 0)}
               </span>
             </div>
             <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
@@ -1013,9 +1012,9 @@ export const ReportsPage: React.FC = () => {
                         <div key={i} className="h-12 bg-gray-100 rounded-lg animate-pulse" />
                       ))}
                     </div>
-                  ) : monthlyData?.topMerchants && monthlyData.topMerchants.length > 0 ? (
+                  ) : (monthlyData as MonthlyReport)?.topMerchants && (monthlyData as MonthlyReport).topMerchants.length > 0 ? (
                     <div className="space-y-3">
-                      {monthlyData.topMerchants.slice(0, 5).map((merchant, index) => (
+                      {(monthlyData as MonthlyReport).topMerchants?.slice(0, 5).map((merchant, index) => (
                         <div
                           key={merchant.merchant}
                           className="flex items-center justify-between p-3 bg-gray-50 rounded-xl"
@@ -1074,7 +1073,7 @@ export const ReportsPage: React.FC = () => {
                     <DollarSign className="w-6 h-6 mb-2 opacity-80" />
                     <p className="text-xs opacity-80">Avg. Expense</p>
                     <p className="text-xl font-bold">
-                      {monthlyLoading ? '...' : formatCurrency(monthlyData?.averageExpense || 0)}
+                      {monthlyLoading ? '...' : formatCurrency((monthlyData as MonthlyReport)?.averageExpense || 0)}
                     </p>
                   </div>
                 </motion.div>

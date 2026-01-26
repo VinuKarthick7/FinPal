@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -71,34 +71,64 @@ const relationColors: Record<string, string> = {
 
 const FamilyModePage: React.FC = () => {
   const navigate = useNavigate();
-  const [familyCode, setFamilyCode] = useState<string | null>(null);
-  const [isGeneratingCode, setIsGeneratingCode] = useState(false);
-  const [joinCode, setJoinCode] = useState('');
-  const [copied, setCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState<'connect' | 'join'>('connect');
-  const [connectedMembers, setConnectedMembers] = useState<FamilyMember[]>([]);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const user = useAuthStore((state) => state.user);
+  const [activeTab, setActiveTab] = useState<'overview' | 'members' | 'expenses' | 'budget' | 'reminders' | 'connect' | 'join'>('overview');
+  const [hasFamily, setHasFamily] = useState(false);
+  const [dashboardData, setDashboardData] = useState<FamilyDashboardData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showJoinModal, setShowJoinModal] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showBudgetModal, setShowBudgetModal] = useState(false);
+  const [showMemberModal, setShowMemberModal] = useState(false);
+  const [memberToEdit, setMemberToEdit] = useState<FamilyMember | null>(null);
+  const [selectedMember, setSelectedMember] = useState<string | null>(null);
+  const [createForm, setCreateForm] = useState({ familyName: '', nickname: '', relation: 'Father' as FamilyMember['relation'], budgetAmount: 50000 });
+  const [joinForm, setJoinForm] = useState({ familyCode: '', nickname: '', relation: 'Other' as FamilyMember['relation'] });
+  const [inviteForm, setInviteForm] = useState({ email: '', relation: 'Other' as FamilyMember['relation'], role: 'Member' as FamilyMember['role'] });
 
-  // Generate a random 6-digit code
-  const generateFamilyCode = () => {
-    setIsGeneratingCode(true);
-    
-    // Simulate API call delay
-    setTimeout(() => {
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
-      setFamilyCode(code);
-      setIsGeneratingCode(false);
-    }, 1200);
-  };
-
-  // Copy code to clipboard
-  const copyToClipboard = async () => {
-    if (familyCode) {
-      await navigator.clipboard.writeText(familyCode);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+  const loadFamilyData = async () => {
+    try {
+      const response = await familyApi.getDashboard();
+      if (response.success && response.data) {
+        setDashboardData(response.data);
+        setHasFamily(true);
+      } else {
+        setHasFamily(false);
+      }
+    } catch (error) {
+      setHasFamily(false);
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadFamilyData();
+  }, []);
+
+  const handleCopyCode = async () => {
+    if (dashboardData?.family.familyCode) {
+      await navigator.clipboard.writeText(dashboardData.family.familyCode);
+      setCopiedCode(true);
+      toast.success('Family code copied!');
+      setTimeout(() => setCopiedCode(false), 2000);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await loadFamilyData();
+    setIsRefreshing(false);
+    toast.success('Data refreshed!');
+  };
+
+  useEffect(() => {
+    loadFamilyData();
+  }, []);
 
   const handleCreateFamily = async () => {
     if (!createForm.familyName.trim()) { toast.error('Please enter a family name'); return; }
@@ -119,7 +149,7 @@ const FamilyModePage: React.FC = () => {
   const handleInviteMember = async () => {
     if (!inviteForm.email.trim()) { toast.error('Enter email'); return; }
     try {
-      const response = await familyApi.inviteMember({ email: inviteForm.email, relation: inviteForm.relation, role: inviteForm.role });
+      const response = await familyApi.inviteMember({ email: inviteForm.email, relation: inviteForm.relation, role: inviteForm.role === 'Admin' ? 'Member' : inviteForm.role });
       if (response.success) { toast.success(`Invitation sent to ${inviteForm.email}`); setShowInviteModal(false); setInviteForm({ email: '', relation: 'Other', role: 'Member' }); }
     } catch (error: any) { toast.error(error.response?.data?.message || 'Failed'); }
   };
@@ -136,7 +166,7 @@ const FamilyModePage: React.FC = () => {
     catch (error: any) { toast.error(error.response?.data?.message || 'Failed'); }
   };
 
-  const currentMember = dashboardData?.family.members.find(m => m.userId === user?._id || m.email === user?.email);
+  const currentMember = dashboardData?.family.members.find(m => m.userId === (user as any)?._id || m.email === user?.email);
   const isAdmin = currentMember?.role === 'Admin';
 
   const formatCurrency = (amount: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
@@ -344,7 +374,7 @@ const FamilyModePage: React.FC = () => {
               <div className="flex items-center justify-between"><h2 className="text-xl font-semibold text-white">Family Members</h2>{isAdmin && <button onClick={() => setShowInviteModal(true)} className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-xl hover:shadow-lg hover:shadow-blue-500/30 transition-all"><UserPlus className="w-4 h-4" />Add Member</button>}</div>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {dashboardData?.family.members.map((member) => (
-                  <MemberCard key={member.userId} member={member} isCurrentUser={member.userId === user?._id || member.email === user?.email} isAdmin={isAdmin} formatCurrency={formatCurrency} formatDate={formatDate} onEdit={() => setShowMemberModal(member)} onViewExpenses={() => { setSelectedMember(member.userId); setActiveTab('expenses'); }} />
+                  <MemberCard key={member.userId} member={member} isCurrentUser={member.userId === (user as any)?._id || member.email === user?.email} isAdmin={isAdmin} formatCurrency={formatCurrency} formatDate={formatDate} onEdit={() => { setMemberToEdit(member); setShowMemberModal(true); }} onViewExpenses={() => { setSelectedMember(member.userId); setActiveTab('expenses'); }} />
                 ))}
               </div>
 
@@ -469,7 +499,7 @@ const FamilyModePage: React.FC = () => {
       {showInviteModal && <InviteMemberModal isOpen={showInviteModal} onClose={() => setShowInviteModal(false)} form={inviteForm} setForm={setInviteForm} onSubmit={handleInviteMember} familyCode={dashboardData?.family.familyCode} />}
       {showSettingsModal && <SettingsModal isOpen={showSettingsModal} onClose={() => setShowSettingsModal(false)} family={dashboardData?.family} onUpdate={loadFamilyData} onRegenerateCode={handleRegenerateCode} />}
       {showBudgetModal && <EditBudgetModal isOpen={showBudgetModal} onClose={() => setShowBudgetModal(false)} family={dashboardData?.family} onUpdate={loadFamilyData} />}
-      {showMemberModal && <EditMemberModal isOpen={!!showMemberModal} onClose={() => setShowMemberModal(null)} member={showMemberModal} isAdmin={isAdmin} onUpdate={loadFamilyData} />}
+      {showMemberModal && <EditMemberModal isOpen={showMemberModal} onClose={() => { setShowMemberModal(false); setMemberToEdit(null); }} member={memberToEdit!} isAdmin={isAdmin} onUpdate={loadFamilyData} />}
     </div>
   );
 };
