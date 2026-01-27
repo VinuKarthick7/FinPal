@@ -8,40 +8,56 @@ export interface User {
   phone?: string
   avatar?: string
   isVerified: boolean
+  aiConsent?: boolean
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface DataSummary {
+  transactions: number
+  budgets: number
+  reminders: number
 }
 
 interface AuthState {
   user: User | null
   token: string | null
+  dataSummary: DataSummary | null
   isAuthenticated: boolean
   isLoading: boolean
-  setAuth: (user: User, token: string) => void
+  setAuth: (user: User, token: string, dataSummary?: DataSummary) => void
   logout: () => void
   setLoading: (loading: boolean) => void
   updateUser: (user: Partial<User>) => void
+  updateDataSummary: (summary: DataSummary) => void
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       token: null,
+      dataSummary: null,
       isAuthenticated: false,
       isLoading: true,
 
-      setAuth: (user, token) => {
+      setAuth: (user, token, dataSummary) => {
         set({
           user,
           token,
+          dataSummary,
           isAuthenticated: true,
           isLoading: false,
         })
       },
 
       logout: () => {
+        // Clear all stored auth data
+        localStorage.removeItem('finpal-auth')
         set({
           user: null,
           token: null,
+          dataSummary: null,
           isAuthenticated: false,
           isLoading: false,
         })
@@ -56,12 +72,17 @@ export const useAuthStore = create<AuthState>()(
           user: state.user ? { ...state.user, ...userData } : null,
         }))
       },
+
+      updateDataSummary: (summary) => {
+        set({ dataSummary: summary })
+      },
     }),
     {
       name: 'finpal-auth',
       partialize: (state) => ({
         user: state.user,
         token: state.token,
+        dataSummary: state.dataSummary,
         isAuthenticated: state.isAuthenticated,
       }),
     }

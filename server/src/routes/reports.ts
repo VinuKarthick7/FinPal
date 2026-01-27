@@ -318,35 +318,6 @@ router.get('/export', async (req: any, res: Response) => {
     const expenses = totals.find((t) => t._id === 'expense') || { total: 0, count: 0 };
     const income = totals.find((t) => t._id === 'income') || { total: 0, count: 0 };
 
-    // Get budget for this month
-    const budget = await Budget.findOne({
-      user: userId,
-      month: targetMonth,
-      year: targetYear,
-    });
-
-    // Calculate category spending for budget comparison
-    const categorySpending = await Transaction.aggregate([
-      {
-        $match: {
-          user: userId,
-          type: 'expense',
-          date: { $gte: startDate, $lte: endDate },
-        },
-      },
-      {
-        $group: {
-          _id: '$category',
-          spent: { $sum: '$amount' },
-        },
-      },
-    ]);
-
-    const categorySpendingMap: Record<string, number> = {};
-    categorySpending.forEach((item: { _id: string; spent: number }) => {
-      categorySpendingMap[item._id] = item.spent;
-    });
-
     // Get categories
     const categories = await Transaction.aggregate([
       {
@@ -388,28 +359,6 @@ router.get('/export', async (req: any, res: Response) => {
       { $limit: 10 },
     ]);
 
-    // Prepare budget data with spending
-    let budgetData = null;
-    if (budget) {
-      const categoryBudgetsWithSpending = budget.categoryBudgets.map((cb: any) => ({
-        category: cb.category,
-        allocated: cb.amount,
-        spent: categorySpendingMap[cb.category] || 0,
-        remaining: cb.amount - (categorySpendingMap[cb.category] || 0),
-        percentage: cb.amount > 0 ? Math.round(((categorySpendingMap[cb.category] || 0) / cb.amount) * 100) : 0,
-        color: cb.color,
-      }));
-
-      budgetData = {
-        totalBudget: budget.totalBudget,
-        totalSpent: totalExpenses,
-        remaining: budget.totalBudget - totalExpenses,
-        percentageUsed: budget.totalBudget > 0 ? Math.round((totalExpenses / budget.totalBudget) * 100) : 0,
-        alertThreshold: budget.alertThreshold,
-        categoryBudgets: categoryBudgetsWithSpending,
-      };
-    }
-
     res.json({
       success: true,
       data: {
@@ -423,7 +372,6 @@ router.get('/export', async (req: any, res: Response) => {
           transactionCount: (expenses.count || 0) + (income.count || 0),
           averageExpense: expenses.count > 0 ? Math.round((expenses.total || 0) / expenses.count) : 0,
         },
-        budget: budgetData,
         categories: categories.map((cat) => ({
           name: cat._id,
           amount: cat.amount,

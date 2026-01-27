@@ -203,12 +203,19 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-// @desc    Get current user
+// @desc    Get current user with data summary
 // @route   GET /api/auth/me
 // @access  Private
 export const getMe = async (req: Request, res: Response): Promise<void> => {
   try {
     const user = req.user as IUser;
+    
+    // Get user's data summary for better UX
+    const [transactionCount, budgetCount, reminderCount] = await Promise.all([
+      User.db.collection('transactions').countDocuments({ userId: user._id }),
+      User.db.collection('budgets').countDocuments({ userId: user._id }),
+      User.db.collection('reminders').countDocuments({ userId: user._id }),
+    ]);
 
     res.status(200).json({
       success: true,
@@ -218,12 +225,21 @@ export const getMe = async (req: Request, res: Response): Promise<void> => {
           fullName: user.fullName,
           email: user.email,
           phone: user.phone,
+          avatar: user.avatar,
           isVerified: user.isVerified,
+          aiConsent: user.aiConsent,
           createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        },
+        dataSummary: {
+          transactions: transactionCount,
+          budgets: budgetCount,
+          reminders: reminderCount,
         },
       },
     });
   } catch (error: any) {
+    console.error('Get user error:', error);
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to get user',

@@ -208,21 +208,21 @@ export const DashboardPage: React.FC = () => {
     <div className="min-h-screen bg-surface-50">
       {/* Header */}
       <div className="bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8">
+          <div className="flex flex-col gap-4">
             <div>
-              <p className="text-primary-100 text-sm sm:text-base">{t('dashboard.goodMorning')},</p>
+              <p className="text-primary-100 text-sm sm:text-base mb-1">{t('dashboard.goodMorning')},</p>
               <h1 className="text-2xl sm:text-3xl font-bold">{userName}! 👋</h1>
             </div>
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar">
               <button
                 onClick={() => navigate('/family')}
-                className="flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-xl px-3 sm:px-4 py-2 transition-all hover:scale-105 text-sm sm:text-base font-medium"
+                className="flex items-center gap-2 bg-white/20 hover:bg-white/30 active:bg-white/25 backdrop-blur-sm rounded-xl px-3 sm:px-4 py-2 transition-all active:scale-95 text-sm sm:text-base font-medium whitespace-nowrap flex-shrink-0"
               >
                 <Users className="w-4 h-4" />
                 <span>{t('nav.family')}</span>
               </button>
-              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2">
+              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-xl px-3 sm:px-4 py-2 whitespace-nowrap flex-shrink-0">
                 <Calendar className="w-4 h-4" />
                 <span className="text-sm font-medium">{currentMonth}</span>
               </div>
@@ -231,7 +231,7 @@ export const DashboardPage: React.FC = () => {
                 variant="secondary"
                 onClick={() => navigate('/add-expense')}
                 leftIcon={<Plus className="w-4 h-4" />}
-                className="hidden sm:flex"
+                className="hidden sm:flex flex-shrink-0"
               >
                 {t('expenses.addExpense')}
               </Button>

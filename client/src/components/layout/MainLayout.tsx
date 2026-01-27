@@ -69,11 +69,12 @@ export const MainLayout: React.FC = () => {
             </div>
             <span className="font-bold text-gray-900">FinPal</span>
           </div>
-          <div className="flex items-center gap-4">
-            {/* Make LanguageSwitcher more prominent */}
+          <div className="flex items-center gap-2">
+            {/* Language Switcher */}
             <LanguageSwitcher />
+            {/* Profile Button */}
             <NavLink to="/profile" className="block">
-              <div className="w-9 h-9 rounded-full bg-primary-100 flex items-center justify-center overflow-hidden ring-2 ring-primary-200 hover:ring-primary-300 transition-all">
+              <div className="w-9 h-9 rounded-full bg-primary-100 flex items-center justify-center overflow-hidden ring-2 ring-primary-200 hover:ring-primary-300 active:ring-primary-400 transition-all active:scale-95">
                 <img 
                   src={isValidAvatar(user?.avatar) ? getAvatarUrl(user?.avatar)! : '/default-avatar.svg'} 
                   alt="Profile" 
@@ -186,7 +187,7 @@ export const MainLayout: React.FC = () => {
 
       {/* Mobile Bottom Navigation */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/90 supports-[backdrop-filter]:bg-white/70 backdrop-blur-md border-t border-gray-100/70 safe-bottom z-40">
-        <div className="flex items-center justify-around h-16">
+        <div className="flex items-center justify-around px-2 h-16">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path
             const isAddButton = item.path === '/add-expense'
@@ -196,10 +197,10 @@ export const MainLayout: React.FC = () => {
                 <NavLink
                   key={item.path}
                   to={item.path}
-                  className="flex items-center justify-center -mt-6 active:scale-[0.98] transition-transform"
+                  className="flex items-center justify-center -mt-6 active:scale-95 transition-transform touch-feedback"
                 >
-                  <div className="w-14 h-14 rounded-full bg-primary-500 flex items-center justify-center shadow-lg shadow-primary-500/30">
-                    <PlusCircle className="w-7 h-7 text-white" />
+                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-lg shadow-primary-500/30 active:shadow-primary-500/40">
+                    <PlusCircle className="w-7 h-7 text-white" strokeWidth={2.5} />
                   </div>
                 </NavLink>
               )
@@ -209,12 +210,12 @@ export const MainLayout: React.FC = () => {
               <NavLink
                 key={item.path}
                 to={item.path}
-                className={`flex flex-col items-center gap-1 px-3 py-2 transition-transform active:scale-[0.98] ${
-                  isActive ? 'text-primary-500' : 'text-gray-400'
+                className={`flex flex-col items-center gap-0.5 px-3 py-2 min-w-[64px] transition-all active:scale-95 touch-feedback ${
+                  isActive ? 'text-primary-600' : 'text-gray-400'
                 }`}
               >
-                <item.icon className="w-5 h-5" />
-                <span className="text-xs font-medium">{item.label}</span>
+                <item.icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5]' : 'stroke-2'}`} />
+                <span className={`text-xs font-medium ${isActive ? 'font-semibold' : ''}`}>{item.label}</span>
               </NavLink>
             )
           })}

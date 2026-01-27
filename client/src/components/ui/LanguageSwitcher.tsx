@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Globe, Check } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { createPortal } from 'react-dom';
 
 const languages = [
-  { code: 'en', name: 'English', native: 'English' },
-  { code: 'hi', name: 'Hindi', native: 'हिन्दी' },
-  { code: 'ta', name: 'Tamil', native: 'தமிழ்' },
-  { code: 'ml', name: 'Malayalam', native: 'മലയാളം' },
+  { code: 'en', name: 'English', native: 'English', flag: '🇬🇧' },
+  { code: 'hi', name: 'Hindi', native: 'हिन्दी', flag: '🇮🇳' },
+  { code: 'ta', name: 'Tamil', native: 'தமிழ்', flag: '🇮🇳' },
+  { code: 'ml', name: 'Malayalam', native: 'മലയാളം', flag: '🇮🇳' },
 ];
 
 export const LanguageSwitcher: React.FC = () => {
@@ -22,53 +22,127 @@ export const LanguageSwitcher: React.FC = () => {
 
   const currentLanguage = languages.find((lang) => lang.code === i18n.language) || languages[0];
 
+  const modalContent = isOpen ? (
+    <div 
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        zIndex: 99999,
+        padding: '16px',
+      }}
+      onClick={() => setIsOpen(false)}
+    >
+      <div 
+        style={{
+          backgroundColor: 'white',
+          borderRadius: '20px',
+          width: '100%',
+          maxWidth: '320px',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          overflow: 'hidden',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div style={{
+          padding: '16px',
+          borderBottom: '1px solid #f1f5f9',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+        }}>
+          <div style={{
+            width: '36px',
+            height: '36px',
+            borderRadius: '12px',
+            backgroundColor: '#dbeafe',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <Globe style={{ width: '18px', height: '18px', color: '#2563eb' }} />
+          </div>
+          <span style={{ fontWeight: '700', fontSize: '16px', color: '#111827' }}>
+            Select Language
+          </span>
+        </div>
+
+        {/* Languages */}
+        <div style={{ padding: '8px' }}>
+          {languages.map((language) => (
+            <button
+              key={language.code}
+              onClick={() => changeLanguage(language.code)}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '12px 14px',
+                borderRadius: '14px',
+                border: 'none',
+                cursor: 'pointer',
+                marginBottom: '4px',
+                backgroundColor: i18n.language === language.code ? '#eff6ff' : '#f9fafb',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <span style={{ fontSize: '24px' }}>{language.flag}</span>
+              <div style={{ flex: 1, textAlign: 'left' }}>
+                <div style={{ 
+                  fontWeight: '600', 
+                  fontSize: '14px',
+                  color: i18n.language === language.code ? '#1d4ed8' : '#111827',
+                }}>
+                  {language.native}
+                </div>
+                <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                  {language.name}
+                </div>
+              </div>
+              {i18n.language === language.code && (
+                <div style={{
+                  width: '22px',
+                  height: '22px',
+                  borderRadius: '50%',
+                  backgroundColor: '#2563eb',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <Check style={{ width: '14px', height: '14px', color: 'white', strokeWidth: 3 }} />
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  ) : null;
+
   return (
-    <div className="relative">
+    <>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 transition-all border border-gray-200"
+        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white hover:bg-gray-50 active:bg-gray-100 transition-all border border-gray-200 shadow-sm"
         title="Change language"
+        aria-label="Change language"
       >
         <Globe className="w-4 h-4 text-gray-600" />
-        <span className="text-sm text-gray-600 hidden sm:inline">{currentLanguage.native}</span>
+        <span className="text-sm font-medium text-gray-700 hidden sm:inline">
+          {currentLanguage.native}
+        </span>
       </button>
 
-      <AnimatePresence>
-        {isOpen && (
-          <>
-            <div
-              className="fixed inset-0 z-40"
-              onClick={() => setIsOpen(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, y: 10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.95 }}
-              transition={{ duration: 0.15 }}
-              className="absolute left-1/2 transform -translate-x-1/2 bottom-full mb-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50"
-            >
-              {languages.map((language) => (
-                <button
-                  key={language.code}
-                  onClick={() => changeLanguage(language.code)}
-                  className={`w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors ${
-                    i18n.language === language.code ? 'bg-primary-50' : ''
-                  }`}
-                >
-                  <div className="text-left">
-                    <p className="text-sm font-medium text-gray-900">{language.native}</p>
-                    <p className="text-xs text-gray-500">{language.name}</p>
-                  </div>
-                  {i18n.language === language.code && (
-                    <Check className="w-4 h-4 text-primary-600" />
-                  )}
-                </button>
-              ))}
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    </div>
+      {typeof document !== 'undefined' && createPortal(modalContent, document.body)}
+    </>
   );
 };
 

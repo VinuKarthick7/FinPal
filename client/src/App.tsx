@@ -41,7 +41,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 // OAuth Callback handler
 const OAuthCallback = () => {
   const navigate = useNavigate()
-  const setAuth = useAuthStore((state) => state.setAuth)
+  const { setAuth } = useAuthStore()
   const location = useLocation()
 
   useEffect(() => {
@@ -59,10 +59,24 @@ const OAuthCallback = () => {
     if (token && userStr) {
       try {
         const user = JSON.parse(decodeURIComponent(userStr))
+        
+        // Set auth and then fetch fresh user data
         setAuth(user, token)
-        toast.success('Welcome back!')
+        
+        // Fetch fresh user data with summary
+        authApi.getMe().then(response => {
+          if (response.success && response.data) {
+            setAuth(response.data.user, token, response.data.dataSummary)
+            console.log('✅ OAuth login successful for:', response.data.user.email)
+          }
+        }).catch(error => {
+          console.error('Failed to fetch user data after OAuth:', error)
+        })
+        
+        toast.success(`Welcome back, ${user.fullName}!`)
         navigate('/dashboard')
       } catch (error) {
+        console.error('OAuth callback error:', error)
         toast.error('Authentication failed. Please try again.')
         navigate('/login')
       }
@@ -73,22 +87,35 @@ const OAuthCallback = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
+        <p className="text-gray-600">Authenticating...</p>
+      </div>
     </div>
   )
 }
 
 function App() {
-  const { isAuthenticated, setLoading, token } = useAuthStore()
+  const { isAuthenticated, setLoading, token, setAuth, user } = useAuthStore()
 
-  // Verify token on app load
+  // Verify token on app load and refresh user data
   useEffect(() => {
     const verifyAuth = async () => {
       if (token) {
         try {
-          await authApi.getMe()
+          const response = await authApi.getMe()
+          if (response.success && response.data) {
+            // Update user data and data summary from server
+            setAuth(
+              response.data.user, 
+              token, 
+              response.data.dataSummary
+            )
+            console.log('✅ User session restored for:', response.data.user.email)
+          }
           setLoading(false)
-        } catch {
+        } catch (error) {
+          console.log('❌ Token expired or invalid, logging out')
           useAuthStore.getState().logout()
         }
       } else {
@@ -96,7 +123,14 @@ function App() {
       }
     }
     verifyAuth()
-  }, [token, setLoading])
+  }, [token, setLoading, setAuth])
+
+  // Log current user for debugging
+  useEffect(() => {
+    if (user) {
+      console.log('📧 Current user:', user.email, '| Authenticated:', isAuthenticated)
+    }
+  }, [user, isAuthenticated])
 
   return (
     <ErrorBoundary>
