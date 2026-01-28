@@ -16,6 +16,7 @@ import { connectDB } from './config/database';
 import passport from './config/passport';
 import routes from './routes';
 import { errorHandler, notFound } from './middleware';
+import { initializeAchievementScheduler } from './utils/achievementScheduler';
 
 // Create Express app
 const app: Application = express();
@@ -148,6 +149,9 @@ app.listen(PORT, () => {
   ║                                                    ║
   ╚════════════════════════════════════════════════════╝
   `);
+  
+  // Initialize achievement scheduler
+  initializeAchievementScheduler();
 });
 
 export default app;

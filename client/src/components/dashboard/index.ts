@@ -7,3 +7,4 @@ export { default as UpcomingReminders } from './UpcomingReminders';
 export { default as FamilyMode } from './FamilyMode';
 export { default as FamilyModeCard } from './FamilyModeCard';
 export { default as FamilyModeModal } from './FamilyModeModal';
+export { default as AchievementNotification } from './AchievementNotification';

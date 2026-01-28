@@ -18,3 +18,6 @@ export type { IFamilyBudget, IFamilyBudgetCategory } from './FamilyBudget';
 
 export { FamilyTransaction } from './FamilyTransaction';
 export type { IFamilyTransaction } from './FamilyTransaction';
+
+export { default as Achievement } from './Achievement';
+export type { IAchievement } from './Achievement';

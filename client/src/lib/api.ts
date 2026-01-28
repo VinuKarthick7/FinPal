@@ -525,4 +525,25 @@ export const familyReportsApi = {
   },
 }
 
+// Achievement API
+export const achievementApi = {
+  // Get user's achievements
+  getAchievements: async () => {
+    const response = await api.get('/achievements')
+    return response.data
+  },
+
+  // Get achievement statistics
+  getStats: async () => {
+    const response = await api.get('/achievements/stats')
+    return response.data
+  },
+
+  // Check current month's budget performance
+  checkMonthlyBudget: async () => {
+    const response = await api.post('/achievements/check')
+    return response.data
+  },
+}
+
 export default api

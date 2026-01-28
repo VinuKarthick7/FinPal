@@ -19,23 +19,31 @@ import {
   Shield,
   Loader2,
   Camera,
+  Trophy,
+  Star,
+  ChevronRight,
 } from 'lucide-react'
 import { Button, LoadingPage } from '@/components/ui'
 import { useAuthStore } from '@/stores/authStore'
-import { profileApi } from '@/lib/api'
+import { profileApi, achievementApi } from '@/lib/api'
 import toast from 'react-hot-toast'
+import { useNavigate } from 'react-router-dom'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
 export const ProfilePage: React.FC = () => {
   const { t } = useTranslation()
   const { user, updateUser, logout } = useAuthStore()
+  const navigate = useNavigate()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Edit profile state
   const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [editedName, setEditedName] = useState('')
   const [editedPhone, setEditedPhone] = useState('')
+
+  // Achievement stats
+  const [achievementStats, setAchievementStats] = useState<any>(null)
 
   // Sync form state with user data
   useEffect(() => {
@@ -44,6 +52,22 @@ export const ProfilePage: React.FC = () => {
       setEditedPhone(user.phone || '')
     }
   }, [user, isEditingProfile])
+
+  // Load achievement stats
+  useEffect(() => {
+    loadAchievementStats()
+  }, [])
+
+  const loadAchievementStats = async () => {
+    try {
+      const response = await achievementApi.getStats()
+      if (response.success) {
+        setAchievementStats(response.data)
+      }
+    } catch (error) {
+      console.error('Error loading achievements:', error)
+    }
+  }
 
   // Change password state
   const [showChangePassword, setShowChangePassword] = useState(false)
@@ -578,7 +602,81 @@ export const ProfilePage: React.FC = () => {
           </div>
         </div>
       </motion.div>
+      {/* Achievements Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+        className="bg-white rounded-xl border border-gray-200 p-6"
+      >
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold text-gray-900">Budget Achievements</h3>
+          <button
+            onClick={() => navigate('/achievements')}
+            className="flex items-center gap-1 text-sm text-primary-600 hover:text-primary-700 font-medium"
+          >
+            View All
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
 
+        {achievementStats ? (
+          <div className="space-y-4">
+            {/* Stats Grid */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 text-center border border-amber-100">
+                <div className="flex items-center justify-center mb-2">
+                  <Trophy className="w-6 h-6 text-amber-600" />
+                </div>
+                <p className="text-2xl font-bold text-gray-900">{achievementStats.total || 0}</p>
+                <p className="text-xs text-gray-600 mt-1">Total Stars</p>
+              </div>
+              
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 text-center border border-blue-100">
+                <div className="flex items-center justify-center mb-2">
+                  <Star className="w-6 h-6 text-blue-600" />
+                </div>
+                <p className="text-2xl font-bold text-gray-900">{achievementStats.currentYear || 0}</p>
+                <p className="text-xs text-gray-600 mt-1">This Year</p>
+              </div>
+              
+              <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-4 text-center border border-purple-100">
+                <div className="flex items-center justify-center mb-2">
+                  <Shield className="w-6 h-6 text-purple-600" />
+                </div>
+                <p className="text-2xl font-bold text-gray-900">{achievementStats.longestStreak || 0}</p>
+                <p className="text-xs text-gray-600 mt-1">Best Streak</p>
+              </div>
+            </div>
+
+            {/* Recent Achievements */}
+            {achievementStats.recentAchievements && achievementStats.recentAchievements.length > 0 && (
+              <div className="pt-2">
+                <p className="text-sm font-medium text-gray-700 mb-3">Recent Achievements</p>
+                <div className="flex gap-2">
+                  {achievementStats.recentAchievements.slice(0, 6).map((achievement: any, index: number) => (
+                    <div
+                      key={achievement._id || index}
+                      className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg"
+                      title={`${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][achievement.month - 1]} ${achievement.year}`}
+                    >
+                      <Star className="w-6 h-6 text-white fill-white" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Trophy className="w-8 h-8 text-gray-400" />
+            </div>
+            <p className="text-gray-600 mb-2">No achievements yet</p>
+            <p className="text-sm text-gray-500">Stay within your budget to earn stars!</p>
+          </div>
+        )}
+      </motion.div>
       {/* Notifications Section */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}

@@ -245,35 +245,35 @@ const FamilyModePage: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
       {/* Header */}
       <div className="bg-white/5 backdrop-blur-xl border-b border-white/10 sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="p-2 text-white hover:bg-white/10"><ArrowLeft className="w-5 h-5" /></Button>
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl shadow-lg shadow-blue-500/30"><Users className="w-7 h-7 text-white" /></div>
-                <div><h1 className="text-xl font-bold text-white">{dashboardData?.family.familyName}</h1>
-                  <div className="flex items-center gap-2"><div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div><span className="text-xs text-green-400 font-medium">{t('family.connected')}</span><span className="text-white/40">•</span><span className="text-xs text-white/60">{dashboardData?.family.members.length} {t('family.members').toLowerCase()}</span></div>
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
+              <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="p-2 text-white hover:bg-white/10 flex-shrink-0"><ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" /></Button>
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                <div className="p-2 sm:p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl sm:rounded-2xl shadow-lg shadow-blue-500/30 flex-shrink-0"><Users className="w-5 h-5 sm:w-6 sm:h-6 text-white" /></div>
+                <div className="min-w-0 flex-1"><h1 className="text-base sm:text-lg font-bold text-white truncate">{dashboardData?.family.familyName}</h1>
+                  <div className="flex items-center gap-1.5 sm:gap-2"><div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-green-400 rounded-full animate-pulse flex-shrink-0"></div><span className="text-[10px] sm:text-xs text-green-400 font-medium whitespace-nowrap">{t('family.connected')}</span><span className="text-white/40 hidden sm:inline">•</span><span className="text-[10px] sm:text-xs text-white/60 whitespace-nowrap hidden sm:inline">{dashboardData?.family.members.length} {t('family.members').toLowerCase()}</span></div>
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
               <button onClick={handleCopyCode} className="hidden sm:flex items-center gap-2 px-3 py-2 bg-white/10 rounded-xl border border-white/10 hover:bg-white/20 transition-all">
                 <Share2 className="w-4 h-4 text-white/60" /><span className="text-white/60 text-xs">{t('family.shareCode')}</span>
                 {copiedCode ? <CheckCircle className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4 text-white/60" />}
               </button>
-              <button onClick={handleRefresh} disabled={isRefreshing} className="p-2 bg-white/10 rounded-xl border border-white/10 hover:bg-white/20 transition-all"><RefreshCw className={`w-5 h-5 text-white ${isRefreshing ? 'animate-spin' : ''}`} /></button>
-              {isAdmin && <button onClick={() => setShowSettingsModal(true)} className="p-2 bg-white/10 rounded-xl border border-white/10 hover:bg-white/20 transition-all"><Settings className="w-5 h-5 text-white" /></button>}
+              <button onClick={handleRefresh} disabled={isRefreshing} className="p-1.5 sm:p-2 bg-white/10 rounded-lg sm:rounded-xl border border-white/10 hover:bg-white/20 transition-all"><RefreshCw className={`w-4 h-4 sm:w-5 sm:h-5 text-white ${isRefreshing ? 'animate-spin' : ''}`} /></button>
+              {isAdmin && <button onClick={() => setShowSettingsModal(true)} className="p-1.5 sm:p-2 bg-white/10 rounded-lg sm:rounded-xl border border-white/10 hover:bg-white/20 transition-all"><Settings className="w-4 h-4 sm:w-5 sm:h-5 text-white" /></button>}
             </div>
           </div>
         </div>
       </div>
 
       {/* Tabs - Mobile optimized with horizontal scroll */}
-      <div className="bg-white/5 border-b border-white/10 sticky top-[73px] z-10 relative">
+      <div className="bg-white/5 border-b border-white/10 sticky top-[57px] sm:top-[65px] z-10 relative mb-1">
         <div className="max-w-7xl mx-auto px-2 sm:px-4">
-          <div className="flex gap-1 overflow-x-auto hide-scrollbar py-2 -mx-2 px-2 scroll-smooth" style={{ WebkitOverflowScrolling: 'touch' }}>
-            {[{ id: 'overview', label: t('family.overview'), icon: <Home className="w-4 h-4" /> }, { id: 'members', label: t('family.members'), icon: <Users className="w-4 h-4" /> }, { id: 'expenses', label: t('family.expenses'), icon: <TrendingDown className="w-4 h-4" /> }, { id: 'budget', label: t('family.budget'), icon: <PieChart className="w-4 h-4" /> }, { id: 'reminders', label: t('family.reminders'), icon: <Bell className="w-4 h-4" /> }].map((tab) => (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id as typeof activeTab)} className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 rounded-xl font-medium text-xs sm:text-sm whitespace-nowrap transition-all flex-shrink-0 min-w-fit ${activeTab === tab.id ? 'bg-white/20 text-white shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/10'}`}>{tab.icon}<span>{tab.label}</span></button>
+          <div className="flex gap-1 overflow-x-auto hide-scrollbar py-2.5 sm:py-2 -mx-2 px-2 scroll-smooth" style={{ WebkitOverflowScrolling: 'touch' }}>
+            {[{ id: 'overview', label: t('family.overview'), icon: <Home className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> }, { id: 'members', label: t('family.members'), icon: <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> }, { id: 'expenses', label: t('family.expenses'), icon: <TrendingDown className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> }, { id: 'budget', label: t('family.budget'), icon: <PieChart className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> }, { id: 'reminders', label: t('family.reminders'), icon: <Bell className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> }].map((tab) => (
+              <button key={tab.id} onClick={() => setActiveTab(tab.id as typeof activeTab)} className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl font-medium text-[11px] sm:text-sm whitespace-nowrap transition-all flex-shrink-0 min-w-fit ${activeTab === tab.id ? 'bg-white/20 text-white shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/10'}`}>{tab.icon}<span>{tab.label}</span></button>
             ))}
           </div>
         </div>
@@ -282,7 +282,7 @@ const FamilyModePage: React.FC = () => {
       </div>
 
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="max-w-7xl mx-auto px-4 py-6 mt-1">
         <AnimatePresence mode="wait">
           {activeTab === 'overview' && (
             <motion.div key="overview" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
@@ -405,9 +405,11 @@ const FamilyModePage: React.FC = () => {
                 <div className="divide-y divide-white/5">
                   {dashboardData?.recentTransactions.filter(tx => !selectedMember || tx.user === selectedMember).map((tx) => {
                     const member = dashboardData.family.members.find(m => m.userId === tx.user);
+                    const isCurrentUser = tx.user === user?.id;
+                    const displayName = isCurrentUser ? 'You' : member?.nickname;
                     return (
                       <div key={tx._id} className="flex items-center justify-between p-4 hover:bg-white/5 transition-all">
-                        <div className="flex items-center gap-4"><div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center text-xl">{categoryIcons[tx.category] || <Wallet className="w-5 h-5 text-white/60" />}</div><div><p className="text-white font-medium">{tx.merchant}</p><div className="flex items-center gap-2 text-white/50 text-sm"><span>{relationAvatars[member?.relation || 'Other']}</span><span>{member?.nickname}</span><span>•</span><span>{tx.category}</span></div></div></div>
+                        <div className="flex items-center gap-4"><div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center text-xl">{categoryIcons[tx.category] || <Wallet className="w-5 h-5 text-white/60" />}</div><div><p className="text-white font-medium">{tx.merchant}</p><div className="flex items-center gap-2 text-white/50 text-sm"><span>{relationAvatars[member?.relation || 'Other']}</span><span>{displayName}</span><span>•</span><span>{tx.category}</span></div></div></div>
                         <div className="text-right"><p className={`font-bold ${tx.type === 'expense' ? 'text-rose-400' : 'text-emerald-400'}`}>{tx.type === 'expense' ? '-' : '+'}{formatCurrency(tx.amount)}</p><p className="text-white/40 text-sm">{formatDate(tx.date)}</p></div>
                       </div>
                     );

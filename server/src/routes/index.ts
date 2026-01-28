@@ -10,6 +10,7 @@ import expenseRoutes from './expenses';
 import insightsRoutes from './insights';
 import familyRoutes from './family';
 import familyReportsRoutes from './familyReports';
+import achievementRoutes from './achievements';
 
 const router = Router();
 
@@ -34,5 +35,6 @@ router.use('/expenses', expenseRoutes);
 router.use('/insights', insightsRoutes);
 router.use('/family', familyRoutes);
 router.use('/family-reports', familyReportsRoutes);
+router.use('/achievements', achievementRoutes);
 
 export default router;

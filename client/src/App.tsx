@@ -13,6 +13,7 @@ import { ProfilePage } from './pages/profile'
 import { BudgetPage } from './pages/budget'
 import { ReportsPage } from './pages/reports/ReportsPage'
 import { FamilyModePage } from './pages/family'
+import { AchievementsPage } from './pages/achievements'
 import { MainLayout } from './components/layout'
 import { ErrorBoundary } from './components/ui'
 import { useAuthStore } from './stores/authStore'
@@ -174,6 +175,13 @@ function App() {
           <Route path="/family" element={
             <ProtectedRoute>
               <FamilyModePage />
+            </ProtectedRoute>
+          } />
+          
+          {/* Achievements - Full screen standalone page */}
+          <Route path="/achievements" element={
+            <ProtectedRoute>
+              <AchievementsPage />
             </ProtectedRoute>
           } />
           
