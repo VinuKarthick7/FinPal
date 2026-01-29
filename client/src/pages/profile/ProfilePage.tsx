@@ -276,9 +276,9 @@ export const ProfilePage: React.FC = () => {
       >
         {/* Profile Header */}
         <div className="bg-gradient-to-r from-primary-600 to-primary-500 px-6 py-8">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col items-center text-center">
             {/* Avatar with upload */}
-            <div className="relative group">
+            <div className="relative group mb-4">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -315,7 +315,7 @@ export const ProfilePage: React.FC = () => {
                 <Camera className="w-6 h-6 text-white" />
               </div>
               {/* Remove button */}
-              {user?.avatar && !uploadAvatarMutation.isPending && (
+              {user?.avatar && isValidAvatarUrl(user.avatar) && !uploadAvatarMutation.isPending && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
@@ -333,19 +333,19 @@ export const ProfilePage: React.FC = () => {
                 </button>
               )}
             </div>
-            <div className="text-white flex-1">
-              <h2 className="text-xl font-bold">{user?.fullName}</h2>
-              <p className="text-white/80">{user?.email}</p>
-              <div className="flex items-center gap-2 mt-2">
+            <div className="text-white">
+              <h2 className="text-2xl font-bold mb-1">{user?.fullName || 'User'}</h2>
+              <p className="text-white/90 mb-3">{user?.email}</p>
+              <div className="flex items-center justify-center gap-2">
                 {user?.isVerified && (
-                  <span className="inline-flex items-center gap-1 text-xs bg-white/20 px-2 py-0.5 rounded-full">
+                  <span className="inline-flex items-center gap-1 text-xs bg-white/20 px-3 py-1 rounded-full">
                     <Shield className="w-3 h-3" />
                     {t('profile.verified')}
                   </span>
                 )}
                 <button
                   onClick={handleAvatarClick}
-                  className="inline-flex items-center gap-1 text-xs bg-white/20 hover:bg-white/30 px-2 py-0.5 rounded-full transition-colors"
+                  className="inline-flex items-center gap-1 text-xs bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full transition-colors"
                 >
                   <Camera className="w-3 h-3" />
                   {t('profile.changePhoto')}
@@ -406,53 +406,54 @@ export const ProfilePage: React.FC = () => {
 
           <div className="space-y-4">
             {/* Full Name */}
-            <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-              <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
+            <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg">
+              <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0 mt-1">
                 <User className="w-5 h-5 text-primary-600" />
               </div>
-              <div className="flex-1">
-                <p className="text-sm text-gray-500">{t('profile.fullName')}</p>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-500 mb-1">{t('profile.fullName')}</p>
                 {isEditingProfile ? (
                   <input
                     type="text"
                     value={editedName}
                     onChange={(e) => setEditedName(e.target.value)}
-                    className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    placeholder="Enter your full name"
                   />
                 ) : (
-                  <p className="font-medium text-gray-900">{user?.fullName}</p>
+                  <p className="text-base font-semibold text-gray-900 break-words">{user?.fullName || 'Not provided'}</p>
                 )}
               </div>
             </div>
 
             {/* Email */}
-            <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-              <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
+            <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg">
+              <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0 mt-1">
                 <Mail className="w-5 h-5 text-primary-600" />
               </div>
-              <div className="flex-1">
-                <p className="text-sm text-gray-500">{t('profile.emailAddress')}</p>
-                <p className="font-medium text-gray-900">{user?.email}</p>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-500 mb-1">{t('profile.emailAddress')}</p>
+                <p className="text-base font-semibold text-gray-900 break-words">{user?.email}</p>
               </div>
             </div>
 
             {/* Phone */}
-            <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-              <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
+            <div className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg">
+              <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0 mt-1">
                 <Phone className="w-5 h-5 text-primary-600" />
               </div>
-              <div className="flex-1">
-                <p className="text-sm text-gray-500">{t('profile.phoneNumber')}</p>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-500 mb-1">{t('profile.phoneNumber')}</p>
                 {isEditingProfile ? (
                   <input
                     type="tel"
                     value={editedPhone}
                     onChange={(e) => setEditedPhone(e.target.value)}
                     placeholder={t('profile.enterPhoneNumber')}
-                    className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   />
                 ) : (
-                  <p className="font-medium text-gray-900">
+                  <p className="text-base font-semibold text-gray-900">
                     {user?.phone || t('profile.notProvided')}
                   </p>
                 )}

@@ -93,9 +93,9 @@ const AchievementsPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 flex items-center justify-center">
-        <div className="text-white text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-900 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
           <p>Loading achievements...</p>
         </div>
       </div>
@@ -103,26 +103,26 @@ const AchievementsPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white/5 backdrop-blur-xl border-b border-white/10 sticky top-0 z-20">
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-20 shadow-sm">
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate(-1)}
-              className="p-2 text-white hover:bg-white/10"
+              className="p-2 text-gray-700 hover:bg-gray-100"
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl shadow-lg shadow-amber-500/30">
+              <div className="p-3 bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl shadow-lg">
                 <Trophy className="w-7 h-7 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white">Achievements</h1>
-                <p className="text-sm text-white/60">Your Budget Success Journey</p>
+                <h1 className="text-2xl font-bold text-gray-900">Achievements</h1>
+                <p className="text-sm text-gray-600">Your Budget Success Journey</p>
               </div>
             </div>
           </div>
@@ -136,66 +136,66 @@ const AchievementsPage: React.FC = () => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-gradient-to-br from-amber-500/20 to-orange-600/10 backdrop-blur-sm border border-amber-500/20 rounded-2xl p-6"
+            className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm"
           >
             <div className="flex items-center justify-between mb-3">
-              <div className="p-2 bg-amber-500/20 rounded-lg">
-                <Trophy className="w-6 h-6 text-amber-400" />
+              <div className="p-2 bg-amber-100 rounded-lg">
+                <Trophy className="w-6 h-6 text-amber-600" />
               </div>
-              <span className="text-xs text-amber-400 font-medium uppercase">Total</span>
+              <span className="text-xs text-amber-600 font-medium uppercase">Total</span>
             </div>
-            <p className="text-3xl font-bold text-white mb-1">{stats?.total || 0}</p>
-            <p className="text-xs text-white/60">Stars Earned</p>
+            <p className="text-3xl font-bold text-gray-900 mb-1">{stats?.total || 0}</p>
+            <p className="text-xs text-gray-600">Stars Earned</p>
           </motion.div>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-gradient-to-br from-blue-500/20 to-blue-600/10 backdrop-blur-sm border border-blue-500/20 rounded-2xl p-6"
+            className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm"
           >
             <div className="flex items-center justify-between mb-3">
-              <div className="p-2 bg-blue-500/20 rounded-lg">
-                <Calendar className="w-6 h-6 text-blue-400" />
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Calendar className="w-6 h-6 text-blue-600" />
               </div>
-              <span className="text-xs text-blue-400 font-medium uppercase">This Year</span>
+              <span className="text-xs text-blue-600 font-medium uppercase">This Year</span>
             </div>
-            <p className="text-3xl font-bold text-white mb-1">{stats?.currentYear || 0}</p>
-            <p className="text-xs text-white/60">{new Date().getFullYear()}</p>
+            <p className="text-3xl font-bold text-gray-900 mb-1">{stats?.currentYear || 0}</p>
+            <p className="text-xs text-gray-600">{new Date().getFullYear()}</p>
           </motion.div>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="bg-gradient-to-br from-purple-500/20 to-purple-600/10 backdrop-blur-sm border border-purple-500/20 rounded-2xl p-6"
+            className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm"
           >
             <div className="flex items-center justify-between mb-3">
-              <div className="p-2 bg-purple-500/20 rounded-lg">
-                <Zap className="w-6 h-6 text-purple-400" />
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <Zap className="w-6 h-6 text-purple-600" />
               </div>
-              <span className="text-xs text-purple-400 font-medium uppercase">Streak</span>
+              <span className="text-xs text-purple-600 font-medium uppercase">Streak</span>
             </div>
-            <p className="text-3xl font-bold text-white mb-1">{stats?.longestStreak || 0}</p>
-            <p className="text-xs text-white/60">Months in a row</p>
+            <p className="text-3xl font-bold text-gray-900 mb-1">{stats?.longestStreak || 0}</p>
+            <p className="text-xs text-gray-600">Months in a row</p>
           </motion.div>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 backdrop-blur-sm border border-emerald-500/20 rounded-2xl p-6"
+            className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm"
           >
             <div className="flex items-center justify-between mb-3">
-              <div className="p-2 bg-emerald-500/20 rounded-lg">
-                <Target className="w-6 h-6 text-emerald-400" />
+              <div className="p-2 bg-emerald-100 rounded-lg">
+                <Target className="w-6 h-6 text-emerald-600" />
               </div>
-              <span className="text-xs text-emerald-400 font-medium uppercase">Success Rate</span>
+              <span className="text-xs text-emerald-600 font-medium uppercase">Success Rate</span>
             </div>
-            <p className="text-3xl font-bold text-white mb-1">
+            <p className="text-3xl font-bold text-gray-900 mb-1">
               {stats && stats.total > 0 ? Math.round((stats.currentYear / new Date().getMonth() + 1) * 100) : 0}%
             </p>
-            <p className="text-xs text-white/60">Budget discipline</p>
+            <p className="text-xs text-gray-600">Budget discipline</p>
           </motion.div>
         </div>
 
@@ -209,8 +209,8 @@ const AchievementsPage: React.FC = () => {
                   onClick={() => setSelectedYear(year)}
                   className={`px-4 py-2 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
                     selectedYear === year
-                      ? 'bg-white/20 text-white'
-                      : 'bg-white/5 text-white/60 hover:bg-white/10'
+                      ? 'bg-primary-600 text-white shadow-md'
+                      : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
                   }`}
                 >
                   {year} ({stats?.yearlyBreakdown[year] || 0})
@@ -225,16 +225,16 @@ const AchievementsPage: React.FC = () => {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-center py-16"
+            className="text-center py-16 bg-white rounded-2xl border border-gray-200"
           >
-            <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Star className="w-10 h-10 text-white/40" />
+            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Star className="w-10 h-10 text-gray-400" />
             </div>
-            <h3 className="text-xl font-semibold text-white mb-2">No achievements yet</h3>
-            <p className="text-white/60 mb-6">
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">No achievements yet</h3>
+            <p className="text-gray-600 mb-6">
               Stay within your budget to earn your first star!
             </p>
-            <Button onClick={() => navigate('/budget')} className="bg-gradient-to-r from-blue-500 to-purple-600">
+            <Button onClick={() => navigate('/budget')} className="bg-gradient-to-r from-blue-600 to-purple-600">
               Set Up Budget
             </Button>
           </motion.div>
@@ -246,7 +246,7 @@ const AchievementsPage: React.FC = () => {
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: index * 0.05 }}
-                className="group relative bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-4 hover:bg-white/10 transition-all cursor-pointer"
+                className="group relative bg-white border border-gray-200 rounded-2xl p-4 hover:shadow-lg transition-all cursor-pointer"
               >
                 {/* Star Icon with Glow */}
                 <div className="relative mb-3">
@@ -258,14 +258,14 @@ const AchievementsPage: React.FC = () => {
 
                 {/* Month & Year */}
                 <div className="text-center">
-                  <p className="text-white font-semibold text-sm mb-0.5">
+                  <p className="text-gray-900 font-semibold text-sm mb-0.5">
                     {MONTH_NAMES[achievement.month - 1]}
                   </p>
-                  <p className="text-white/60 text-xs">{achievement.year}</p>
+                  <p className="text-gray-600 text-xs">{achievement.year}</p>
                 </div>
 
                 {/* Hover Details */}
-                <div className="absolute inset-0 bg-gradient-to-br from-slate-900/95 to-blue-900/95 backdrop-blur-sm rounded-2xl p-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute inset-0 bg-gradient-to-br from-gray-900/95 to-gray-800/95 backdrop-blur-sm rounded-2xl p-4 opacity-0 group-hover:opacity-100 transition-opacity">
                   <div className="flex flex-col h-full justify-between">
                     <div>
                       <div className="flex items-center gap-1 mb-2">
@@ -305,13 +305,13 @@ const AchievementsPage: React.FC = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="mt-12 bg-gradient-to-br from-purple-500/20 to-blue-500/20 backdrop-blur-sm border border-purple-500/20 rounded-2xl p-8 text-center"
+            className="mt-12 bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-200 rounded-2xl p-8 text-center"
           >
             <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
               <Sparkles className="w-8 h-8 text-white" />
             </div>
-            <h3 className="text-2xl font-bold text-white mb-2">Keep Going!</h3>
-            <p className="text-white/80 max-w-2xl mx-auto">
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">Keep Going!</h3>
+            <p className="text-gray-700 max-w-2xl mx-auto">
               Every star represents a month of financial discipline. You're building lasting habits that lead to financial freedom. Stay consistent, and watch your achievements grow!
             </p>
           </motion.div>
