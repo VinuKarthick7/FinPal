@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
@@ -11,6 +11,8 @@ import {
   Plus,
   Calendar,
   Users,
+  Bot,
+  Sparkles,
 } from 'lucide-react'
 import {
   StatCard,
@@ -20,9 +22,10 @@ import {
   BudgetProgress,
   FamilyModeModal,
   FamilyModeCard,
+  SuccessAnnouncement,
 } from '@/components/dashboard'
 import { Button, DashboardSkeleton, ErrorDisplay } from '@/components/ui'
-import { dashboardApi } from '@/lib/api'
+import { dashboardApi, achievementApi } from '@/lib/api'
 import { useAuthStore } from '@/stores/authStore'
 
 interface Transaction {
@@ -94,12 +97,23 @@ export const DashboardPage: React.FC = () => {
   const navigate = useNavigate()
   const user = useAuthStore((state) => state.user)
   const [isFamilyModeOpen, setIsFamilyModeOpen] = useState(false)
+  const [showSuccessAnnouncement, setShowSuccessAnnouncement] = useState(false)
+  const [announcementData, setAnnouncementData] = useState<any>(null)
 
   // Fetch dashboard stats
   const { data: statsData, isLoading: statsLoading, isError: statsError, refetch: refetchStats } = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: async () => {
       const response = await dashboardApi.getStats()
+      
+      // SECURITY: Verify the data belongs to the logged-in user
+      if (response.userEmail && user?.email) {
+        if (response.userEmail.toLowerCase() !== user.email.toLowerCase()) {
+          console.error('⚠️ Dashboard stats email mismatch!')
+          throw new Error('Data validation failed')
+        }
+      }
+      
       return response.data as DashboardStats
     },
     retry: 2,
@@ -144,6 +158,46 @@ export const DashboardPage: React.FC = () => {
     },
     retry: 2,
   })
+
+  // Check for success announcement on mount
+  useEffect(() => {
+    const checkAnnouncement = async () => {
+      try {
+        const response = await achievementApi.checkAnnouncement()
+        console.log('🔍 Checking announcement response:', response)
+        
+        if (response.success && response.data.showAnnouncement) {
+          const { userEmail, achievement } = response.data
+          
+          // IMPORTANT: Verify the achievement belongs to the current logged-in user
+          // This prevents showing rewards for other users' achievements
+          if (user?.email && userEmail && user.email.toLowerCase() !== userEmail.toLowerCase()) {
+            console.warn(`⚠️ User email mismatch: logged in as ${user.email}, but achievement is for ${userEmail}`)
+            console.log('ℹ️ Skipping announcement - does not belong to current user')
+            return
+          }
+          
+          console.log(`🎊 Showing one-time reward popup for ${user?.email}`)
+          console.log(`📊 Achievement: ${achievement.metadata?.savingsAmount ? `Saved ₹${achievement.metadata.savingsAmount}` : ''}, Budget Usage: ${achievement.metadata?.budgetUtilization}%`)
+          
+          setAnnouncementData(response.data)
+          setShowSuccessAnnouncement(true)
+        } else {
+          console.log(`ℹ️ No reward to show for ${user?.email}`)
+          if (response.data.userEmail) {
+            console.log(`   Reason: Either budget was exceeded, no budget was set, or reward already shown`)
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error checking announcement:', error)
+      }
+    }
+    
+    // Only check announcement if user is logged in
+    if (user?.email) {
+      checkAnnouncement()
+    }
+  }, [user?.email])
 
   const isLoading = statsLoading || transactionsLoading || categoriesLoading || remindersLoading || budgetLoading
 
@@ -204,8 +258,25 @@ export const DashboardPage: React.FC = () => {
     )
   }
 
+  console.log('🏠 Rendering dashboard home page')
+
   return (
-    <div className="min-h-screen bg-surface-50">
+    <div className="min-h-screen bg-surface-50">{/* Success Announcement Popup Overlay */}
+      {showSuccessAnnouncement && announcementData && (
+        <SuccessAnnouncement
+          monthName={announcementData.monthName}
+          year={announcementData.year || new Date().getFullYear()}
+          savingsAmount={announcementData.achievement?.metadata?.savingsAmount}
+          budgetUtilization={announcementData.achievement?.metadata?.budgetUtilization}
+          message={announcementData.achievement?.metadata?.message}
+          announcementKey={announcementData.announcementKey}
+          onDismiss={() => {
+            console.log('👋 Dismissing success announcement')
+            setShowSuccessAnnouncement(false)
+          }}
+        />
+      )}
+      
       {/* Header */}
       <div className="bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8">
@@ -235,6 +306,14 @@ export const DashboardPage: React.FC = () => {
               >
                 {t('expenses.addExpense')}
               </Button>
+              <button
+                onClick={() => navigate('/finmate')}
+                className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 active:scale-95 rounded-xl px-3 sm:px-4 py-2 transition-all text-sm sm:text-base font-medium whitespace-nowrap flex-shrink-0 shadow-lg shadow-indigo-500/30"
+              >
+                <Bot className="w-4 h-4" />
+                <span>FinMate</span>
+                <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
+              </button>
             </div>
           </div>
         </div>
@@ -294,8 +373,8 @@ export const DashboardPage: React.FC = () => {
 
             {/* Budget Progress */}
             <motion.div variants={itemVariants}>
-              <BudgetProgress 
-                spent={budgetData?.spent || 0} 
+              <BudgetProgress
+                spent={budgetData?.spent || 0}
                 budget={budgetData?.budget || 0}
                 hasBudget={budgetData?.hasBudget || false}
                 familyMode={false}
@@ -326,9 +405,9 @@ export const DashboardPage: React.FC = () => {
           <div className="space-y-6">
             {/* Category Breakdown */}
             <motion.div variants={itemVariants}>
-              <CategoryBreakdown 
-                categories={categoriesData?.categories || []} 
-                total={categoriesData?.total || 0} 
+              <CategoryBreakdown
+                categories={categoriesData?.categories || []}
+                total={categoriesData?.total || 0}
               />
             </motion.div>
 
@@ -382,9 +461,9 @@ export const DashboardPage: React.FC = () => {
       </motion.div>
 
       {/* Family Mode Modal */}
-      <FamilyModeModal 
-        isOpen={isFamilyModeOpen} 
-        onClose={() => setIsFamilyModeOpen(false)} 
+      <FamilyModeModal
+        isOpen={isFamilyModeOpen}
+        onClose={() => setIsFamilyModeOpen(false)}
       />
     </div>
   )

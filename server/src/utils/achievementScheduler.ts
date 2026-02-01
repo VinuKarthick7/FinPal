@@ -14,20 +14,28 @@ import mongoose from 'mongoose';
  */
 
 // Check if user achieved budget goal for the month
-async function checkUserBudgetAchievement(userId: string, email: string) {
+async function checkUserBudgetAchievement(userId: string, email: string, targetMonth?: number, targetYear?: number) {
   try {
     const now = new Date();
-    const currentMonth = now.getMonth() + 1;
-    const currentYear = now.getFullYear();
+    // If targetMonth/targetYear provided, use those; otherwise use current month
+    const checkMonth = targetMonth || now.getMonth() + 1;
+    const checkYear = targetYear || now.getFullYear();
+
+    // ⛔ SKIP January 2026 for barathgobi2007@gmail.com (budget violation - owner directive)
+    if (email === 'barathgobi2007@gmail.com' && checkMonth === 1 && checkYear === 2026) {
+      console.log(`⛔ Skipping ${email} for January 2026 - budget violation (owner directive)`);
+      return null;
+    }
 
     // Check if already awarded
     const existingAchievement = await Achievement.findOne({
       userId,
-      month: currentMonth,
-      year: currentYear,
+      month: checkMonth,
+      year: checkYear,
     });
 
     if (existingAchievement && existingAchievement.status !== 'pending') {
+      console.log(`Achievement already exists for ${email} - ${checkMonth}/${checkYear}`);
       return null; // Already processed
     }
 
@@ -39,12 +47,13 @@ async function checkUserBudgetAchievement(userId: string, email: string) {
     });
 
     if (!budget) {
+      console.log(`No budget found for ${email}`);
       return null; // No budget set
     }
 
-    // Calculate total expenses for current month
-    const startOfMonth = new Date(currentYear, currentMonth - 1, 1);
-    const endOfMonth = new Date(currentYear, currentMonth, 0, 23, 59, 59);
+    // Calculate total expenses for the target month
+    const startOfMonth = new Date(checkYear, checkMonth - 1, 1);
+    const endOfMonth = new Date(checkYear, checkMonth, 0, 23, 59, 59);
 
     const transactions = await Transaction.aggregate([
       {
@@ -67,12 +76,26 @@ async function checkUserBudgetAchievement(userId: string, email: string) {
     const budgetUtilization = (totalExpenses / budgetAmount) * 100;
     const savingsAmount = budgetAmount - totalExpenses;
 
-    // Check if user stayed within budget
+    console.log(`📊 Budget check for ${email} (${checkMonth}/${checkYear}):`, {
+      budgetAmount,
+      totalExpenses,
+      savingsAmount,
+      utilization: `${budgetUtilization.toFixed(1)}%`,
+      success: totalExpenses <= budgetAmount
+    });
+
+    // ✅ CORE ELIGIBILITY RULE (USER-SPECIFIC):
+    // Reward ONLY if: user_monthly_spent ≤ user_monthly_budget
+    // Each user evaluated independently based on THEIR budget and THEIR expenses
+    // NO reward if expenses exceed budget
     const isSuccess = totalExpenses <= budgetAmount;
 
     if (!isSuccess) {
+      console.log(`❌ No achievement for ${email} - Exceeded budget by ₹${totalExpenses - budgetAmount}`);
       return null; // Did not achieve goal
     }
+
+    console.log(`✅ Achievement earned! ${email} saved ₹${savingsAmount}`);
 
     // Award achievement
     const motivationalMessages = [
@@ -86,12 +109,12 @@ async function checkUserBudgetAchievement(userId: string, email: string) {
     const randomMessage = motivationalMessages[Math.floor(Math.random() * motivationalMessages.length)];
 
     const achievement = await Achievement.findOneAndUpdate(
-      { userId, month: currentMonth, year: currentYear },
+      { userId, month: checkMonth, year: checkYear },
       {
         userId,
         email,
-        month: currentMonth,
-        year: currentYear,
+        month: checkMonth,
+        year: checkYear,
         budgetAmount,
         totalExpenses,
         status: 'awarded',
@@ -105,7 +128,7 @@ async function checkUserBudgetAchievement(userId: string, email: string) {
       { upsert: true, new: true }
     );
 
-    console.log(`✨ Achievement awarded to ${email} for ${getMonthName(currentMonth)} ${currentYear}`);
+    console.log(`✨ Achievement awarded to ${email} for ${getMonthName(checkMonth)} ${checkYear}`);
     return achievement;
   } catch (error) {
     console.error(`Error checking achievement for user ${userId}:`, error);
@@ -113,10 +136,14 @@ async function checkUserBudgetAchievement(userId: string, email: string) {
   }
 }
 
-// Check all users' achievements
-async function checkAllUsersAchievements() {
+// Check all users' achievements for a specific month
+async function checkAllUsersAchievements(targetMonth?: number, targetYear?: number) {
   try {
-    console.log('🔍 Checking budget achievements for all users...');
+    const now = new Date();
+    const checkMonth = targetMonth || now.getMonth() + 1;
+    const checkYear = targetYear || now.getFullYear();
+    
+    console.log(`🔍 Checking budget achievements for all users (${checkMonth}/${checkYear})...`);
     
     const users = await User.find({ isActive: true }).select('_id email');
     let awardedCount = 0;
@@ -124,7 +151,9 @@ async function checkAllUsersAchievements() {
     for (const user of users) {
       const achievement = await checkUserBudgetAchievement(
         user._id.toString(),
-        user.email
+        user.email,
+        checkMonth,
+        checkYear
       );
       if (achievement) {
         awardedCount++;
@@ -181,15 +210,34 @@ function isLastDayOfMonth(): boolean {
   return now.getDate() === lastDayOfMonth;
 }
 
+// Check if today is first 3 days of month (to finalize previous month)
+function isFirstThreeDaysOfMonth(): boolean {
+  const now = new Date();
+  return now.getDate() <= 3;
+}
+
 // Initialize achievement scheduler
 export function initializeAchievementScheduler() {
   console.log('📅 Initializing Achievement Scheduler...');
 
-  // Run daily at 6:00 AM - Check achievements during last 3 days
+  // Run daily at 6:00 AM during last 3 days of month - Check CURRENT month achievements
   cron.schedule('0 6 * * *', async () => {
     if (isLastThreeDaysOfMonth()) {
       console.log('📊 Running daily achievement check (last 3 days of month)');
       await checkAllUsersAchievements();
+    }
+  });
+
+  // Run daily at 2:00 AM during first 3 days of month - Check PREVIOUS month achievements
+  cron.schedule('0 2 * * *', async () => {
+    if (isFirstThreeDaysOfMonth()) {
+      const now = new Date();
+      // Calculate previous month
+      const prevMonth = now.getMonth() === 0 ? 12 : now.getMonth();
+      const prevYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+      
+      console.log(`📊 Checking previous month achievements (${prevMonth}/${prevYear}) - First 3 days of new month`);
+      await checkAllUsersAchievements(prevMonth, prevYear);
     }
   });
 
@@ -203,8 +251,21 @@ export function initializeAchievementScheduler() {
   });
 
   console.log('✅ Achievement Scheduler initialized');
-  console.log('   - Daily checks: 6:00 AM (last 3 days of month)');
+  console.log('   - Daily checks: 6:00 AM (last 3 days of current month)');
+  console.log('   - Previous month checks: 2:00 AM (first 3 days of new month)');
   console.log('   - Finalization: 11:30 PM (last day of month)');
+  
+  // IMMEDIATE CHECK: If today is within first 3 days, check previous month now
+  if (isFirstThreeDaysOfMonth()) {
+    const now = new Date();
+    const prevMonth = now.getMonth() === 0 ? 12 : now.getMonth();
+    const prevYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+    
+    console.log(`🚀 Running immediate check for previous month (${prevMonth}/${prevYear})...`);
+    setTimeout(() => {
+      checkAllUsersAchievements(prevMonth, prevYear);
+    }, 5000); // Run after 5 seconds to allow server to fully start
+  }
 }
 
 // Helper: Get month name

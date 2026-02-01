@@ -8,9 +8,12 @@ import mongoose from 'mongoose';
 export const getUserAchievements = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user._id;
+    const userEmail = (req as any).user.email;
 
+    // Fetch achievements for this specific user only
     const achievements = await Achievement.find({ 
       userId,
+      email: userEmail, // Double-check email matches
       status: { $in: ['awarded', 'finalized'] }
     })
       .sort({ year: -1, month: -1 })
@@ -22,11 +25,14 @@ export const getUserAchievements = async (req: Request, res: Response) => {
       longestStreak: calculateLongestStreak(achievements),
     };
 
+    console.log(`📊 Fetched ${achievements.length} achievements for user: ${userEmail}`);
+
     res.json({
       success: true,
       data: {
         achievements,
         stats,
+        userEmail, // Include for client validation
       },
     });
   } catch (error) {
@@ -44,7 +50,9 @@ export const checkMonthlyBudget = async (req: Request, res: Response) => {
     const currentMonth = now.getMonth() + 1;
     const currentYear = now.getFullYear();
 
-    // Check if already awarded
+    console.log(`🔍 Checking budget for ${email} - ${currentMonth}/${currentYear}`);
+
+    // Check if already awarded for this month
     const existingAchievement = await Achievement.findOne({
       userId,
       month: currentMonth,
@@ -61,7 +69,7 @@ export const checkMonthlyBudget = async (req: Request, res: Response) => {
       });
     }
 
-    // Get monthly budget
+    // Get user's active monthly budget
     const budget = await Budget.findOne({
       userId,
       period: 'monthly',
@@ -75,7 +83,7 @@ export const checkMonthlyBudget = async (req: Request, res: Response) => {
       });
     }
 
-    // Calculate total expenses for the month
+    // Calculate total expenses for the current month
     const startOfMonth = new Date(currentYear, currentMonth - 1, 1);
     const endOfMonth = new Date(currentYear, currentMonth, 0, 23, 59, 59);
 
@@ -100,10 +108,19 @@ export const checkMonthlyBudget = async (req: Request, res: Response) => {
     const budgetUtilization = (totalExpenses / budgetAmount) * 100;
     const savingsAmount = budgetAmount - totalExpenses;
 
-    // Check if budget was successfully managed
+    console.log(`📊 Budget Check for ${email}:`, {
+      budget: budgetAmount,
+      spent: totalExpenses,
+      saved: savingsAmount,
+      utilization: `${budgetUtilization.toFixed(1)}%`
+    });
+
+    // ✅ ELIGIBILITY RULE: User must spend WITHIN or EQUAL to budget
+    // If totalExpenses > budgetAmount, NO REWARD
     const isSuccess = totalExpenses <= budgetAmount;
 
     if (!isSuccess) {
+      console.log(`❌ No reward for ${email} - Budget exceeded (${totalExpenses} > ${budgetAmount})`);
       return res.json({
         success: true,
         data: {
@@ -200,10 +217,13 @@ export const finalizeMonthlyAchievements = async (req: Request, res: Response) =
 export const getAchievementStats = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user._id;
+    const userEmail = (req as any).user.email;
     const currentYear = new Date().getFullYear();
 
+    // Fetch achievements for this specific user only
     const achievements = await Achievement.find({
       userId,
+      email: userEmail, // Double-check email matches
       status: { $in: ['awarded', 'finalized'] },
     }).lean();
 
@@ -225,9 +245,12 @@ export const getAchievementStats = async (req: Request, res: Response) => {
       recentAchievements: achievements.slice(0, 3),
     };
 
+    console.log(`📊 Stats for ${userEmail}: ${stats.total} total stars, ${stats.currentYear} this year`);
+
     res.json({
       success: true,
       data: stats,
+      userEmail, // Include for client validation
     });
   } catch (error) {
     console.error('Error fetching achievement stats:', error);
@@ -277,3 +300,312 @@ function getMonthName(month: number): string {
   ];
   return months[month - 1] || '';
 }
+
+// Check if user should see success announcement (earned star last month)
+export const checkSuccessAnnouncement = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user._id;
+    const now = new Date();
+    
+    // Get last month
+    let lastMonth = now.getMonth(); // 0-11
+    let lastYear = now.getFullYear();
+    
+    if (lastMonth === 0) {
+      lastMonth = 12;
+      lastYear = lastYear - 1;
+    }
+
+    // Get user's email for proper identification
+    const userEmail = (req as any).user.email;
+    
+    // Check if user earned achievement last month AND popup hasn't been shown yet
+    const lastMonthAchievement = await Achievement.findOne({
+      userId,
+      month: lastMonth,
+      year: lastYear,
+      status: { $in: ['awarded', 'finalized'] },
+      popupShown: { $ne: true } // Only show if popup hasn't been shown yet
+    });
+
+    // Create announcement key using email for unique user identification across devices/browsers
+    // This ensures each user sees their own announcement status
+    const sanitizedEmail = userEmail.replace(/[^a-zA-Z0-9]/g, '_');
+    const announcementKey = `announcement_${sanitizedEmail}_${now.getMonth() + 1}_${now.getFullYear()}`;
+    
+    if (lastMonthAchievement) {
+      // Verify the achievement belongs to this user
+      if (lastMonthAchievement.email !== userEmail) {
+        console.warn(`Achievement email mismatch: ${lastMonthAchievement.email} vs ${userEmail}`);
+        return res.json({
+          success: true,
+          data: {
+            showAnnouncement: false,
+          },
+        });
+      }
+
+      console.log(`✅ Reward eligible for ${userEmail}: ${getMonthName(lastMonth)} ${lastYear} - Budget: ₹${lastMonthAchievement.budgetAmount}, Spent: ₹${lastMonthAchievement.totalExpenses}`);
+
+      res.json({
+        success: true,
+        data: {
+          showAnnouncement: true,
+          achievement: lastMonthAchievement,
+          monthName: getMonthName(lastMonth),
+          year: lastYear,
+          announcementKey,
+          userEmail, // Include email for client-side verification
+        },
+      });
+    } else {
+      // Check if user had an achievement but already saw the popup
+      const alreadyShownAchievement = await Achievement.findOne({
+        userId,
+        month: lastMonth,
+        year: lastYear,
+        status: { $in: ['awarded', 'finalized'] },
+        popupShown: true
+      });
+
+      if (alreadyShownAchievement) {
+        console.log(`ℹ️ Reward already shown to ${userEmail} for ${getMonthName(lastMonth)} ${lastYear}`);
+      } else {
+        console.log(`ℹ️ No reward for ${userEmail} - Either budget exceeded or no budget set for ${getMonthName(lastMonth)} ${lastYear}`);
+      }
+
+      res.json({
+        success: true,
+        data: {
+          showAnnouncement: false,
+          userEmail,
+        },
+      });
+    }
+  } catch (error) {
+    console.error('Error checking success announcement:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to check announcement' 
+    });
+  }
+};
+
+// Mark reward popup as shown for a user's achievement
+export const markPopupShown = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user._id;
+    const userEmail = (req as any).user.email;
+    const { month, year } = req.body;
+
+    if (!month || !year) {
+      return res.status(400).json({
+        success: false,
+        message: 'Month and year are required'
+      });
+    }
+
+    // Find and update the achievement
+    const achievement = await Achievement.findOneAndUpdate(
+      {
+        userId,
+        email: userEmail,
+        month,
+        year,
+        status: { $in: ['awarded', 'finalized'] }
+      },
+      {
+        $set: {
+          popupShown: true,
+          popupShownAt: new Date()
+        }
+      },
+      { new: true }
+    );
+
+    if (!achievement) {
+      return res.status(404).json({
+        success: false,
+        message: 'Achievement not found'
+      });
+    }
+
+    console.log(`✅ Marked reward popup as shown for ${userEmail} - ${getMonthName(month)} ${year}`);
+
+    res.json({
+      success: true,
+      data: {
+        achievement,
+        message: 'Popup marked as shown'
+      }
+    });
+  } catch (error) {
+    console.error('Error marking popup as shown:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to mark popup as shown'
+    });
+  }
+};
+
+// Validate and clean invalid achievements (admin utility)
+export const validateAndCleanAchievements = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user._id;
+    const userEmail = (req as any).user.email;
+
+    console.log(`🔍 Validating achievements for ${userEmail}...`);
+
+    // Get all achievements for this user
+    const achievements = await Achievement.find({ userId, email: userEmail });
+
+    const invalidAchievements = [];
+    const validAchievements = [];
+
+    for (const achievement of achievements) {
+      // Get budget for that month
+      const budget = await Budget.findOne({
+        userId,
+        period: 'monthly',
+        isActive: true,
+      });
+
+      if (!budget) {
+        invalidAchievements.push({
+          ...achievement.toObject(),
+          reason: 'No budget found'
+        });
+        continue;
+      }
+
+      // Calculate actual expenses for that month
+      const startOfMonth = new Date(achievement.year, achievement.month - 1, 1);
+      const endOfMonth = new Date(achievement.year, achievement.month, 0, 23, 59, 59);
+
+      const transactions = await Transaction.aggregate([
+        {
+          $match: {
+            userId: new mongoose.Types.ObjectId(userId),
+            type: 'expense',
+            date: { $gte: startOfMonth, $lte: endOfMonth },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            totalExpenses: { $sum: '$amount' },
+          },
+        },
+      ]);
+
+      const totalExpenses = transactions[0]?.totalExpenses || 0;
+      const budgetAmount = budget.totalBudget;
+
+      // CRITICAL VALIDATION: expenses must be <= budget
+      if (totalExpenses > budgetAmount) {
+        invalidAchievements.push({
+          ...achievement.toObject(),
+          reason: `Budget exceeded: spent ₹${totalExpenses} > budget ₹${budgetAmount}`,
+          actualBudget: budgetAmount,
+          actualSpent: totalExpenses,
+          exceeded: totalExpenses - budgetAmount
+        });
+      } else {
+        validAchievements.push(achievement);
+      }
+    }
+
+    console.log(`✅ Valid: ${validAchievements.length}, ❌ Invalid: ${invalidAchievements.length}`);
+
+    res.json({
+      success: true,
+      data: {
+        userEmail,
+        totalChecked: achievements.length,
+        validCount: validAchievements.length,
+        invalidCount: invalidAchievements.length,
+        invalidAchievements,
+      },
+    });
+  } catch (error) {
+    console.error('Error validating achievements:', error);
+    res.status(500).json({ success: false, message: 'Failed to validate achievements' });
+  }
+};
+
+// Delete invalid achievements (admin utility)
+export const deleteInvalidAchievements = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user._id;
+    const userEmail = (req as any).user.email;
+
+    console.log(`🗑️ Cleaning invalid achievements for ${userEmail}...`);
+
+    // Get all achievements for this user
+    const achievements = await Achievement.find({ userId, email: userEmail });
+
+    const toDelete = [];
+
+    for (const achievement of achievements) {
+      // Get budget for that month
+      const budget = await Budget.findOne({
+        userId,
+        period: 'monthly',
+        isActive: true,
+      });
+
+      if (!budget) {
+        toDelete.push(achievement._id);
+        continue;
+      }
+
+      // Calculate actual expenses for that month
+      const startOfMonth = new Date(achievement.year, achievement.month - 1, 1);
+      const endOfMonth = new Date(achievement.year, achievement.month, 0, 23, 59, 59);
+
+      const transactions = await Transaction.aggregate([
+        {
+          $match: {
+            userId: new mongoose.Types.ObjectId(userId),
+            type: 'expense',
+            date: { $gte: startOfMonth, $lte: endOfMonth },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            totalExpenses: { $sum: '$amount' },
+          },
+        },
+      ]);
+
+      const totalExpenses = transactions[0]?.totalExpenses || 0;
+      const budgetAmount = budget.totalBudget;
+
+      // CRITICAL VALIDATION: expenses must be <= budget
+      if (totalExpenses > budgetAmount) {
+        console.log(`❌ Removing invalid achievement: ${getMonthName(achievement.month)} ${achievement.year} - spent ₹${totalExpenses} > budget ₹${budgetAmount}`);
+        toDelete.push(achievement._id);
+      }
+    }
+
+    // Delete invalid achievements
+    const result = await Achievement.deleteMany({
+      _id: { $in: toDelete }
+    });
+
+    console.log(`✅ Deleted ${result.deletedCount} invalid achievements for ${userEmail}`);
+
+    res.json({
+      success: true,
+      data: {
+        userEmail,
+        deletedCount: result.deletedCount,
+        message: `Removed ${result.deletedCount} invalid achievement(s)`,
+      },
+    });
+  } catch (error) {
+    console.error('Error deleting invalid achievements:', error);
+    res.status(500).json({ success: false, message: 'Failed to delete invalid achievements' });
+  }
+};

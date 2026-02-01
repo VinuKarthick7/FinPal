@@ -11,6 +11,8 @@ export interface IAchievement extends Document {
   status: 'pending' | 'awarded' | 'finalized';
   earnedAt: Date;
   finalizedAt?: Date;
+  popupShown?: boolean; // Track if reward popup was shown to user
+  popupShownAt?: Date; // When popup was shown
   metadata?: {
     savingsAmount?: number;
     budgetUtilization?: number; // percentage
@@ -64,6 +66,13 @@ const AchievementSchema: Schema = new Schema(
       default: Date.now,
     },
     finalizedAt: {
+      type: Date,
+    },
+    popupShown: {
+      type: Boolean,
+      default: false,
+    },
+    popupShownAt: {
       type: Date,
     },
     metadata: {

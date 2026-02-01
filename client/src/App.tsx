@@ -14,6 +14,7 @@ import { BudgetPage } from './pages/budget'
 import { ReportsPage } from './pages/reports/ReportsPage'
 import { FamilyModePage } from './pages/family'
 import { AchievementsPage } from './pages/achievements'
+import { FinMatePage } from './pages/finmate'
 import { MainLayout } from './components/layout'
 import { ErrorBoundary } from './components/ui'
 import { useAuthStore } from './stores/authStore'
@@ -60,10 +61,10 @@ const OAuthCallback = () => {
     if (token && userStr) {
       try {
         const user = JSON.parse(decodeURIComponent(userStr))
-        
+
         // Set auth and then fetch fresh user data
         setAuth(user, token)
-        
+
         // Fetch fresh user data with summary
         authApi.getMe().then(response => {
           if (response.success && response.data) {
@@ -73,7 +74,7 @@ const OAuthCallback = () => {
         }).catch(error => {
           console.error('Failed to fetch user data after OAuth:', error)
         })
-        
+
         toast.success(`Welcome back, ${user.fullName}!`)
         navigate('/dashboard')
       } catch (error) {
@@ -108,8 +109,8 @@ function App() {
           if (response.success && response.data) {
             // Update user data and data summary from server
             setAuth(
-              response.data.user, 
-              token, 
+              response.data.user,
+              token,
               response.data.dataSummary
             )
             console.log('✅ User session restored for:', response.data.user.email)
@@ -160,31 +161,38 @@ function App() {
       <div className="min-h-screen min-h-[100dvh] bg-gray-50">
         <Routes>
           {/* Auth Routes */}
-          <Route 
-            path="/login" 
-            element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />} 
+          <Route
+            path="/login"
+            element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />}
           />
-          <Route 
-            path="/register" 
-            element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <RegisterPage />} 
+          <Route
+            path="/register"
+            element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <RegisterPage />}
           />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/auth/callback" element={<OAuthCallback />} />
-          
+
           {/* Family Mode - Full screen standalone page */}
           <Route path="/family" element={
             <ProtectedRoute>
               <FamilyModePage />
             </ProtectedRoute>
           } />
-          
+
           {/* Achievements - Full screen standalone page */}
           <Route path="/achievements" element={
             <ProtectedRoute>
               <AchievementsPage />
             </ProtectedRoute>
           } />
-          
+
+          {/* FinMate Chatbot - Full screen standalone page */}
+          <Route path="/finmate" element={
+            <ProtectedRoute>
+              <FinMatePage />
+            </ProtectedRoute>
+          } />
+
           {/* Protected Routes with MainLayout */}
           <Route element={
             <ProtectedRoute>
@@ -201,10 +209,10 @@ function App() {
             <Route path="/reminders" element={<RemindersPage />} />
             <Route path="/profile" element={<ProfilePage />} />
           </Route>
-          
+
           {/* Redirect root to dashboard */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          
+
           {/* 404 */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

@@ -8,3 +8,4 @@ export { default as FamilyMode } from './FamilyMode';
 export { default as FamilyModeCard } from './FamilyModeCard';
 export { default as FamilyModeModal } from './FamilyModeModal';
 export { default as AchievementNotification } from './AchievementNotification';
+export { default as SuccessAnnouncement } from './SuccessAnnouncement';

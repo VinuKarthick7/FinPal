@@ -11,6 +11,9 @@ import insightsRoutes from './insights';
 import familyRoutes from './family';
 import familyReportsRoutes from './familyReports';
 import achievementRoutes from './achievements';
+import chatbotRoutes from './chatbot';
+import testAchievementRoutes from './testAchievements';
+import debugRoutes from './debug';
 
 const router = Router();
 
@@ -36,5 +39,8 @@ router.use('/insights', insightsRoutes);
 router.use('/family', familyRoutes);
 router.use('/family-reports', familyReportsRoutes);
 router.use('/achievements', achievementRoutes);
+router.use('/chatbot', chatbotRoutes);
+router.use('/test-achievements', testAchievementRoutes);
+router.use('/debug', debugRoutes);
 
 export default router;

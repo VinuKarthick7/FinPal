@@ -539,9 +539,36 @@ export const achievementApi = {
     return response.data
   },
 
+  // Check if user should see success announcement
+  checkAnnouncement: async () => {
+    const response = await api.get('/achievements/announcement')
+    return response.data
+  },
+
+  // Mark reward popup as shown
+  markPopupShown: async (month: number, year: number) => {
+    const response = await api.post('/achievements/popup-shown', { month, year })
+    return response.data
+  },
+
   // Check current month's budget performance
   checkMonthlyBudget: async () => {
     const response = await api.post('/achievements/check')
+    return response.data
+  },
+}
+
+// Chatbot API (FinMate)
+export const chatbotApi = {
+  // Send a message to FinMate
+  sendMessage: async (message: string) => {
+    const response = await api.post('/chatbot/message', { message })
+    return response.data
+  },
+
+  // Get chat context for initializing chat
+  getContext: async () => {
+    const response = await api.get('/chatbot/context')
     return response.data
   },
 }

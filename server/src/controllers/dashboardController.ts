@@ -7,13 +7,14 @@ import { Transaction, Reminder, Budget } from '../models';
 export const getDashboardStats = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req as any).user._id;
+    const userEmail = (req as any).user.email;
     
     // Get current month date range
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
-    // Get transactions for current month
+    // USER-SPECIFIC: Get transactions for THIS user only for current month
     const monthlyTransactions = await Transaction.find({
       user: userId,
       date: { $gte: startOfMonth, $lte: endOfMonth },
@@ -36,7 +37,7 @@ export const getDashboardStats = async (req: Request, res: Response): Promise<vo
     totalIncome = Math.round(totalIncome * 100) / 100;
     const savings = Math.round((totalIncome - totalSpent) * 100) / 100;
 
-    // Get pending bills (unpaid reminders with due date in the future)
+    // USER-SPECIFIC: Get pending bills for THIS user only
     const pendingReminders = await Reminder.find({
       user: userId,
       isPaid: false,
@@ -46,7 +47,7 @@ export const getDashboardStats = async (req: Request, res: Response): Promise<vo
     const pendingBillsAmount = Math.round(pendingReminders.reduce((sum, r) => sum + r.amount, 0) * 100) / 100;
     const pendingBillsCount = pendingReminders.length;
 
-    // Calculate trend (compare with last month)
+    // USER-SPECIFIC: Calculate trend comparing with last month for THIS user
     const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
 
@@ -60,6 +61,8 @@ export const getDashboardStats = async (req: Request, res: Response): Promise<vo
     const spentTrend = lastMonthSpent > 0 
       ? Math.round(((totalSpent - lastMonthSpent) / lastMonthSpent) * 100)
       : 0;
+
+    console.log(`📊 Dashboard stats for ${userEmail}: Spent ₹${totalSpent}, Income ₹${totalIncome}, Savings ₹${savings}`);
 
     res.json({
       success: true,
@@ -79,6 +82,7 @@ export const getDashboardStats = async (req: Request, res: Response): Promise<vo
         },
         month: now.toLocaleString('default', { month: 'long', year: 'numeric' }),
       },
+      userEmail, // Include for client validation
     });
   } catch (error: any) {
     res.status(500).json({
