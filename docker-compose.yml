@@ -13,7 +13,7 @@ services:
       CLIENT_URL: http://localhost:3000
       SERVER_URL: http://localhost:5000
     ports:
-      - "5000:5000"
+      - "127.0.0.1:5000:5000"
     volumes:
       - ./server/uploads:/app/uploads
     depends_on:
@@ -24,7 +24,7 @@ services:
     build:
       context: ./client
     ports:
-      - "3000:80"
+      - "127.0.0.1:3000:80"
     depends_on:
       - server
     restart: unless-stopped
@@ -33,7 +33,7 @@ services:
     image: mongo:7
     restart: unless-stopped
     ports:
-      - "27017:27017"
+      - "127.0.0.1:27017:27017"
     volumes:
       - mongo_data:/data/db
 

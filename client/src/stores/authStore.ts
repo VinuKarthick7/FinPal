@@ -52,8 +52,18 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
-        // Clear all stored auth data
+        const currentUser = get().user
+        if (currentUser) {
+          console.log(`✅ Logging out user: ${currentUser.email} (ID: ${currentUser.id})`)
+        }
+        
+        // Clear all stored auth data from localStorage
         localStorage.removeItem('finpal-auth')
+        
+        // Clear session storage as well
+        sessionStorage.clear()
+        
+        // Reset all auth state
         set({
           user: null,
           token: null,
@@ -61,6 +71,8 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: false,
           isLoading: false,
         })
+        
+        console.log('✅ Session fully cleared')
       },
 
       setLoading: (loading) => {

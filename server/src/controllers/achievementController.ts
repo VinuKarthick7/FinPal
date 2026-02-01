@@ -19,18 +19,61 @@ export const getUserAchievements = async (req: Request, res: Response) => {
       .sort({ year: -1, month: -1 })
       .lean();
 
+    // 🔐 CRITICAL VALIDATION: Verify each achievement had a valid budget
+    const validAchievements = [];
+    for (const achievement of achievements) {
+      // Verify budget existed for that specific month/year
+      const startOfMonth = new Date(achievement.year, achievement.month - 1, 1);
+      const endOfMonth = new Date(achievement.year, achievement.month, 0, 23, 59, 59);
+      
+      const budget = await Budget.findOne({
+        userId,
+        period: 'monthly',
+        createdAt: { $lte: endOfMonth }, // Budget must exist before/during the month
+      });
+
+      // ❌ NO BUDGET → NO ACHIEVEMENT (delete invalid achievement)
+      if (!budget || budget.totalBudget <= 0) {
+        console.log(`❌ INVALID: Achievement ${achievement.month}/${achievement.year} has NO BUDGET - Removing`);
+        await Achievement.deleteOne({ _id: achievement._id });
+        continue;
+      }
+
+      // Verify expenses were within budget
+      if (achievement.totalExpenses > budget.totalBudget) {
+        console.log(`❌ INVALID: Achievement ${achievement.month}/${achievement.year} exceeded budget - Removing`);
+        await Achievement.deleteOne({ _id: achievement._id });
+        continue;
+      }
+
+      // 🚫 STRICT: Verify user actually TRACKED expenses (used the app)
+      const transactionCount = await Transaction.countDocuments({
+        userId: new mongoose.Types.ObjectId(userId),
+        type: 'expense',
+        date: { $gte: startOfMonth, $lte: endOfMonth },
+      });
+
+      if (transactionCount === 0) {
+        console.log(`❌ INVALID: Achievement ${achievement.month}/${achievement.year} - No app usage (0 transactions)`);
+        await Achievement.deleteOne({ _id: achievement._id });
+        continue;
+      }
+
+      validAchievements.push(achievement);
+    }
+
     const stats = {
-      totalAchievements: achievements.length,
-      currentYear: achievements.filter(a => a.year === new Date().getFullYear()).length,
-      longestStreak: calculateLongestStreak(achievements),
+      totalAchievements: validAchievements.length,
+      currentYear: validAchievements.filter(a => a.year === new Date().getFullYear()).length,
+      longestStreak: calculateLongestStreak(validAchievements),
     };
 
-    console.log(`📊 Fetched ${achievements.length} achievements for user: ${userEmail}`);
+    console.log(`📊 Fetched ${validAchievements.length} VALID achievements for user: ${userEmail}`);
 
     res.json({
       success: true,
       data: {
-        achievements,
+        achievements: validAchievements,
         stats,
         userEmail, // Include for client validation
       },
@@ -69,24 +112,28 @@ export const checkMonthlyBudget = async (req: Request, res: Response) => {
       });
     }
 
-    // Get user's active monthly budget
+    // 🔐 CRITICAL: Get user's budget for the SPECIFIC MONTH being evaluated
+    const startOfMonth = new Date(currentYear, currentMonth - 1, 1);
+    const endOfMonth = new Date(currentYear, currentMonth, 0, 23, 59, 59);
+    
     const budget = await Budget.findOne({
       userId,
       period: 'monthly',
       isActive: true,
+      createdAt: { $lte: endOfMonth }, // Budget must exist before/during the evaluated month
     });
 
-    if (!budget) {
+    // ❌ NO BUDGET → NO ACHIEVEMENT (HARD RULE)
+    if (!budget || budget.totalBudget <= 0) {
+      console.log(`❌ No budget set for ${email} in ${currentMonth}/${currentYear} - NO ACHIEVEMENT`);
       return res.json({
         success: false,
-        message: 'No active monthly budget found',
+        message: 'No budget set for this month. Set a budget to earn achievements.',
+        noBudget: true,
       });
     }
 
     // Calculate total expenses for the current month
-    const startOfMonth = new Date(currentYear, currentMonth - 1, 1);
-    const endOfMonth = new Date(currentYear, currentMonth, 0, 23, 59, 59);
-
     const transactions = await Transaction.aggregate([
       {
         $match: {
@@ -114,6 +161,29 @@ export const checkMonthlyBudget = async (req: Request, res: Response) => {
       saved: savingsAmount,
       utilization: `${budgetUtilization.toFixed(1)}%`
     });
+
+    // 🚫 STRICT RULE: User must have ACTUALLY USED THE APP (tracked expenses)
+    // If totalExpenses = 0 AND no transactions, user hasn't used the app
+    const transactionCount = await Transaction.countDocuments({
+      userId: new mongoose.Types.ObjectId(userId),
+      type: 'expense',
+      date: { $gte: startOfMonth, $lte: endOfMonth },
+    });
+
+    if (transactionCount === 0) {
+      console.log(`❌ No app usage for ${email} - No transactions tracked in ${currentMonth}/${currentYear}`);
+      return res.json({
+        success: true,
+        data: {
+          isSuccess: false,
+          budgetAmount,
+          totalExpenses: 0,
+          transactionCount: 0,
+          message: 'Track expenses to earn achievements! Add transactions to your budget.',
+          noAppUsage: true,
+        },
+      });
+    }
 
     // ✅ ELIGIBILITY RULE: User must spend WITHIN or EQUAL to budget
     // If totalExpenses > budgetAmount, NO REWARD
@@ -227,7 +297,50 @@ export const getAchievementStats = async (req: Request, res: Response) => {
       status: { $in: ['awarded', 'finalized'] },
     }).lean();
 
-    const yearlyBreakdown = achievements.reduce((acc: any, achievement) => {
+    // 🔐 CRITICAL VALIDATION: Only count achievements with valid budgets
+    const validAchievements = [];
+    for (const achievement of achievements) {
+      const endOfMonth = new Date(achievement.year, achievement.month, 0, 23, 59, 59);
+      
+      const budget = await Budget.findOne({
+        userId,
+        period: 'monthly',
+        createdAt: { $lte: endOfMonth },
+      });
+
+      // ❌ NO BUDGET → SKIP THIS ACHIEVEMENT
+      if (!budget || budget.totalBudget <= 0) {
+        console.log(`❌ Removing invalid achievement: ${achievement.month}/${achievement.year} - No budget`);
+        await Achievement.deleteOne({ _id: achievement._id });
+        continue;
+      }
+
+      // Verify expenses were within budget
+      if (achievement.totalExpenses > budget.totalBudget) {
+        console.log(`❌ Removing invalid achievement: ${achievement.month}/${achievement.year} - Exceeded budget`);
+        await Achievement.deleteOne({ _id: achievement._id });
+        continue;
+      }
+
+      // 🚫 STRICT: Verify user actually TRACKED expenses (used the app)
+      const startOfMonth = new Date(achievement.year, achievement.month - 1, 1);
+      const endOfMonth2 = new Date(achievement.year, achievement.month, 0, 23, 59, 59);
+      const transactionCount = await Transaction.countDocuments({
+        userId: new mongoose.Types.ObjectId(userId),
+        type: 'expense',
+        date: { $gte: startOfMonth, $lte: endOfMonth2 },
+      });
+
+      if (transactionCount === 0) {
+        console.log(`❌ Removing invalid achievement: ${achievement.month}/${achievement.year} - No app usage`);
+        await Achievement.deleteOne({ _id: achievement._id });
+        continue;
+      }
+
+      validAchievements.push(achievement);
+    }
+
+    const yearlyBreakdown = validAchievements.reduce((acc: any, achievement) => {
       if (!acc[achievement.year]) {
         acc[achievement.year] = 0;
       }
@@ -235,17 +348,17 @@ export const getAchievementStats = async (req: Request, res: Response) => {
       return acc;
     }, {});
 
-    const currentYearAchievements = achievements.filter(a => a.year === currentYear);
+    const currentYearAchievements = validAchievements.filter(a => a.year === currentYear);
     
     const stats = {
-      total: achievements.length,
+      total: validAchievements.length,
       currentYear: currentYearAchievements.length,
-      longestStreak: calculateLongestStreak(achievements),
+      longestStreak: calculateLongestStreak(validAchievements),
       yearlyBreakdown,
-      recentAchievements: achievements.slice(0, 3),
+      recentAchievements: validAchievements.slice(0, 3),
     };
 
-    console.log(`📊 Stats for ${userEmail}: ${stats.total} total stars, ${stats.currentYear} this year`);
+    console.log(`📊 Stats for ${userEmail}: ${stats.total} VALID stars, ${stats.currentYear} this year`);
 
     res.json({
       success: true,
@@ -327,6 +440,63 @@ export const checkSuccessAnnouncement = async (req: Request, res: Response) => {
       status: { $in: ['awarded', 'finalized'] },
       popupShown: { $ne: true } // Only show if popup hasn't been shown yet
     });
+
+    // 🔐 CRITICAL: Verify budget existed for that month before showing reward
+    if (lastMonthAchievement) {
+      const endOfMonth = new Date(lastYear, lastMonth, 0, 23, 59, 59);
+      const budget = await Budget.findOne({
+        userId,
+        period: 'monthly',
+        createdAt: { $lte: endOfMonth },
+      });
+
+      // ❌ NO BUDGET → DELETE ACHIEVEMENT & NO REWARD
+      if (!budget || budget.totalBudget <= 0) {
+        console.log(`❌ Invalid achievement detected for ${userEmail} - No budget existed for ${lastMonth}/${lastYear}`);
+        await Achievement.deleteOne({ _id: lastMonthAchievement._id });
+        return res.json({
+          success: true,
+          data: {
+            showAnnouncement: false,
+            userEmail,
+          },
+        });
+      }
+
+      // Verify expenses were within budget
+      if (lastMonthAchievement.totalExpenses > budget.totalBudget) {
+        console.log(`❌ Invalid achievement detected for ${userEmail} - Exceeded budget`);
+        await Achievement.deleteOne({ _id: lastMonthAchievement._id });
+        return res.json({
+          success: true,
+          data: {
+            showAnnouncement: false,
+            userEmail,
+          },
+        });
+      }
+
+      // 🚫 STRICT: Verify user actually TRACKED expenses (used the app)
+      const startOfLastMonth = new Date(lastYear, lastMonth - 1, 1);
+      const endOfLastMonth = new Date(lastYear, lastMonth, 0, 23, 59, 59);
+      const transactionCount = await Transaction.countDocuments({
+        userId: new mongoose.Types.ObjectId(userId),
+        type: 'expense',
+        date: { $gte: startOfLastMonth, $lte: endOfLastMonth },
+      });
+
+      if (transactionCount === 0) {
+        console.log(`❌ Invalid achievement detected for ${userEmail} - No app usage (0 transactions)`);
+        await Achievement.deleteOne({ _id: lastMonthAchievement._id });
+        return res.json({
+          success: true,
+          data: {
+            showAnnouncement: false,
+            userEmail,
+          },
+        });
+      }
+    }
 
     // Create announcement key using email for unique user identification across devices/browsers
     // This ensures each user sees their own announcement status

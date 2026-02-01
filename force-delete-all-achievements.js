@@ -1,4 +1,4 @@
-// Force delete ALL achievements for barathgobi2007@gmail.com
+// Force delete ALL achievements for gsribarath@gmail.com
 const mongoose = require('mongoose');
 
 const MONGODB_URI = 'mongodb://localhost:27017/finpal';
@@ -12,7 +12,7 @@ async function forceDeleteAllAchievements() {
     const db = mongoose.connection.db;
     
     // Find user
-    const user = await db.collection('users').findOne({ email: 'barathgobi2007@gmail.com' });
+    const user = await db.collection('users').findOne({ email: 'gsribarath@gmail.com' });
     
     if (!user) {
       console.log('❌ User not found');

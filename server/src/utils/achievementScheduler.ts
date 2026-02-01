@@ -21,8 +21,8 @@ async function checkUserBudgetAchievement(userId: string, email: string, targetM
     const checkMonth = targetMonth || now.getMonth() + 1;
     const checkYear = targetYear || now.getFullYear();
 
-    // ⛔ SKIP January 2026 for barathgobi2007@gmail.com (budget violation - owner directive)
-    if (email === 'barathgobi2007@gmail.com' && checkMonth === 1 && checkYear === 2026) {
+    // ⛔ SKIP January 2026 for gsribarath@gmail.com (budget violation - owner directive)
+    if (email === 'gsribarath@gmail.com' && checkMonth === 1 && checkYear === 2026) {
       console.log(`⛔ Skipping ${email} for January 2026 - budget violation (owner directive)`);
       return null;
     }

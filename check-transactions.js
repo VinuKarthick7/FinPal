@@ -1,4 +1,4 @@
-// Check all transactions for barathgobi2007@gmail.com
+// Check all transactions for gsribarath@gmail.com
 const mongoose = require('mongoose');
 
 const MONGODB_URI = 'mongodb://localhost:27017/finpal';
@@ -8,7 +8,7 @@ async function checkTransactions() {
     await mongoose.connect(MONGODB_URI);
     const db = mongoose.connection.db;
     
-    const user = await db.collection('users').findOne({ email: 'barathgobi2007@gmail.com' });
+    const user = await db.collection('users').findOne({ email: 'gsribarath@gmail.com' });
     
     if (!user) {
       console.log('User not found');

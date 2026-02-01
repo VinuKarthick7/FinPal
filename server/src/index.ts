@@ -29,21 +29,21 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));
 
-// CORS (must come before rate limiting so preflight requests get CORS headers)
+// CORS - LOCALHOST ONLY (no network access)
 const allowedOrigins = new Set([
-  config.clientUrl,
   'http://localhost:3000',
-  'http://localhost:3001',
+  'http://localhost:5000',
   'http://127.0.0.1:3000',
-  'http://127.0.0.1:3001',
+  'http://127.0.0.1:5000',
 ]);
 
 const corsOptions: cors.CorsOptions = {
   origin: (origin, callback) => {
-    // Allow non-browser clients (no Origin header)
+    // Allow only localhost origins
     if (!origin) return callback(null, true);
     if (allowedOrigins.has(origin)) return callback(null, true);
-    return callback(new Error(`CORS blocked for origin: ${origin}`));
+    console.log(`❌ CORS blocked for origin: ${origin}`);
+    return callback(new Error(`Access denied. Localhost only.`));
   },
   credentials: true,
 };
@@ -135,17 +135,19 @@ app.get('/', (req, res) => {
 app.use(notFound);
 app.use(errorHandler);
 
-// Start server
+// Start server - LOCALHOST ONLY (127.0.0.1)
 const PORT = config.port;
+const HOST = '127.0.0.1'; // Bind to localhost only, no network access
 
-app.listen(PORT, () => {
+app.listen(PORT, HOST, () => {
   console.log(`
   ╔════════════════════════════════════════════════════╗
   ║                                                    ║
-  ║   🚀 FinPal Server is running!                    ║
+  ║   🚀 FinPal Server - LOCALHOST ONLY               ║
   ║                                                    ║
   ║   📍 Local:    http://localhost:${PORT}             ║
   ║   🔧 Mode:     ${config.nodeEnv.padEnd(28)}║
+  ║   🔒 Access:   Localhost only (no network)        ║
   ║                                                    ║
   ╚════════════════════════════════════════════════════╝
   `);

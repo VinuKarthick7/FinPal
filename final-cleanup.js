@@ -12,7 +12,7 @@ async function finalCleanup() {
     const db = mongoose.connection.db;
     
     // Find user
-    const user = await db.collection('users').findOne({ email: 'barathgobi2007@gmail.com' });
+    const user = await db.collection('users').findOne({ email: 'gsribarath@gmail.com' });
     
     if (!user) {
       console.log('❌ User not found');
@@ -39,7 +39,7 @@ async function finalCleanup() {
     console.log(`   Remaining achievements: ${remaining}`);
     
     if (remaining === 0) {
-      console.log('\n🎉 SUCCESS! All achievements removed for barathgobi2007@gmail.com');
+      console.log('\n🎉 SUCCESS! All achievements removed for gsribarath@gmail.com');
       console.log('🔒 User is now blacklisted from receiving future achievements');
       console.log('\n📱 Next steps:');
       console.log('   1. Refresh the browser at http://localhost:3001');

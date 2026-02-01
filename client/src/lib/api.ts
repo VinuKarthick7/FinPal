@@ -42,7 +42,14 @@ api.interceptors.response.use(
 // Auth API
 export const authApi = {
   login: async (email: string, password: string) => {
-    const response = await api.post('/auth/login', { email, password })
+    // Normalize email (trim and lowercase) before sending
+    const normalizedEmail = email.toLowerCase().trim()
+    // Trim password but preserve case
+    const trimmedPassword = password.trim()
+    const response = await api.post('/auth/login', { 
+      email: normalizedEmail, 
+      password: trimmedPassword 
+    })
     return response.data
   },
 

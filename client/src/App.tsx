@@ -52,37 +52,61 @@ const OAuthCallback = () => {
     const userStr = params.get('user')
     const error = params.get('error')
 
+    // Handle OAuth errors
     if (error) {
+      const errorMessages: Record<string, string> = {
+        'google_not_configured': 'Google login is not configured',
+        'google_failed': 'Google login failed. Please try again.',
+        'apple_not_configured': 'Apple login is not configured',
+        'apple_failed': 'Apple login failed. Please try again.',
+        'oauth_failed': 'Authentication failed. Please try again.',
+      }
+      toast.error(errorMessages[error] || 'Authentication failed. Please try again.')
+      navigate('/login')
+      return
+    }
+
+    // Validate token and user data
+    if (!token || !userStr) {
+      console.error('❌ OAuth callback missing required parameters')
       toast.error('Authentication failed. Please try again.')
       navigate('/login')
       return
     }
 
-    if (token && userStr) {
-      try {
-        const user = JSON.parse(decodeURIComponent(userStr))
+    try {
+      const user = JSON.parse(decodeURIComponent(userStr))
 
-        // Set auth and then fetch fresh user data
-        setAuth(user, token)
-
-        // Fetch fresh user data with summary
-        authApi.getMe().then(response => {
-          if (response.success && response.data) {
-            setAuth(response.data.user, token, response.data.dataSummary)
-            console.log('✅ OAuth login successful for:', response.data.user.email)
-          }
-        }).catch(error => {
-          console.error('Failed to fetch user data after OAuth:', error)
-        })
-
-        toast.success(`Welcome back, ${user.fullName}!`)
-        navigate('/dashboard')
-      } catch (error) {
-        console.error('OAuth callback error:', error)
+      // Validate user object has required fields
+      if (!user.id || !user.email) {
+        console.error('❌ Invalid user data from OAuth')
         toast.error('Authentication failed. Please try again.')
         navigate('/login')
+        return
       }
-    } else {
+
+      // User ID is the source of truth - log it
+      console.log(`✅ OAuth login successful for user: ${user.email} (ID: ${user.id})`)
+
+      // Set auth state immediately
+      setAuth(user, token)
+
+      // Fetch fresh user data with summary for complete profile
+      authApi.getMe().then(response => {
+        if (response.success && response.data?.user) {
+          setAuth(response.data.user, token, response.data.dataSummary)
+          console.log('✅ User data refreshed after OAuth login')
+        }
+      }).catch(error => {
+        console.error('⚠️ Failed to fetch user data after OAuth:', error)
+        // Continue anyway - we have basic user info
+      })
+
+      toast.success(`Welcome back, ${user.fullName}!`)
+      navigate('/dashboard')
+    } catch (error) {
+      console.error('❌ OAuth callback parse error:', error)
+      toast.error('Authentication failed. Please try again.')
       navigate('/login')
     }
   }, [location, navigate, setAuth])

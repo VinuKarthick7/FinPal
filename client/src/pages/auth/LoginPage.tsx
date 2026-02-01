@@ -52,10 +52,18 @@ const LoginPage: React.FC = () => {
 
   const onSubmit = async (data: LoginFormData) => {
     setLoading(true)
+    setUnverifiedEmail(null) // Reset unverified state
+    
     try {
       const response = await authApi.login(data.email, data.password)
-      if (response.success) {
+      
+      if (response.success && response.data) {
+        // Set authentication state
         setAuth(response.data.user, response.data.token)
+        
+        // Log successful authentication (user ID is the source of truth)
+        console.log(`✅ Login successful for user: ${response.data.user.email} (ID: ${response.data.user.id})`)
+        
         toast.success(t('auth.welcomeBack'))
         navigate('/dashboard')
       } else {
@@ -63,12 +71,21 @@ const LoginPage: React.FC = () => {
       }
     } catch (error: any) {
       const code = error.response?.data?.code
-      const message = error.response?.data?.message || t('auth.loginFailed')
-      toast.error(message)
+      const message = error.response?.data?.message
+      
+      // Handle specific error cases
       if (code === 'EMAIL_NOT_VERIFIED') {
         setUnverifiedEmail(data.email)
+        toast.error(message || t('auth.emailNotVerified'))
+      } else if (error.response?.status === 401) {
+        // Invalid credentials
+        toast.error(message || 'Invalid email or password')
+      } else if (error.response?.status === 403) {
+        // Account disabled or other permission issues
+        toast.error(message || 'Access denied. Please contact support.')
       } else {
-        setUnverifiedEmail(null)
+        // Generic error
+        toast.error(message || t('auth.loginFailed'))
       }
     } finally {
       setLoading(false)

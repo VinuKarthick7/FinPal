@@ -30,21 +30,33 @@ export const protect = async (
     // Verify token
     const decoded = jwt.verify(token, config.jwtSecret) as { id: string };
 
-    // Get user from token
+    // Get user from token (user ID is the source of truth)
     const user = await User.findById(decoded.id);
 
     if (!user) {
       res.status(401).json({
         success: false,
-        message: 'User not found',
+        message: 'User not found. Please log in again.',
       });
       return;
     }
 
-    // Use type assertion to add user to request
+    // Ensure email is verified for protected routes
+    if (!user.isVerified) {
+      res.status(403).json({
+        success: false,
+        code: 'EMAIL_NOT_VERIFIED',
+        message: 'Please verify your email to access this feature.',
+      });
+      return;
+    }
+
+    // Attach validated user to request (user ID verified via JWT)
     (req as any).user = user;
+    console.log(`✅ Authenticated request from user: ${user.email} (ID: ${user._id})`);
     next();
   } catch (error) {
+    console.error('❌ Authentication middleware error:', error);
     res.status(401).json({
       success: false,
       message: 'Not authorized to access this route',

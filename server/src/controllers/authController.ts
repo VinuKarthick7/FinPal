@@ -135,8 +135,10 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 // @access  Public
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
+    // Trim and normalize email (case-insensitive)
     const email = String(req.body?.email || '').toLowerCase().trim();
-    const password = String(req.body?.password || '');
+    // Trim password but preserve case
+    const password = String(req.body?.password || '').trim();
 
     // Validate input
     if (!email || !password) {
@@ -147,31 +149,34 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Check for user
+    // Check for user - email is already case-insensitive
     const user = await User.findOne({ email }).select('+password');
     if (!user) {
+      // Don't reveal if user exists or not for security
       res.status(401).json({
         success: false,
-        message: 'Invalid credentials',
+        message: 'Invalid email or password',
       });
       return;
     }
 
-    // Check password
-    const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
-      res.status(401).json({
-        success: false,
-        message: 'Invalid credentials',
-      });
-      return;
-    }
-
+    // Check if account is verified first
     if (!user.isVerified) {
       res.status(403).json({
         success: false,
         code: 'EMAIL_NOT_VERIFIED',
         message: 'Please verify your email address before signing in.',
+      });
+      return;
+    }
+
+    // Validate password using bcrypt comparison
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      // Don't reveal if user exists or not for security
+      res.status(401).json({
+        success: false,
+        message: 'Invalid email or password',
       });
       return;
     }

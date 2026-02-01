@@ -253,8 +253,10 @@ const AchievementsPage: React.FC = () => {
               <Star className="w-10 h-10 text-gray-400" />
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">No achievements yet</h3>
-            <p className="text-gray-600 mb-6">
-              Stay within your budget to earn your first star!
+            <p className="text-gray-600 mb-6 max-w-md mx-auto">
+              No achievements yet. Set and manage your budget to earn stars ⭐
+              <br />
+              <span className="text-sm text-gray-500 mt-2 block">Stars are only awarded when you set a budget and spend within it.</span>
             </p>
             <Button onClick={() => navigate('/budget')} className="bg-gradient-to-r from-blue-600 to-purple-600">
               Set Up Budget
