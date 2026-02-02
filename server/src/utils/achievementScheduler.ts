@@ -39,15 +39,15 @@ async function checkUserBudgetAchievement(userId: string, email: string, targetM
       return null; // Already processed
     }
 
-    // Get user's active monthly budget
+    // Get user's budget for the specific month/year being checked
     const budget = await Budget.findOne({
-      userId,
-      period: 'monthly',
-      isActive: true,
+      user: userId,
+      month: checkMonth,
+      year: checkYear,
     });
 
     if (!budget) {
-      console.log(`No budget found for ${email}`);
+      console.log(`No budget found for ${email} in ${checkMonth}/${checkYear}`);
       return null; // No budget set
     }
 
@@ -67,11 +67,13 @@ async function checkUserBudgetAchievement(userId: string, email: string, targetM
         $group: {
           _id: null,
           totalExpenses: { $sum: '$amount' },
+          transactionCount: { $sum: 1 },
         },
       },
     ]);
 
     const totalExpenses = transactions[0]?.totalExpenses || 0;
+    const transactionCount = transactions[0]?.transactionCount || 0;
     const budgetAmount = budget.totalBudget;
     const budgetUtilization = (totalExpenses / budgetAmount) * 100;
     const savingsAmount = budgetAmount - totalExpenses;
@@ -79,10 +81,26 @@ async function checkUserBudgetAchievement(userId: string, email: string, targetM
     console.log(`📊 Budget check for ${email} (${checkMonth}/${checkYear}):`, {
       budgetAmount,
       totalExpenses,
+      transactionCount,
       savingsAmount,
       utilization: `${budgetUtilization.toFixed(1)}%`,
       success: totalExpenses <= budgetAmount
     });
+
+    // 🚫 CRITICAL: NO STARS FOR NEW USERS WITH 0 TRANSACTIONS
+    // Users must ACTUALLY USE THE APP to earn achievements
+    if (transactionCount === 0) {
+      console.log(`❌ No achievement for ${email} - No app usage (0 transactions tracked)`);
+      
+      // Delete any existing invalid achievement
+      await Achievement.deleteMany({
+        userId,
+        month: checkMonth,
+        year: checkYear
+      });
+      
+      return null; // No app usage = No achievement
+    }
 
     // ✅ CORE ELIGIBILITY RULE (USER-SPECIFIC):
     // Reward ONLY if: user_monthly_spent ≤ user_monthly_budget

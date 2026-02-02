@@ -81,11 +81,11 @@ router.post('/admin/clean-invalid', async (req, res) => {
     for (const achievement of achievements) {
       const { userId, email, month, year, budgetAmount, totalExpenses } = achievement;
       
-      // Get actual budget
+      // Get actual budget for that specific month/year
       const budget = await Budget.findOne({
-        userId,
-        period: 'monthly',
-        isActive: true,
+        user: userId,
+        month: month,
+        year: year,
       });
 
       if (!budget) {

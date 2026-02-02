@@ -117,10 +117,9 @@ export const checkMonthlyBudget = async (req: Request, res: Response) => {
     const endOfMonth = new Date(currentYear, currentMonth, 0, 23, 59, 59);
     
     const budget = await Budget.findOne({
-      userId,
-      period: 'monthly',
-      isActive: true,
-      createdAt: { $lte: endOfMonth }, // Budget must exist before/during the evaluated month
+      user: userId,
+      month: currentMonth,
+      year: currentYear,
     });
 
     // ❌ NO BUDGET → NO ACHIEVEMENT (HARD RULE)
@@ -172,6 +171,14 @@ export const checkMonthlyBudget = async (req: Request, res: Response) => {
 
     if (transactionCount === 0) {
       console.log(`❌ No app usage for ${email} - No transactions tracked in ${currentMonth}/${currentYear}`);
+      
+      // 🔥 CRITICAL: Delete any existing invalid achievement for this month
+      await Achievement.deleteMany({
+        userId,
+        month: currentMonth,
+        year: currentYear
+      });
+      
       return res.json({
         success: true,
         data: {
@@ -303,9 +310,9 @@ export const getAchievementStats = async (req: Request, res: Response) => {
       const endOfMonth = new Date(achievement.year, achievement.month, 0, 23, 59, 59);
       
       const budget = await Budget.findOne({
-        userId,
-        period: 'monthly',
-        createdAt: { $lte: endOfMonth },
+        user: userId,
+        month: achievement.month,
+        year: achievement.year,
       });
 
       // ❌ NO BUDGET → SKIP THIS ACHIEVEMENT
@@ -445,9 +452,9 @@ export const checkSuccessAnnouncement = async (req: Request, res: Response) => {
     if (lastMonthAchievement) {
       const endOfMonth = new Date(lastYear, lastMonth, 0, 23, 59, 59);
       const budget = await Budget.findOne({
-        userId,
-        period: 'monthly',
-        createdAt: { $lte: endOfMonth },
+        user: userId,
+        month: lastMonth,
+        year: lastYear,
       });
 
       // ❌ NO BUDGET → DELETE ACHIEVEMENT & NO REWARD
@@ -635,9 +642,9 @@ export const validateAndCleanAchievements = async (req: Request, res: Response) 
     for (const achievement of achievements) {
       // Get budget for that month
       const budget = await Budget.findOne({
-        userId,
-        period: 'monthly',
-        isActive: true,
+        user: userId,
+        month: achievement.month,
+        year: achievement.year,
       });
 
       if (!budget) {
@@ -719,9 +726,9 @@ export const deleteInvalidAchievements = async (req: Request, res: Response) => 
     for (const achievement of achievements) {
       // Get budget for that month
       const budget = await Budget.findOne({
-        userId,
-        period: 'monthly',
-        isActive: true,
+        user: userId,
+        month: achievement.month,
+        year: achievement.year,
       });
 
       if (!budget) {

@@ -20,11 +20,11 @@ router.get('/debug/:email', async (req, res) => {
       return res.json({ success: false, message: 'User not found' });
     }
     
-    // Get budget
+    // Get budget for the specific month/year
     const budget = await Budget.findOne({
-      userId: user._id,
-      period: 'monthly',
-      isActive: true
+      user: user._id,
+      month: Number(month),
+      year: Number(year)
     });
     
     // Get transactions for specified month
