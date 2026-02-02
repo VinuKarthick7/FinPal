@@ -41,16 +41,6 @@ export const protect = async (
       return;
     }
 
-    // Ensure email is verified for protected routes
-    if (!user.isVerified) {
-      res.status(403).json({
-        success: false,
-        code: 'EMAIL_NOT_VERIFIED',
-        message: 'Please verify your email to access this feature.',
-      });
-      return;
-    }
-
     // Attach validated user to request (user ID verified via JWT)
     (req as any).user = user;
     console.log(`✅ Authenticated request from user: ${user.email} (ID: ${user._id})`);
@@ -60,6 +50,34 @@ export const protect = async (
     res.status(401).json({
       success: false,
       message: 'Not authorized to access this route',
+    });
+  }
+};
+
+// Middleware to check if user's email is verified (for routes that require it)
+export const requireVerification = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const user = (req as any).user as IUser;
+
+    if (!user.isVerified) {
+      res.status(403).json({
+        success: false,
+        code: 'EMAIL_NOT_VERIFIED',
+        message: 'Please verify your email to access this feature.',
+      });
+      return;
+    }
+
+    next();
+  } catch (error) {
+    console.error('❌ Verification check error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during verification check',
     });
   }
 };
