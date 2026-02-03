@@ -340,8 +340,8 @@ export const DashboardPage: React.FC = () => {
             trend={statsData?.trends?.spent}
           />
           <StatCard
-            title={t('dashboard.income')}
-            value={formatCurrency(statsData?.totalIncome || 0)}
+            title={t('dashboard.totalBudget')}
+            value={formatCurrency(budgetData?.budget || 0)}
             subtitle={t('dashboard.thisMonth')}
             icon={TrendingUp}
             color="green"

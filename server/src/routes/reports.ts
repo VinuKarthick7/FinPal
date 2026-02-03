@@ -162,6 +162,13 @@ router.get('/monthly', async (req: any, res: Response) => {
       { $limit: 10 },
     ]);
 
+    // Get budget for the month
+    const budget = await Budget.findOne({
+      user: userId,
+      month: targetMonth,
+      year: targetYear,
+    });
+
     res.json({
       success: true,
       data: {
@@ -169,6 +176,7 @@ router.get('/monthly', async (req: any, res: Response) => {
         year: targetYear,
         totalExpenses: Math.round((expenses.total || 0) * 100) / 100,
         totalIncome: Math.round((income.total || 0) * 100) / 100,
+        budget: budget ? budget.totalBudget : 0,
         netSavings: Math.round(((income.total || 0) - (expenses.total || 0)) * 100) / 100,
         transactionCount: (expenses.count || 0) + (income.count || 0),
         averageExpense: expenses.count > 0 ? Math.round((expenses.total || 0) / expenses.count) : 0,

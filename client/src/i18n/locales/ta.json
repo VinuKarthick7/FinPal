@@ -117,6 +117,7 @@
     "goodEvening": "மாலை வணக்கம்",
     "totalSpent": "மொத்த செலவு",
     "totalIncome": "மொத்த வருமானம்",
+    "totalBudget": "மொத்த பட்ஜெட்",
     "savings": "சேமிப்பு",
     "pendingBills": "நிலுவையில் உள்ள பில்கள்",
     "vsLastMonth": "கடந்த மாதத்துடன் ஒப்பிடுகையில்",
@@ -193,7 +194,11 @@
     "expensesByCategory": "வகை வாரியாக செலவுகள்",
     "expensesTrend": "செலவு போக்கு",
     "selectMonth": "மாதத்தைத் தேர்ந்தெடுக்கவும்",
-    "selectYear": "வருடத்தைத் தேர்ந்தெடுக்கவும்"
+    "selectYear": "வருடத்தைத் தேர்ந்தெடுக்கவும்",
+    "totalBudget": "மொத்த பட்ஜெட்",
+    "totalExpenses": "மொத்த செலவுகள்",
+    "transactions": "பரிவர்த்தனைகள்",
+    "avgExpense": "சராசரி செலவு"
   },
   "categories": {
     "Groceries": "மளிகை",

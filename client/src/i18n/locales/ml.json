@@ -117,6 +117,7 @@
     "goodEvening": "സന്ധ്യാ ആശംസകൾ",
     "totalSpent": "മൊത്തം ചെലവ്",
     "totalIncome": "മൊത്തം വരുമാനം",
+    "totalBudget": "മൊത്തം ബജറ്റ്",
     "savings": "സേവിംഗ്സ്",
     "pendingBills": "തീർപ്പാക്കാത്ത ബില്ലുകൾ",
     "vsLastMonth": "കഴിഞ്ഞ മാസവുമായി താരതമ്യപ്പെടുത്തുമ്പോൾ",
@@ -193,7 +194,11 @@
     "expensesByCategory": "വിഭാഗം അനുസരിച്ചുള്ള ചെലവുകൾ",
     "expensesTrend": "ചെലവ് പ്രവണത",
     "selectMonth": "മാസം തിരഞ്ഞെടുക്കുക",
-    "selectYear": "വർഷം തിരഞ്ഞെടുക്കുക"
+    "selectYear": "വർഷം തിരഞ്ഞെടുക്കുക",
+    "totalBudget": "മൊത്തം ബജറ്റ്",
+    "totalExpenses": "മൊത്തം ചെലവുകൾ",
+    "transactions": "ഇടപാടുകൾ",
+    "avgExpense": "ശരാശരി ചെലവ്"
   },
   "categories": {
     "Groceries": "പലചരക്ക്",

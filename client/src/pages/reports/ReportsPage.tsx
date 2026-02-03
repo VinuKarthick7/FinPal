@@ -47,6 +47,7 @@ interface MonthlyReport {
   year: number
   totalExpenses: number
   totalIncome: number
+  budget: number
   netSavings: number
   transactionCount: number
   averageExpense: number
@@ -665,10 +666,10 @@ export const ReportsPage: React.FC = () => {
             <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-4 shadow-lg">
               <div className="flex items-center gap-2 mb-2">
                 <TrendingUp className="w-4 h-4 text-white/70" />
-                <p className="text-xs text-white/70">{t('reports.totalIncome')}</p>
+                <p className="text-xs text-white/70">{t('reports.totalBudget')}</p>
               </div>
               <p className="text-xl font-bold text-white">
-                {formatCurrency(monthlyData.totalIncome || 0)}
+                {formatCurrency((monthlyData as FamilyMonthlyReport).totalBudget || 0)}
               </p>
             </div>
 
@@ -1059,9 +1060,9 @@ export const ReportsPage: React.FC = () => {
                   </div>
                   <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-4 text-white">
                     <TrendingUp className="w-6 h-6 mb-2 opacity-80" />
-                    <p className="text-xs opacity-80">{t('reports.totalIncome')}</p>
+                    <p className="text-xs opacity-80">{t('reports.totalBudget')}</p>
                     <p className="text-xl font-bold">
-                      {monthlyLoading ? '...' : formatCurrency(monthlyData?.totalIncome || 0)}
+                      {monthlyLoading ? '...' : formatCurrency((monthlyData as MonthlyReport)?.budget || 0)}
                     </p>
                   </div>
                   <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-4 text-white">

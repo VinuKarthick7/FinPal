@@ -117,6 +117,7 @@
     "goodEvening": "शुभ संध्या",
     "totalSpent": "कुल खर्च",
     "totalIncome": "कुल आय",
+    "totalBudget": "कुल बजट",
     "savings": "बचत",
     "pendingBills": "लंबित बिल",
     "vsLastMonth": "पिछले महीने की तुलना में",
@@ -193,7 +194,11 @@
     "expensesByCategory": "श्रेणी के अनुसार खर्च",
     "expensesTrend": "खर्च का रुझान",
     "selectMonth": "महीना चुनें",
-    "selectYear": "वर्ष चुनें"
+    "selectYear": "वर्ष चुनें",
+    "totalBudget": "कुल बजट",
+    "totalExpenses": "कुल खर्च",
+    "transactions": "लेनदेन",
+    "avgExpense": "औसत खर्च"
   },
   "categories": {
     "Groceries": "किराना",
