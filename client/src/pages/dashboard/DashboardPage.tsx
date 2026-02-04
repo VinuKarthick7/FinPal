@@ -11,8 +11,6 @@ import {
   Plus,
   Calendar,
   Users,
-  Bot,
-  Sparkles,
 } from 'lucide-react'
 import {
   StatCard,
@@ -119,11 +117,11 @@ export const DashboardPage: React.FC = () => {
     retry: 2,
   })
 
-  // Fetch recent transactions
+  // Fetch all expenses transactions (showing more transactions for home page)
   const { data: transactionsData, isLoading: transactionsLoading } = useQuery({
-    queryKey: ['recent-transactions'],
+    queryKey: ['expenses-transactions'],
     queryFn: async () => {
-      const response = await dashboardApi.getTransactions({ limit: 5 })
+      const response = await dashboardApi.getTransactions({ limit: 20 })
       return response.data.transactions as Transaction[]
     },
     retry: 2,
@@ -306,14 +304,6 @@ export const DashboardPage: React.FC = () => {
               >
                 {t('expenses.addExpense')}
               </Button>
-              <button
-                onClick={() => navigate('/finmate')}
-                className="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 active:scale-95 rounded-xl px-3 sm:px-4 py-2 transition-all text-sm sm:text-base font-medium whitespace-nowrap flex-shrink-0 shadow-lg shadow-indigo-500/30"
-              >
-                <Bot className="w-4 h-4" />
-                <span>FinMate</span>
-                <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
-              </button>
             </div>
           </div>
         </div>
@@ -382,20 +372,30 @@ export const DashboardPage: React.FC = () => {
               />
             </motion.div>
 
-            {/* Recent Transactions */}
+            {/* Expenses Transactions */}
             <motion.div variants={itemVariants}>
               <TransactionList
-                transactions={(transactionsData || []).map(t => ({
-                  id: (t as any)._id || t.id,
-                  description: (t as any).description || t.category,
-                  amount: t.amount,
-                  category: t.category,
-                  merchant: t.merchant || '',
-                  date: t.date,
-                  type: t.type,
-                  paymentMethod: t.paymentMethod || '',
-                }))}
-                onViewAll={() => navigate('/expenses')}
+                transactions={(transactionsData || [])
+                  .filter(t => {
+                    // Filter to current month only
+                    const transactionDate = new Date(t.date)
+                    const now = new Date()
+                    return transactionDate.getMonth() === now.getMonth() && 
+                           transactionDate.getFullYear() === now.getFullYear()
+                  })
+                  .map(t => ({
+                    id: (t as any)._id || t.id,
+                    description: (t as any).description || t.category,
+                    amount: t.amount,
+                    category: t.category,
+                    merchant: t.merchant || '',
+                    date: t.date,
+                    type: t.type,
+                    paymentMethod: t.paymentMethod || '',
+                  }))}
+                title={t('dashboard.expensesTransactions')}
+                showViewAll={true}
+                onViewAll={() => navigate('/expenses/all')}
                 onTransactionClick={(t) => console.log('Clicked:', t)}
               />
             </motion.div>
