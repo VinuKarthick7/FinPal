@@ -395,3 +395,33 @@ a {
   opacity: 0;
   transition: opacity 0.2s ease;
 }
+
+/* FinMate Animation Styles */
+.finmate-blink {
+  animation: finmate-blink 0.8s ease-in-out 3;
+}
+
+.finmate-smile {
+  animation: finmate-smile 2s ease-in-out infinite;
+}
+
+@keyframes finmate-blink {
+  0%, 20%, 50%, 80%, 100% { 
+    transform: scaleY(1); 
+  }
+  10%, 30% { 
+    transform: scaleY(0.1); 
+  }
+}
+
+@keyframes finmate-smile {
+  0%, 100% { 
+    transform: translateY(0); 
+  }
+  25% { 
+    transform: translateY(-1px); 
+  }
+  75% { 
+    transform: translateY(1px); 
+  }
+}
