@@ -1,15 +1,16 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Outlet, NavLink, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import {
   LayoutDashboard,
-  PlusCircle,
   Wallet,
   PiggyBank,
   BarChart3,
+  MessageSquare,
+  Sparkles,
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
-import { LanguageSwitcher } from '@/components/ui'
+import { LanguageSwitcher, FinMateIcon } from '@/components/ui'
 import { useTranslation } from 'react-i18next'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
@@ -20,11 +21,27 @@ export const MainLayout: React.FC = () => {
   const user = useAuthStore((state) => state.user)
   const mainRef = useRef<HTMLElement | null>(null)
   const shouldReduceMotion = useReducedMotion()
+  const [finmateClickAnimation, setFinmateClickAnimation] = useState(false)
+  const [showLoginAnimation, setShowLoginAnimation] = useState(false)
+
+  // Check for login animation - show when user first loads the app
+  useEffect(() => {
+    if (user && !sessionStorage.getItem('finmate-welcomed')) {
+      setShowLoginAnimation(true)
+      sessionStorage.setItem('finmate-welcomed', 'true')
+    }
+  }, [user])
+
+  // Handle FinMate click animation
+  const handleFinMateClick = () => {
+    setFinmateClickAnimation(true)
+    setTimeout(() => setFinmateClickAnimation(false), 100) // Reset after short delay
+  }
 
   const navItems = [
     { path: '/dashboard', icon: LayoutDashboard, label: t('nav.home') },
     { path: '/expenses', icon: Wallet, label: t('nav.expenses') },
-    { path: '/add-expense', icon: PlusCircle, label: t('nav.add') },
+    { path: '/finmate', icon: MessageSquare, label: 'FinMate', isFinMate: true },
     { path: '/budget', icon: PiggyBank, label: t('nav.budget') },
     { path: '/reports', icon: BarChart3, label: t('nav.reports') },
   ]
@@ -105,22 +122,53 @@ export const MainLayout: React.FC = () => {
 
         {/* Navigation */}
         <nav className="flex-1 px-3 py-4 space-y-1">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-3 rounded-3xl transition-all duration-200 ${
-                  isActive
-                    ? 'bg-primary-50 text-primary-600 font-medium'
-                    : 'text-gray-600 hover:bg-gray-50'
-                }`
-              }
-            >
-              <item.icon className="w-5 h-5" />
-              <span>{item.label}</span>
-            </NavLink>
-          ))}
+          {navItems.map((item) => {
+            const isFinMateItem = (item as any).isFinMate
+            
+            if (isFinMateItem) {
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  onClick={handleFinMateClick}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-3 py-2.5 rounded-2xl transition-all duration-200 ${
+                      isActive
+                        ? 'bg-gradient-to-r from-cyan-50 to-sky-50 text-cyan-600 font-medium shadow-sm border border-cyan-100'
+                        : 'bg-white hover:bg-cyan-50/50 text-gray-600 hover:text-cyan-600'
+                    }`
+                  }
+                >
+                  <div className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center overflow-hidden">
+                    <FinMateIcon 
+                      size={22} 
+                      animate={showLoginAnimation}
+                      triggerAnimation={finmateClickAnimation}
+                    />
+                  </div>
+                  <span className="font-medium">{item.label}</span>
+                  <Sparkles className="w-4 h-4 text-amber-400 ml-auto" />
+                </NavLink>
+              )
+            }
+            
+            return (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-4 py-3 rounded-3xl transition-all duration-200 ${
+                    isActive
+                      ? 'bg-primary-50 text-primary-600 font-medium'
+                      : 'text-gray-600 hover:bg-gray-50'
+                  }`
+                }
+              >
+                <item.icon className="w-5 h-5" />
+                <span>{item.label}</span>
+              </NavLink>
+            )
+          })}
         </nav>
 
         {/* Profile Section */}
@@ -190,17 +238,23 @@ export const MainLayout: React.FC = () => {
         <div className="flex items-center justify-around px-2 h-16">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path
-            const isAddButton = item.path === '/add-expense'
+            const isFinMateButton = (item as any).isFinMate
 
-            if (isAddButton) {
+            if (isFinMateButton) {
               return (
                 <NavLink
                   key={item.path}
                   to={item.path}
-                  className="flex items-center justify-center -mt-6 active:scale-95 transition-transform touch-feedback"
+                  onClick={handleFinMateClick}
+                  className="flex items-center justify-center -mt-2 active:scale-95 transition-transform touch-feedback"
                 >
-                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-lg shadow-primary-500/30 active:shadow-primary-500/40">
-                    <PlusCircle className="w-7 h-7 text-white" strokeWidth={2.5} />
+                  <div className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center shadow-lg shadow-cyan-200/50 overflow-hidden">
+                    {/* Official FinMate Robot Icon */}
+                    <FinMateIcon 
+                      size={42} 
+                      animate={showLoginAnimation}
+                      triggerAnimation={finmateClickAnimation}
+                    />
                   </div>
                 </NavLink>
               )
