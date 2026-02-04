@@ -7,7 +7,7 @@ import { RegisterPage } from './pages/auth/RegisterPage'
 import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage'
 import { DashboardPage } from './pages/dashboard'
 import { AddExpensePage } from './pages/expense'
-import { ExpensesPage } from './pages/expenses'
+import { ExpensesPage, AllExpensesPage } from './pages/expenses'
 import { RemindersPage } from './pages/reminders'
 import { ProfilePage } from './pages/profile'
 import { BudgetPage } from './pages/budget'
@@ -227,6 +227,7 @@ function App() {
           }>
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/expenses" element={<ExpensesPage />} />
+            <Route path="/expenses/all" element={<AllExpensesPage />} />
             <Route path="/add-expense" element={<AddExpensePage />} />
             <Route path="/budget" element={<BudgetPage />} />
             <Route path="/reports" element={<ReportsPage />} />
