@@ -33,6 +33,7 @@ const transactionSchema = new Schema<ITransaction>(
       trim: true,
       enum: [
         'Food',
+        'Groceries',
         'Shopping',
         'Transport',
         'Entertainment',

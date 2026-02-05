@@ -47,6 +47,11 @@ const typeColors: Record<string, string> = {
 }
 
 export const RemindersPage: React.FC = () => {
+  // Scroll to top when component mounts
+  React.useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, []);
+  
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   
@@ -217,10 +222,15 @@ export const RemindersPage: React.FC = () => {
             <div className="p-2 bg-orange-100 rounded-lg">
               <Clock className="w-4 h-4 text-orange-600" />
             </div>
-            <span className="text-sm text-gray-500">{t('reminders.dueSoon')}</span>
+            <span className="text-sm text-gray-500 font-medium">{t('reminders.dueSoon')}</span>
           </div>
           <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalUpcoming)}</p>
-          <p className="text-xs text-gray-400 mt-1">{t('reminders.pendingPayments', { count: reminders.filter(r => !r.isPaid).length })}</p>
+          <p className="text-xs text-gray-500 mt-1">
+            {upcomingReminders.length === 1 
+              ? t('reminders.pendingPayments', { count: upcomingReminders.length })
+              : t('reminders.pendingPayments_other', { count: upcomingReminders.length })
+            }
+          </p>
         </div>
 
         <div className={`rounded-xl border p-4 ${totalOverdue > 0 ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200'}`}>
@@ -228,10 +238,15 @@ export const RemindersPage: React.FC = () => {
             <div className={`p-2 rounded-lg ${totalOverdue > 0 ? 'bg-red-100' : 'bg-gray-100'}`}>
               <AlertTriangle className={`w-4 h-4 ${totalOverdue > 0 ? 'text-red-600' : 'text-gray-400'}`} />
             </div>
-            <span className="text-sm text-gray-500">{t('reminders.overdue')}</span>
+            <span className="text-sm text-gray-500 font-medium">{t('reminders.overdue')}</span>
           </div>
           <p className={`text-2xl font-bold ${totalOverdue > 0 ? 'text-red-600' : 'text-gray-900'}`}>{formatCurrency(totalOverdue)}</p>
-          <p className="text-xs text-gray-400 mt-1">{t('reminders.overdueCount', { count: overdueReminders.length })}</p>
+          <p className="text-xs text-gray-500 mt-1">
+            {overdueReminders.length === 1 
+              ? t('reminders.overdueCount', { count: overdueReminders.length })
+              : t('reminders.overdueCount_other', { count: overdueReminders.length })
+            }
+          </p>
         </div>
 
         <div className="bg-white rounded-xl border border-gray-200 p-4">
@@ -239,10 +254,10 @@ export const RemindersPage: React.FC = () => {
             <div className="p-2 bg-green-100 rounded-lg">
               <CheckCircle2 className="w-4 h-4 text-green-600" />
             </div>
-            <span className="text-sm text-gray-500">{t('reminders.paidThisMonth')}</span>
+            <span className="text-sm text-gray-500 font-medium">{t('reminders.paidThisMonth')}</span>
           </div>
           <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalPaidThisMonth)}</p>
-          <p className="text-xs text-gray-400 mt-1">{t('reminders.greatJob')}</p>
+          <p className="text-xs text-gray-500 mt-1">{t('reminders.greatJob')}</p>
         </div>
       </div>
 

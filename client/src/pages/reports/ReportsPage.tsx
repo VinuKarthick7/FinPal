@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
 import {
@@ -174,6 +174,11 @@ const StatSkeleton: React.FC = () => (
 )
 
 export const ReportsPage: React.FC = () => {
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, []);
+  
   const { t } = useTranslation()
   const currentDate = new Date()
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth() + 1)
@@ -1044,42 +1049,44 @@ export const ReportsPage: React.FC = () => {
                   )}
                 </motion.div>
 
-                {/* Monthly Summary Stats */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 }}
-                  className="grid grid-cols-2 gap-4"
-                >
-                  <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-2xl p-4 text-white">
-                    <TrendingDown className="w-6 h-6 mb-2 opacity-80" />
-                    <p className="text-xs opacity-80">{t('reports.totalExpenses')}</p>
-                    <p className="text-xl font-bold">
-                      {monthlyLoading ? '...' : formatCurrency(monthlyData?.totalExpenses || 0)}
-                    </p>
-                  </div>
-                  <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-4 text-white">
-                    <TrendingUp className="w-6 h-6 mb-2 opacity-80" />
-                    <p className="text-xs opacity-80">{t('reports.totalBudget')}</p>
-                    <p className="text-xl font-bold">
-                      {monthlyLoading ? '...' : formatCurrency((monthlyData as MonthlyReport)?.budget || 0)}
-                    </p>
-                  </div>
-                  <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-4 text-white">
-                    <FileText className="w-6 h-6 mb-2 opacity-80" />
-                    <p className="text-xs opacity-80">{t('reports.transactions')}</p>
-                    <p className="text-xl font-bold">
-                      {monthlyLoading ? '...' : monthlyData?.transactionCount || 0}
-                    </p>
-                  </div>
-                  <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-4 text-white">
-                    <DollarSign className="w-6 h-6 mb-2 opacity-80" />
-                    <p className="text-xs opacity-80">{t('reports.avgExpense')}</p>
-                    <p className="text-xl font-bold">
-                      {monthlyLoading ? '...' : formatCurrency((monthlyData as MonthlyReport)?.averageExpense || 0)}
-                    </p>
-                  </div>
-                </motion.div>
+                {/* Monthly Summary Stats - Only show for Personal mode, not Family mode */}
+                {!isFamilyMode && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 }}
+                    className="grid grid-cols-2 gap-4"
+                  >
+                    <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-2xl p-4 text-white">
+                      <TrendingDown className="w-6 h-6 mb-2 opacity-80" />
+                      <p className="text-xs opacity-80">{t('reports.totalExpenses')}</p>
+                      <p className="text-xl font-bold">
+                        {monthlyLoading ? '...' : formatCurrency(monthlyData?.totalExpenses || 0)}
+                      </p>
+                    </div>
+                    <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-4 text-white">
+                      <TrendingUp className="w-6 h-6 mb-2 opacity-80" />
+                      <p className="text-xs opacity-80">{t('reports.totalBudget')}</p>
+                      <p className="text-xl font-bold">
+                        {monthlyLoading ? '...' : formatCurrency((monthlyData as MonthlyReport)?.budget || 0)}
+                      </p>
+                    </div>
+                    <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-4 text-white">
+                      <FileText className="w-6 h-6 mb-2 opacity-80" />
+                      <p className="text-xs opacity-80">{t('reports.transactions')}</p>
+                      <p className="text-xl font-bold">
+                        {monthlyLoading ? '...' : monthlyData?.transactionCount || 0}
+                      </p>
+                    </div>
+                    <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-4 text-white">
+                      <DollarSign className="w-6 h-6 mb-2 opacity-80" />
+                      <p className="text-xs opacity-80">{t('reports.avgExpense')}</p>
+                      <p className="text-xl font-bold">
+                        {monthlyLoading ? '...' : formatCurrency((monthlyData as MonthlyReport)?.averageExpense || 0)}
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
               </div>
             )}
 

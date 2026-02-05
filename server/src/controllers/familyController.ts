@@ -584,13 +584,16 @@ export const getFamilyDashboard = async (req: Request, res: Response, next: Next
     const membersWithSpending = family.members.map((member) => {
       const memberUser = member.userId as any;
       const memberObj = (member as any).toObject ? (member as any).toObject() : member;
+      const memberIdStr = member.userId.toString();
+      const spending = memberSpending[memberIdStr] || 0;
+      
       return {
         ...memberObj,
-        userId: memberUser._id || member.userId,
+        userId: memberIdStr,
         fullName: memberUser.fullName || member.nickname,
         email: memberUser.email || member.email,
         avatar: memberUser.avatar || member.avatar,
-        monthlySpending: memberSpending[member.userId.toString()] || 0,
+        monthlySpending: spending,
       };
     });
 
