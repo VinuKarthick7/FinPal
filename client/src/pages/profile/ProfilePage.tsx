@@ -32,6 +32,11 @@ import { useNavigate } from 'react-router-dom'
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
 export const ProfilePage: React.FC = () => {
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, []);
+  
   const { t } = useTranslation()
   const { user, updateUser, logout } = useAuthStore()
   const navigate = useNavigate()
