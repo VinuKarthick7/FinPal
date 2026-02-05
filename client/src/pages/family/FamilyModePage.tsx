@@ -13,6 +13,13 @@ import { familyApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { Button } from '@/components/ui';
 
+// Scroll to top when component mounts
+const useScrollToTop = () => {
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, []);
+};
+
 // Types
 interface FamilyMember {
   userId: string;
@@ -71,6 +78,8 @@ const relationColors: Record<string, string> = {
 };
 
 const FamilyModePage: React.FC = () => {
+  useScrollToTop(); // Scroll to top when component mounts
+  
   const { t } = useTranslation();
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);

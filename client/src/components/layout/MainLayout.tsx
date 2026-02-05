@@ -47,15 +47,20 @@ export const MainLayout: React.FC = () => {
   ]
 
   useEffect(() => {
-    const el = mainRef.current
-    if (!el) return
-
+    // Always scroll to top when route changes
     const prefersReducedMotion =
       typeof window !== 'undefined' &&
       window.matchMedia &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-    el.scrollTo({ top: 0, behavior: prefersReducedMotion ? 'auto' : 'smooth' })
+    // Scroll the main window/document to top
+    window.scrollTo({ top: 0, behavior: prefersReducedMotion ? 'auto' : 'smooth' })
+    
+    // Also scroll the main container if it exists
+    const el = mainRef.current
+    if (el) {
+      el.scrollTo({ top: 0, behavior: prefersReducedMotion ? 'auto' : 'smooth' })
+    }
   }, [location.pathname])
 
   // Check if avatar is a valid URL
