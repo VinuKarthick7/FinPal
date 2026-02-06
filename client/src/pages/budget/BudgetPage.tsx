@@ -80,6 +80,11 @@ const MONTHS = [
 ]
 
 export const BudgetPage: React.FC = () => {
+  // Scroll to top when component mounts
+  React.useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, []);
+  
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [showModal, setShowModal] = useState(false)

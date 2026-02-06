@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { MessageCircle, Send, X, Bot, User } from 'lucide-react';
+import { MessageCircle, Send, X, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../lib/api';
+import { FinMateIcon } from '../ui';
 
 interface Message {
   id: string;
@@ -97,14 +98,14 @@ const Chatbot = () => {
             className="fixed bottom-6 right-6 w-96 h-[500px] bg-white dark:bg-gray-800 rounded-2xl shadow-2xl flex flex-col z-50 overflow-hidden border border-gray-200 dark:border-gray-700"
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-emerald-500 to-teal-600 p-4 flex items-center justify-between">
+            <div className="bg-gradient-to-r from-cyan-500 to-teal-600 p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                  <Bot className="w-6 h-6 text-white" />
+                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
+                  <FinMateIcon size={28} />
                 </div>
                 <div>
-                  <h3 className="text-white font-semibold">FinPal Assistant</h3>
-                  <p className="text-emerald-100 text-sm">Always here to help</p>
+                  <h3 className="text-white font-semibold">FinMate</h3>
+                  <p className="text-cyan-100 text-sm">Always here to help</p>
                 </div>
               </div>
               <button
@@ -128,13 +129,13 @@ const Chatbot = () => {
                     className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
                       message.sender === 'user'
                         ? 'bg-emerald-100 dark:bg-emerald-900'
-                        : 'bg-gray-100 dark:bg-gray-700'
+                        : 'bg-cyan-50 dark:bg-cyan-900'
                     }`}
                   >
                     {message.sender === 'user' ? (
                       <User className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                     ) : (
-                      <Bot className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                      <FinMateIcon size={22} />
                     )}
                   </div>
                   <div
@@ -154,8 +155,8 @@ const Chatbot = () => {
                   animate={{ opacity: 1 }}
                   className="flex items-start gap-2"
                 >
-                  <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-                    <Bot className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                  <div className="w-8 h-8 rounded-full bg-cyan-50 dark:bg-cyan-900 flex items-center justify-center">
+                    <FinMateIcon size={22} />
                   </div>
                   <div className="bg-gray-100 dark:bg-gray-700 p-3 rounded-2xl rounded-tl-sm">
                     <div className="flex gap-1">

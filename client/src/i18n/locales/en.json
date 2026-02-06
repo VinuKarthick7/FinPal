@@ -131,7 +131,8 @@
     "shared": "Shared",
     "private": "Private",
     "enableFamilyMode": "Enable Family Mode",
-    "moreFamilyMembers": "+{{count}} more family members"
+    "moreFamilyMembers": "+{{count}} more family members",
+    "expensesFilter": "Filter by Member"
   },
   "dashboard": {
     "thisMonth": "This month",

@@ -11,6 +11,13 @@ import { achievementApi, api } from '@/lib/api';
 import { Button } from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
 
+// Scroll to top when component mounts
+const useScrollToTop = () => {
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, []);
+};
+
 interface Achievement {
   _id: string;
   month: number;
@@ -40,6 +47,8 @@ const MONTH_NAMES = [
 ];
 
 const AchievementsPage: React.FC = () => {
+  useScrollToTop(); // Scroll to top when component mounts
+  
   const { t } = useTranslation();
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
