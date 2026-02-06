@@ -1,30 +1,31 @@
 /**
- * FinMate - RAG Chatbot System for FinPal
+ * FinMate - Smart Budget Companion for FinPal
  * 
  * Role & Identity:
- * FinMate is a Retrieval-Augmented Generation (RAG) chatbot integrated into FinPal.
- * Primary role: Assist users and family members in understanding budgets, tracking expenses,
- * and improving financial discipline using REAL, stored app data.
+ * FinMate is your friendly financial assistant built into FinPal.
+ * Primary role: Help users track budgets, understand spending, and build better money habits
+ * using their personal financial data.
  * 
- * Core RAG Principle (Very Important):
- * - ALWAYS respond using retrieved user-specific data from the FinPal database
- * - NEVER guess, hallucinate, or assume financial values
- * - If required data is missing or unavailable, clearly inform the user and suggest next steps
+ * Core Principles:
+ * - Always use the user's real data from their FinPal account
+ * - Never guess or make up financial information
+ * - If data is missing, guide the user to add it
+ * - Keep responses simple, friendly, and actionable
  * 
- * Data Sources (Retrieval Layer):
- * - User profile (email ID-based)
- * - Monthly budget settings
- * - Expense records (date, amount, category)
- * - Family Mode data (linked via family code)
- * - Achievements & stars history
- * - Reports & summaries
+ * Communication Style:
+ * - Short, clear sentences
+ * - Encouraging and supportive tone
+ * - No technical jargon or complex explanations
+ * - Focus on what the user should do next
+ * - Non-judgmental, especially for overspending
  * 
- * Tone & Personality:
- * - Friendly like a helper
- * - Calm and supportive
- * - Professional fintech style
- * - Non-judgmental (especially for parents)
- * - Accessible for elders and family users
+ * Data Sources:
+ * - User profile and account information
+ * - Monthly budgets and spending limits
+ * - Expense records and categories
+ * - Family sharing data and permissions
+ * - Achievement history and rewards
+ * - Reports and financial summaries
  */
 
 import { Request, Response } from 'express';
@@ -58,7 +59,7 @@ const getCurrentPeriod = () => {
     };
 };
 
-// Retrieve user's financial data (RAG retrieval layer)
+// Retrieve user's financial data
 const retrieveUserData = async (userId: mongoose.Types.ObjectId, email: string) => {
     const { month, year, startOfMonth, endOfMonth, daysLeft, isEndOfMonth } = getCurrentPeriod();
 
@@ -153,12 +154,28 @@ const retrieveUserData = async (userId: mongoose.Types.ObjectId, email: string) 
 const detectIntent = (message: string): string => {
     const lowerMessage = message.toLowerCase();
 
+    // Daily spending advice
+    if ((lowerMessage.includes('can i spend') || lowerMessage.includes('spend today')) && 
+        (lowerMessage.match(/₹\\d+/) || lowerMessage.match(/\\d+/))) {
+        return 'DAILY_SPENDING';
+    }
+
     // Budget related
-    if (lowerMessage.includes('budget') && (lowerMessage.includes('status') || lowerMessage.includes('how') || lowerMessage.includes('remaining'))) {
+    if (lowerMessage.includes('budget status') || lowerMessage.includes('how is my budget') || 
+        lowerMessage.includes('budget now') || lowerMessage === 'what is my budget status?') {
         return 'BUDGET_STATUS';
     }
-    if (lowerMessage.includes('set budget') || lowerMessage.includes('create budget')) {
+    if (lowerMessage.includes('budget') && (lowerMessage.includes('how') || lowerMessage.includes('remaining'))) {
+        return 'BUDGET_STATUS';
+    }
+    if (lowerMessage.includes('set budget') || lowerMessage.includes('create budget') || 
+        lowerMessage.includes('want to set my budget')) {
         return 'BUDGET_HELP';
+    }
+
+    // Overspending acknowledgment
+    if (lowerMessage.includes('spent too much') || lowerMessage.includes('overspent')) {
+        return 'OVERSPENT_HELP';
     }
 
     // Expense related
@@ -197,6 +214,12 @@ const detectIntent = (message: string): string => {
         return 'SAVINGS_INFO';
     }
 
+    // Stress/motivation related
+    if (lowerMessage.includes('stressed about money') || lowerMessage.includes('feel stressed') || 
+        lowerMessage.includes('worried about') || lowerMessage.includes('anxious about money')) {
+        return 'MOTIVATION';
+    }
+
     // Help
     if (lowerMessage.includes('help') || lowerMessage.includes('what can you do')) {
         return 'HELP';
@@ -210,262 +233,367 @@ const detectIntent = (message: string): string => {
     return 'GENERAL';
 };
 
-// FinMate RAG System - Generate response based on intent and REAL USER DATA
-// Core Principle: NEVER guess or hallucinate - Always use retrieved data from database
-const generateResponse = (intent: string, data: any, userName: string): string => {
+// FinMate Smart Response Generator - Generate response based on intent and user data
+const generateResponse = (intent: string, data: any, userName: string, originalMessage: string = ''): string => {
     const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
         'July', 'August', 'September', 'October', 'November', 'December'];
     const currentMonth = monthNames[data.month - 1];
 
-    // FinMate Identity & Tone: Friendly, Simple, Non-judgmental (especially for parents)
     switch (intent) {
         case 'GREETING': {
-            const greeting = data.isEndOfMonth
-                ? `Hello ${userName}! 👋 We're in the last few days of ${currentMonth}. `
-                : `Hello ${userName}! 👋 `;
-
-            if (data.budget) {
-                const budgetInfo = data.budget.isOverBudget
-                    ? `You've exceeded your budget by ${formatCurrency(Math.abs(data.budget.remaining))}. Let's see how we can manage better! Remember, I'm here to help, not judge. 😊`
-                    : `You have ${formatCurrency(data.budget.remaining)} remaining from your ${formatCurrency(data.budget.total)} budget.`;
-                return greeting + budgetInfo;
+            if (!data.budget) {
+                return `👋 Hi! I'm FinMate.
+I'll help you track your budget and spend smarter.
+Start by setting your monthly budget 😊`;
             }
-            return greeting + "How can I help you with your finances today?";
+
+            if (data.budget.isOverBudget) {
+                return `Hi ${userName}! 👋
+You've spent a bit more than planned this month.
+Let's work together to get back on track 💪`;
+            }
+
+            const daysLeft = data.daysLeft;
+            if (daysLeft <= 3) {
+                return `Hi ${userName}! 👋
+We're almost at the end of ${currentMonth}.
+You're doing great with your budget! 🎉`;
+            }
+
+            return `Hi ${userName}! 👋
+Your budget is looking good.
+How can I help you today? 😊`;
+        }
+
+        case 'DAILY_SPENDING': {
+            if (!data.budget) {
+                return `I need a little more data to guide you better 😊
+Please set your monthly budget first.`;
+            }
+
+            // Extract amount from original message 
+            const amountMatch = originalMessage.match(/₹(\\d+)|(\\d+)/);
+            const requestedAmount = amountMatch ? parseInt(amountMatch[1] || amountMatch[2]) : 0;
+
+            if (requestedAmount === 0) {
+                return `How much are you planning to spend today?
+Let me check if it fits your budget 😊`;
+            }
+
+            if (data.budget.isOverBudget) {
+                return `You're already over budget this month 😕
+Try to spend less to get back on track.`;
+            }
+
+            const dailyBudget = data.daysLeft > 0 ? Math.round(data.budget.remaining / data.daysLeft) : 0;
+            
+            if (requestedAmount <= dailyBudget) {
+                return `Yes 👍 You're within your budget.
+Just remember to keep some balance for upcoming days.`;
+            } else {
+                return `That might be too much for today 😐
+Your daily budget is around ₹${dailyBudget.toLocaleString('en-IN')}.
+Try spending less to stay on track.`;
+            }
+        }
+
+        case 'OVERSPENT_HELP': {
+            return `That's okay — it happens 🙂
+You've crossed today's limit slightly.
+Try spending less tomorrow to stay on track.`;
+        }
+
+        case 'BUDGET_HELP': {
+            return `Great choice 👍
+Go to the Budget section and set your monthly amount.
+I'll help you track your spending from there! 😊`;
         }
 
         case 'BUDGET_STATUS': {
-            // RAG Rule: If data is missing, clearly inform and guide user
             if (!data.budget) {
-                return `📊 **Budget Not Set**\n\nI don't have a budget set for ${currentMonth} ${data.year} in your records yet.\n\n**Next Step:** Go to the **Budget** section to set your monthly budget and I'll help you track your spending effectively!\n\n💡 This is based on your stored data in FinPal.`;
+                return `I need a little more data to guide you better 🙂
+Please set your monthly budget first.`;
             }
 
             const { total, spent, remaining, percentage, isOverBudget } = data.budget;
-            let status = '';
-            let emoji = '💚';
-
+            
             if (isOverBudget) {
-                emoji = '🔴';
-                status = `**Over Budget!**`;
-            } else if (percentage >= 80) {
-                emoji = '🟡';
-                status = `**Nearing Limit**`;
-            } else {
-                status = `**On Track**`;
+                return `You've crossed your budget by ${formatCurrency(Math.abs(remaining))} 😕
+Try spending less in the remaining ${data.daysLeft} days.
+You've got this! 💪`;
             }
 
-            let response = `📊 **Budget Status for ${currentMonth} ${data.year}**\n\n`;
-            response += `${emoji} ${status}\n\n`;
-            response += `• **Budget:** ${formatCurrency(total)}\n`;
-            response += `• **Spent:** ${formatCurrency(spent)} (${percentage}%)\n`;
-            response += `• **Remaining:** ${formatCurrency(Math.abs(remaining))}${isOverBudget ? ' over' : ''}\n`;
-            response += `• **Days Left:** ${data.daysLeft}\n`;
-
-            if (data.daysLeft > 0 && !isOverBudget) {
-                const dailyBudget = Math.round(remaining / data.daysLeft);
-                response += `\n💡 **Tip:** You can spend ₹${dailyBudget.toLocaleString('en-IN')} per day to stay within budget.`;
+            if (percentage >= 80) {
+                return `You're close to your limit 📌
+You've used ${formatCurrency(spent)} out of ${formatCurrency(total)}.
+Be careful with the remaining ${formatCurrency(remaining)}.`;
             }
 
-            if (data.isEndOfMonth && !isOverBudget) {
-                response += `\n\n⭐ **Great news!** You're on track to earn a star this month! Keep it up!`;
+            const dailyBudget = data.daysLeft > 0 ? Math.round(remaining / data.daysLeft) : 0;
+            let response = `Here's a quick update 📌
+`;
+            response += `You've used ${formatCurrency(spent)} out of ${formatCurrency(total)}.
+`;
+            response += `You're doing well — keep going!`;
+            
+            if (dailyBudget > 0) {
+                response += `
+
+You can spend up to ₹${dailyBudget.toLocaleString('en-IN')} per day.`;
+            }
+
+            if (data.isEndOfMonth) {
+                response += `
+
+🎉 Amazing job!
+You're on track for a reward this month ⭐`;
             }
 
             return response;
         }
 
-        case 'BUDGET_HELP': {
-            return `📝 **How to Set Your Budget**\n\n1. Go to the **Budget** section from the menu\n2. Click on **Set Budget** or **Create Budget**\n3. Enter your total monthly budget amount\n4. Optionally, allocate amounts to different categories\n5. Save your budget\n\n💡 **Tip:** Start with a realistic budget based on your income and essential expenses. You can always adjust it later!\n\nWould you like me to explain anything else?`;
-        }
-
         case 'EXPENSE_ANALYSIS': {
-            // RAG Rule: Never guess expenses - only show what's in the database
             if (data.transactions.expenses === 0) {
-                return `📉 **No Expenses Found**\n\nI don't have any expense records for ${currentMonth} in the database yet.\n\n**Next Step:** Tap the **+ Add Expense** button to start tracking your spending!\n\n💡 I only show real data from your FinPal account - no guesses!`;
+                return `I need a bit more data to help you better 🙂
+Please add your recent expenses first.`;
             }
 
-            // RAG: Retrieve and present real stored data
-            let response = `📉 **Expense Analysis for ${currentMonth}** (Based on your stored records)\n\n`;
-            response += `**Total Spent:** ${formatCurrency(data.totalExpenses)} across ${data.transactions.expenses} transactions\n\n`;
-            response += `**Category Breakdown:**\n`;
+            let response = `Here's where your money went this month:
 
+`;
+            
             // Sort categories by amount
             const sortedCategories = Object.entries(data.categoryBreakdown)
                 .sort(([, a], [, b]) => (b as number) - (a as number));
 
-            sortedCategories.forEach(([category, amount], index) => {
-                const percentage = Math.round(((amount as number) / data.totalExpenses) * 100);
-                const emoji = index === 0 ? '🔥' : index === 1 ? '📌' : '•';
-                response += `${emoji} **${category}:** ${formatCurrency(amount as number)} (${percentage}%)\n`;
+            // Show top 3 categories
+            sortedCategories.slice(0, 3).forEach(([category, amount], index) => {
+                const emoji = index === 0 ? '🔥' : index === 1 ? '📌' : '💡';
+                response += `${emoji} ${category}: ${formatCurrency(amount as number)}
+`;
             });
 
             if (sortedCategories.length > 0) {
-                response += `\n💡 **Insight:** Your highest spending is on **${sortedCategories[0][0]}**. Consider reviewing if this aligns with your priorities.`;
+                response += `
+You spent most on ${sortedCategories[0][0]}.
+`;
+                response += `Is this what you planned? 🤔`;
             }
 
             return response;
         }
 
         case 'EXPENSE_TOTAL': {
-            return `💸 **Total Expenses for ${currentMonth}**\n\n**Amount:** ${formatCurrency(data.totalExpenses)}\n**Transactions:** ${data.transactions.expenses}\n\n${data.budget ? `This is ${data.budget.percentage}% of your ${formatCurrency(data.budget.total)} budget.` : "Set a budget to track your spending against a limit!"}`;
+            return `You've spent ${formatCurrency(data.totalExpenses)} this month.
+${data.transactions.expenses} transactions total.
+
+${data.budget ? `This is ${data.budget.percentage}% of your budget.` : "Set a budget to track your progress!"}`;
         }
 
         case 'EXPENSE_SUMMARY': {
-            let response = `📊 **Expense Summary for ${currentMonth}**\n\n`;
-            response += `• **Total Expenses:** ${formatCurrency(data.totalExpenses)}\n`;
-            response += `• **Total Income:** ${formatCurrency(data.totalIncome)}\n`;
-            response += `• **Net Savings:** ${formatCurrency(data.savings)}\n`;
-            response += `• **Transactions:** ${data.transactions.total}\n`;
+            let response = `Here's your spending overview:
+
+`;
+            response += `Expenses: ${formatCurrency(data.totalExpenses)}
+`;
+            response += `Income: ${formatCurrency(data.totalIncome)}
+`;
+            response += `Savings: ${formatCurrency(data.savings)}
+
+`;
 
             if (data.budget) {
-                response += `\n**Budget Status:**\n`;
-                response += `• ${formatCurrency(data.budget.remaining)} ${data.budget.isOverBudget ? 'over budget' : 'remaining'}\n`;
+                response += `Budget: ${data.budget.isOverBudget ? 'Over by' : 'Remaining'} ${formatCurrency(Math.abs(data.budget.remaining))}`;
+            } else {
+                response += `Set a budget to track better!`;
             }
 
             return response;
         }
 
         case 'FAMILY_INFO': {
-            // RAG Rule: Respect data privacy - only show allowed family-level insights
             if (!data.family) {
-                return `👨‍👩‍👧‍👦 **Family Mode Not Active**\n\nI don't see any family connection in your account.\n\n**To get started:**\n1. Go to **Family Mode**\n2. Either **Create a Family** and share the code with members\n3. Or **Join a Family** using a 6-digit code\n\nFamily Mode lets you track shared expenses and budgets together!\n\n🔒 **Privacy Note:** Family data is always permission-based.`;
+                return `You haven't joined a family yet 👨‍👩‍👧‍👦
+Go to Family Mode to connect with your family.
+You can track expenses together! 😊`;
             }
 
-            let response = `👨‍👩‍👧‍👦 **Family: ${data.family.familyName}**\n\n`;
-            response += `• **Your Role:** ${data.family.currentMemberRole}\n`;
-            response += `• **Relation:** ${data.family.currentMemberRelation}\n`;
-            response += `• **Members:** ${data.family.memberCount}\n`;
+            let response = `✅ Connected to ${data.family.familyName}
+`;
+            response += `${data.family.memberCount} family members sharing expenses.
+`;
 
             if (data.family.sharedBudget?.amount) {
-                response += `\n**Shared Budget:** ${formatCurrency(data.family.sharedBudget.amount)} (${data.family.sharedBudget.period})\n`;
+                response += `
+Family budget: ${formatCurrency(data.family.sharedBudget.amount)}`;
+            } else {
+                response += `
+Set a family budget to track together! 💡`;
             }
 
             return response;
         }
 
         case 'ACHIEVEMENT_INFO': {
-            let response = `⭐ **Your Achievements**\n\n`;
-            response += `**Total Stars Earned:** ${data.achievements.totalStars} ⭐\n\n`;
-
             if (data.achievements.totalStars === 0) {
-                response += `You haven't earned any stars yet.\n\n**How to earn stars:**\n• Set a monthly budget\n• Stay within your budget for the entire month\n• Earn a star at the end of each successful month!\n`;
-            } else {
-                response += `**Recent Performance:**\n`;
-                data.achievements.history.forEach((a: any) => {
-                    const status = a.status === 'awarded' || a.status === 'finalized' ? '⭐' : '—';
-                    response += `• ${monthNames[a.month - 1]} ${a.year}: ${status}\n`;
-                });
+                if (data.budget && !data.budget.isOverBudget && data.isEndOfMonth) {
+                    return `🎉 Amazing job!
+You stayed within your monthly budget.
+You've successfully cracked the budget — congratulations ⭐`;
+                } else if (data.budget && data.budget.isOverBudget) {
+                    return `Not this time 😕
+Your spending went slightly over the budget.
+Let's plan better next month — I've got your back 👍`;
+                }
+                return `You haven't earned any stars yet 💫
+Stay within your monthly budget to earn one!
+Every star shows you're getting better with money 😊`;
             }
 
+            let response = `You've earned ${data.achievements.totalStars} stars! ⭐
+`;
+            response += `That's ${data.achievements.totalStars} successful months of budgeting.
+`;
+
             if (data.isEndOfMonth && data.budget && !data.budget.isOverBudget) {
-                response += `\n🎉 **You're on track to earn a star this month!** Keep up the great work!`;
+                response += `\n🎉 You're getting another star this month!\nKeep up the amazing work! ⭐`;
+            } else if (data.budget && !data.budget.isOverBudget) {
+                response += `\nYou're on track for another star this month! 💪`;
             }
 
             return response;
         }
 
         case 'REMINDER_INFO': {
-            // RAG: Only show stored reminder data
             if (data.reminders.length === 0) {
-                return `🔔 **No Pending Bills Found**\n\nI don't see any upcoming bills or reminders in your records.\n\n**Next Step:** Add reminders in the **Reminders** section to never miss a payment!\n\n💡 I'll notify you based on your stored reminder data.`;
+                return `No pending bills right now 👍
+You're all caught up!
+Add reminders to never miss a payment.`;
             }
 
-            let response = `🔔 **Upcoming Bills & Reminders**\n\n`;
+            let response = `🔔 Upcoming bills:
+
+`;
             let totalPending = 0;
 
-            data.reminders.forEach((r: any) => {
+            data.reminders.slice(0, 3).forEach((r: any) => {
                 const dueDate = new Date(r.dueDate);
                 const today = new Date();
                 const daysUntil = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-                const urgency = daysUntil <= 3 ? '🔴' : daysUntil <= 7 ? '🟡' : '🟢';
+                const urgency = daysUntil <= 3 ? '🔴' : '📅';
 
-                response += `${urgency} **${r.title}**\n`;
-                response += `   Amount: ${formatCurrency(r.amount)}\n`;
-                response += `   Due: ${dueDate.toLocaleDateString('en-IN')} (${daysUntil} days)\n\n`;
+                response += `${urgency} ${r.title} - ${formatCurrency(r.amount)}
+`;
+                response += `   Due in ${daysUntil} days\n\n`;
                 totalPending += r.amount;
             });
 
-            response += `**Total Pending:** ${formatCurrency(totalPending)}`;
+            response += `Total pending: ${formatCurrency(totalPending)}`;
 
             return response;
         }
 
         case 'MONTHLY_SUMMARY': {
-            let response = `📋 **${currentMonth} ${data.year} Summary**\n\n`;
+            let response = `Here's your ${currentMonth} overview 📊
 
-            response += `**💰 Finances**\n`;
-            response += `• Income: ${formatCurrency(data.totalIncome)}\n`;
-            response += `• Expenses: ${formatCurrency(data.totalExpenses)}\n`;
-            response += `• Net: ${formatCurrency(data.savings)}\n\n`;
+`;
+
+            response += `Income: ${formatCurrency(data.totalIncome)}
+`;
+            response += `Expenses: ${formatCurrency(data.totalExpenses)}
+`;
+            response += `Savings: ${formatCurrency(data.savings)}
+
+`;
 
             if (data.budget) {
-                response += `**📊 Budget**\n`;
-                response += `• Budget: ${formatCurrency(data.budget.total)}\n`;
-                response += `• Spent: ${data.budget.percentage}%\n`;
-                response += `• Status: ${data.budget.isOverBudget ? '🔴 Over Budget' : data.budget.percentage >= 80 ? '🟡 Near Limit' : '🟢 On Track'}\n\n`;
+                if (data.budget.isOverBudget) {
+                    response += `You went over budget this month.
+Let's do better next month! 💪`;
+                } else {
+                    response += `You stayed within your budget ✓
+Great job managing your money!`;
+                }
+            } else {
+                response += `Set a budget to track your progress better!`;
             }
-
-            response += `**📈 Categories**\n`;
-            Object.entries(data.categoryBreakdown)
-                .sort(([, a], [, b]) => (b as number) - (a as number))
-                .slice(0, 3)
-                .forEach(([cat, amt]) => {
-                    response += `• ${cat}: ${formatCurrency(amt as number)}\n`;
-                });
-
-            response += `\n**⭐ Stars:** ${data.achievements.totalStars} earned`;
 
             return response;
         }
 
         case 'SAVINGS_INFO': {
             const savings = data.savings;
-            let response = `💰 **Savings for ${currentMonth}**\n\n`;
+            let response = `Here's how you're doing with savings this month:
+
+`;
 
             if (savings > 0) {
-                response += `Great job! You've saved **${formatCurrency(savings)}** this month! 🎉\n\n`;
-                response += `• Income: ${formatCurrency(data.totalIncome)}\n`;
-                response += `• Expenses: ${formatCurrency(data.totalExpenses)}\n`;
+                response += `Great job! You've saved ${formatCurrency(savings)} 🎉
+`;
+                response += `Keep up the good work!`;
             } else if (savings === 0) {
-                response += `You've spent exactly what you earned this month.\n\n`;
-                response += `Consider setting aside some amount for savings next month!`;
+                response += `You've spent exactly what you earned.
+`;
+                response += `Try to save a little next month!`;
             } else {
-                response += `You're spending more than your income this month.\n\n`;
-                response += `• Income: ${formatCurrency(data.totalIncome)}\n`;
-                response += `• Expenses: ${formatCurrency(data.totalExpenses)}\n`;
-                response += `• Deficit: ${formatCurrency(Math.abs(savings))}\n\n`;
-                response += `💡 **Tip:** Review your spending categories to find areas where you can cut back.`;
+                response += `You're spending more than your income.
+`;
+                response += `Review your expenses to find areas to cut back.`;
             }
 
             return response;
         }
 
+        case 'MOTIVATION': {
+            return `You're not alone 💙
+Small steps matter.
+Track today's expenses — that's a great start.`;
+        }
+
         case 'HELP': {
-            return `🤖 **Hi, I'm FinMate!**\n\nI'm your Retrieval-Augmented Generation (RAG) chatbot - I use REAL data from your FinPal account to give you accurate, personalized insights. I never guess or make up numbers!\n\n**What I can help with:**\n\n**📊 Budget Understanding**\n• "What's my budget status?"\n• "How much can I spend today?"\n• "Am I on track this month?"\n\n**💸 Expense Analysis**\n• "Where did I spend more?"\n• "Show my expense summary"\n• "Why is my budget exceeded?"\n\n**👨‍👩‍👧‍👦 Family Mode**\n• "Show family info"\n• "Family spending this month"\n\n**⭐ Achievements & Motivation**\n• "How many stars do I have?"\n• "Can I earn a star this month?"\n\n**🔔 Bills & Reminders**\n• "What bills are pending?"\n• "Show my reminders"\n\n**📋 Reports & Summaries**\n• "Monthly summary"\n• "Show my savings"\n\n💡 **Remember:** All my responses are based on your stored data in FinPal. If data is missing, I'll let you know and guide you on the next steps!\n\nJust ask me anything! 💬`;
+            return `Hi! I'm FinMate 👋
+I help you understand your money better.
+
+Ask me about:
+
+• "How is my budget?"
+• "Where did I spend more?"
+• "Show my family info"
+• "Do I have pending bills?"
+• "How many stars do I have?"
+
+I use your real FinPal data to give you accurate answers.
+No guessing, just facts! 😊`;
         }
 
         default: {
-            // RAG Rule: When intent unclear, provide status based on REAL data
-            // Never assume or hallucinate financial values
-            let response = `Hi ${userName}! Here's what I see in your FinPal data:\\n\\n`;
+            let response = `Here's a quick look at your finances:
+
+`;
 
             if (data.budget) {
-                response += `📊 **Budget:** ${data.budget.percentage}% used (${formatCurrency(data.budget.remaining)} ${data.budget.isOverBudget ? 'over' : 'remaining'})\\n`;
+                response += `Budget: ${data.budget.isOverBudget ? 'Over by' : 'Remaining'} ${formatCurrency(Math.abs(data.budget.remaining))}
+`;
             } else {
-                response += `📊 **Budget:** Not set for this month (no budget data found)\\n`;
+                response += `Budget: Not set yet
+`;
             }
 
-            response += `💸 **Spent:** ${formatCurrency(data.totalExpenses)} this month\\n`;
-            response += `💰 **Savings:** ${formatCurrency(data.savings)}\\n`;
-            response += `⭐ **Stars:** ${data.achievements.totalStars}\\n\\n`;
+            response += `Spent: ${formatCurrency(data.totalExpenses)} this month
+`;
+            response += `Stars earned: ${data.achievements.totalStars} ⭐
 
-            response += `💡 This is based on your stored records. Ask me about budget, expenses, or achievements for more details!`;
+`;
+
+            response += `Ask me about your budget, expenses, or achievements! 😊`;
 
             return response;
         }
     }
 };
 
-// Main chat endpoint - FinMate RAG System
-// Core Principle: Always respond using retrieved user-specific data from FinPal database
+// Main chat endpoint - FinMate Smart Budget Assistant
+// Always uses the user's real financial data from their FinPal account
 export const sendMessage = async (req: AuthenticatedRequest, res: Response) => {
     try {
         const { message } = req.body;
@@ -490,26 +618,23 @@ export const sendMessage = async (req: AuthenticatedRequest, res: Response) => {
         // Step 1: Detect intent from user message
         const intent = detectIntent(message);
 
-        // Step 2: RAG Retrieval Layer - Retrieve user's real financial data from database
+        // Step 2: Retrieve user's real financial data from database
         const userData = await retrieveUserData(userId, userEmail);
 
-        // Step 3: Generate response based on intent and REAL retrieved data
-        // FinMate NEVER guesses or hallucinates - only uses stored data
-        const reply = generateResponse(intent, userData, userName);
+        // Step 3: Generate response based on intent and user data
+        const reply = generateResponse(intent, userData, userName, message);
 
         return res.status(200).json({
             success: true,
             reply,
             intent,
-            timestamp: new Date().toISOString(),
-            // Include data source indicator for transparency
-            dataSource: 'FinPal Database - Real User Data'
+            timestamp: new Date().toISOString()
         });
     } catch (error: any) {
         console.error('FinMate chatbot error:', error);
         return res.status(500).json({
             success: false,
-            message: 'Sorry, I encountered an error retrieving your data. Please try again.',
+            message: "I'm having trouble right now. Please try again in a moment.",
             error: error.message
         });
     }
@@ -531,34 +656,27 @@ export const getChatContext = async (req: AuthenticatedRequest, res: Response) =
 
         const userData = await retrieveUserData(userId, userEmail);
 
-        // Generate personalized welcome message based on REAL stored data
-        let welcomeMessage = `Hi ${userName}! 👋 I'm **FinMate**, your RAG-powered financial assistant.\n\n`;
-        welcomeMessage += `🔍 I retrieve and analyze your REAL financial data from FinPal to provide accurate, personalized guidance. I never guess!\n\n`;
+        // Generate personalized welcome message based on user's data
+        let welcomeMessage = `Hi ${userName}! 👋 I'm **FinMate**, your personal budget companion.\n\n`;
 
         if (userData.isEndOfMonth) {
-            welcomeMessage += `🗓️ **Note:** We're in the last ${userData.daysLeft} days of the month!\n\n`;
+            welcomeMessage += `We're in the last ${userData.daysLeft} days of the month!\n\n`;
         }
 
         if (userData.budget) {
             const { percentage, isOverBudget, remaining } = userData.budget;
             if (isOverBudget) {
-                welcomeMessage += `⚠️ **Budget Alert:** You've exceeded your budget by ${formatCurrency(Math.abs(remaining))}. But don't worry - I'm here to help you analyze and improve, not judge! 😊\n`;
+                welcomeMessage += `You've spent a bit over your budget this month.\nThat's okay — it happens 🙂\nLet me help you understand your spending better.\n`;
             } else if (percentage >= 80) {
-                welcomeMessage += `📊 **Budget Status:** ${percentage}% used. You have ${formatCurrency(remaining)} remaining. Stay mindful of your spending!\n`;
+                welcomeMessage += `You're close to your budget limit.\nYou have ${formatCurrency(remaining)} left to spend.\nLet's be mindful! 💡\n`;
             } else {
-                welcomeMessage += `✅ **Budget Status:** On track! You have ${formatCurrency(remaining)} remaining from your ${formatCurrency(userData.budget.total)} budget.\n`;
+                welcomeMessage += `Your budget is looking good! ✅\nYou have ${formatCurrency(remaining)} remaining.\nKeep up the great work!\n`;
             }
         } else {
-            welcomeMessage += `📝 **Budget Not Set:** I don't see a budget for this month. Setting one will help me provide better insights!\n`;
+            welcomeMessage += `I'll help you track your budget and spend smarter.\nStart by setting your monthly budget 😊\n`;
         }
 
-        welcomeMessage += `\n💬 How can I help you today? Ask me about:\n`;
-        welcomeMessage += `• Budget status & spending analysis\n`;
-        welcomeMessage += `• Expense breakdown by category\n`;
-        welcomeMessage += `• Family finances (if connected)\n`;
-        welcomeMessage += `• Achievements & stars\n`;
-        welcomeMessage += `• Bills & reminders\n`;
-        welcomeMessage += `\nOr just type "help" to see all I can do!`;
+        welcomeMessage += `\nWhat would you like to know?`;
 
         return res.status(200).json({
             success: true,
@@ -567,8 +685,7 @@ export const getChatContext = async (req: AuthenticatedRequest, res: Response) =
                 hasBudget: !!userData.budget,
                 isEndOfMonth: userData.isEndOfMonth,
                 hasFamily: !!userData.family,
-                totalStars: userData.achievements.totalStars,
-                dataSource: 'Retrieved from FinPal Database'
+                totalStars: userData.achievements.totalStars
             }
         });
     } catch (error: any) {

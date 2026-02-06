@@ -573,6 +573,15 @@ export const getFamilyDashboard = async (req: Request, res: Response, next: Next
       }
     });
 
+    // Convert transactions to plain objects with user as string
+    const transactionsData = transactions.map(tx => {
+      const txObj = tx.toObject();
+      return {
+        ...txObj,
+        user: tx.user.toString(),
+      };
+    });
+
     // Get reminders for all members
     const reminders = await Reminder.find({
       user: { $in: memberIds },
@@ -637,7 +646,7 @@ export const getFamilyDashboard = async (req: Request, res: Response, next: Next
               : 0,
           })).sort((a, b) => b.amount - a.amount),
         },
-        recentTransactions: transactions.slice(0, 20),
+        recentTransactions: transactionsData.slice(0, 20),
         upcomingReminders: reminders,
         lastSyncedAt: new Date(),
       },

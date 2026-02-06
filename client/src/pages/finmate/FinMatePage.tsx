@@ -1,12 +1,12 @@
 /**
  * FinMate Chat Page
  * 
- * A dedicated full-page chat interface for FinMate - FinPal's RAG-powered chatbot.
- * FinMate provides personalized financial insights using real user data from the database.
+ * A dedicated full-page chat interface for FinMate - FinPal's smart financial assistant.
+ * FinMate provides personalized financial insights using your real budget and expense data.
  * 
  * Features:
  * - Contextual welcome message based on user's current financial status
- * - Real-time chat with RAG-based responses
+ * - Real-time chat with intelligent responses
  * - Quick action buttons for common queries
  * - Beautiful gradient UI with smooth animations
  * - Mobile-responsive design
@@ -18,7 +18,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     ArrowLeft,
     Send,
-    Bot,
     User,
     Sparkles,
     MessageCircle,
@@ -29,6 +28,7 @@ import {
 } from 'lucide-react';
 import { chatbotApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
+import { FinMateIcon } from '@/components/ui';
 
 interface Message {
     id: string;
@@ -48,6 +48,11 @@ export const FinMatePage: React.FC = () => {
     const navigate = useNavigate();
     const user = useAuthStore((state) => state.user);
     const userName = user?.fullName?.split(' ')[0] || 'User';
+
+    // Scroll to top when component mounts
+    useEffect(() => {
+        window.scrollTo({ top: 0, behavior: 'auto' });
+    }, []);
 
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
@@ -175,27 +180,27 @@ export const FinMatePage: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen min-h-[100dvh] flex flex-col bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+        <div className="min-h-screen min-h-[100dvh] flex flex-col bg-gradient-to-br from-cyan-50 via-white to-teal-50">
             {/* Header */}
-            <header className="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white shadow-lg">
+            <header className="bg-gradient-to-r from-cyan-500 via-cyan-600 to-teal-600 text-white shadow-lg safe-top">
                 <div className="max-w-4xl mx-auto px-4 py-4">
                     <div className="flex items-center gap-4">
                         <button
-                            onClick={() => navigate(-1)}
+                            onClick={() => navigate('/dashboard')}
                             className="p-2 hover:bg-white/10 rounded-xl transition-colors"
                         >
                             <ArrowLeft className="w-6 h-6" />
                         </button>
                         <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
-                                <Bot className="w-7 h-7 text-white" />
+                            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-lg">
+                                <FinMateIcon size={36} />
                             </div>
                             <div>
                                 <h1 className="text-xl font-bold flex items-center gap-2">
                                     FinMate
                                     <Sparkles className="w-5 h-5 text-yellow-300" />
                                 </h1>
-                                <p className="text-indigo-100 text-sm">Your Financial Assistant</p>
+                                <p className="text-cyan-100 text-sm">Your Financial Assistant</p>
                             </div>
                         </div>
                     </div>
@@ -209,8 +214,8 @@ export const FinMatePage: React.FC = () => {
                         <div className="flex justify-center py-8">
                             <div className="flex items-center gap-3 bg-white rounded-2xl px-6 py-4 shadow-md">
                                 <div className="relative">
-                                    <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
-                                        <Bot className="w-6 h-6 text-white animate-pulse" />
+                                    <div className="w-10 h-10 bg-gradient-to-br from-cyan-100 to-teal-100 rounded-xl flex items-center justify-center">
+                                        <FinMateIcon size={28} className="animate-pulse" />
                                     </div>
                                 </div>
                                 <div className="text-gray-600">FinMate is getting ready...</div>
@@ -231,13 +236,13 @@ export const FinMatePage: React.FC = () => {
                                     <div
                                         className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${message.sender === 'user'
                                             ? 'bg-gradient-to-br from-emerald-400 to-teal-500'
-                                            : 'bg-gradient-to-br from-indigo-500 to-purple-600'
+                                            : 'bg-gradient-to-br from-cyan-100 to-teal-100'
                                             }`}
                                     >
                                         {message.sender === 'user' ? (
                                             <User className="w-5 h-5 text-white" />
                                         ) : (
-                                            <Bot className="w-5 h-5 text-white" />
+                                            <FinMateIcon size={28} />
                                         )}
                                     </div>
 
@@ -273,14 +278,14 @@ export const FinMatePage: React.FC = () => {
                             animate={{ opacity: 1, y: 0 }}
                             className="flex items-start gap-3"
                         >
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-                                <Bot className="w-5 h-5 text-white" />
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-100 to-teal-100 flex items-center justify-center">
+                                <FinMateIcon size={28} />
                             </div>
                             <div className="bg-white p-4 rounded-2xl rounded-tl-md shadow-sm border border-gray-100">
                                 <div className="flex gap-1.5">
-                                    <span className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                                    <span className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                                    <span className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                                    <span className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                                    <span className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                                    <span className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                                 </div>
                             </div>
                         </motion.div>
@@ -300,7 +305,7 @@ export const FinMatePage: React.FC = () => {
                                 <button
                                     key={action.id}
                                     onClick={() => handleQuickAction(action.query)}
-                                    className="flex flex-col items-center gap-2 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all group active:scale-95"
+                                    className="flex flex-col items-center gap-2 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-cyan-200 transition-all group active:scale-95"
                                 >
                                     <div className={`w-10 h-10 bg-gradient-to-br ${action.color} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform`}>
                                         <action.icon className="w-5 h-5 text-gray-700" />
@@ -314,7 +319,7 @@ export const FinMatePage: React.FC = () => {
             )}
 
             {/* Input Area */}
-            <div className="border-t border-gray-200 bg-white/80 backdrop-blur-xl p-4">
+            <div className="border-t border-gray-200 bg-white/80 backdrop-blur-xl p-4 pb-6 safe-bottom">
                 <div className="max-w-4xl mx-auto">
                     <div className="flex items-center gap-3">
                         <div className="flex-1 relative">
@@ -326,21 +331,21 @@ export const FinMatePage: React.FC = () => {
                                 onKeyPress={handleKeyPress}
                                 placeholder="Ask me about your finances..."
                                 disabled={isLoading}
-                                className="w-full px-5 py-3.5 bg-gray-100 rounded-2xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all disabled:opacity-50"
+                                className="w-full px-5 py-3.5 bg-gray-100 rounded-2xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:bg-white transition-all disabled:opacity-50"
                             />
                             <MessageCircle className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                         </div>
                         <button
                             onClick={() => handleSend()}
                             disabled={!input.trim() || isLoading}
-                            className="p-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl hover:from-indigo-700 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-200 hover:shadow-xl hover:shadow-indigo-300"
+                            className="p-3.5 bg-gradient-to-r from-cyan-500 to-teal-500 text-white rounded-2xl hover:from-cyan-600 hover:to-teal-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-cyan-200 hover:shadow-xl hover:shadow-cyan-300"
                         >
                             <Send className="w-5 h-5" />
                         </button>
                     </div>
                     <p className="text-xs text-center text-gray-400 mt-3 flex items-center justify-center gap-1.5">
                         <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                        FinMate uses your stored financial data • No guessing, just facts
+                        FinMate helps you manage money better • Always here for you
                     </p>
                 </div>
             </div>
