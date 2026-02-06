@@ -404,13 +404,32 @@ const FamilyModePage: React.FC = () => {
 
           {activeTab === 'expenses' && (
             <motion.div key="expenses" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
+              {/* Filter hint */}
+              <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 rounded-xl p-4">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-blue-500/20 rounded-lg">
+                    <TrendingDown className="w-5 h-5 text-blue-400" />
+                  </div>
+                  <div>
+                    <h4 className="text-white font-semibold mb-1">{t('family.expensesFilter')}</h4>
+                    <p className="text-white/60 text-sm">Click on a member below to view their individual expenses, or select "All Members" to see everyone's transactions.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Member filter buttons */}
               <div className="flex items-center gap-4 overflow-x-auto pb-2">
-                <button onClick={() => setSelectedMember(null)} className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${!selectedMember ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}><Users className="w-4 h-4" />{t('family.allMembers')}</button>
-                {dashboardData?.family.members.map((member) => (<button key={member.userId} onClick={() => setSelectedMember(member.userId)} className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${selectedMember === member.userId ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}><span>{relationAvatars[member.relation]}</span>{member.nickname}</button>))}
+                <button onClick={() => setSelectedMember(null)} className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${!selectedMember ? 'bg-white/20 text-white shadow-lg' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}><Users className="w-4 h-4" />{t('family.allMembers')}</button>
+                {dashboardData?.family.members.map((member) => (<button key={member.userId} onClick={() => setSelectedMember(member.userId)} className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${selectedMember === member.userId ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}><span>{relationAvatars[member.relation]}</span>{member.nickname}</button>))}
               </div>
 
               <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl overflow-hidden">
-                <div className="p-4 border-b border-white/10"><h3 className="text-white font-semibold">{selectedMember ? `${dashboardData?.family.members.find(m => m.userId === selectedMember)?.nickname}'s ${t('family.expenses')}` : `All ${t('family.title')} ${t('family.expenses')}`}</h3></div>
+                <div className="p-4 border-b border-white/10">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-white font-semibold">{selectedMember ? `${dashboardData?.family.members.find(m => m.userId === selectedMember)?.nickname}'s ${t('family.expenses')}` : `All ${t('family.title')} ${t('family.expenses')}`}</h3>
+                    <span className="text-white/60 text-sm">{dashboardData?.recentTransactions.filter(tx => !selectedMember || tx.user === selectedMember).length || 0} transactions</span>
+                  </div>
+                </div>
                 <div className="divide-y divide-white/5">
                   {dashboardData?.recentTransactions.filter(tx => !selectedMember || tx.user === selectedMember).map((tx) => {
                     const member = dashboardData.family.members.find(m => m.userId === tx.user);
