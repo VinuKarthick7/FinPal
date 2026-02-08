@@ -320,7 +320,7 @@ export const ReportsPage: React.FC = () => {
       // Month/Year subtitle
       doc.setFontSize(16)
       doc.setTextColor(75, 85, 99) // Gray-600
-      doc.text(`Monthly Report - ${monthNames[selectedMonth - 1]} ${selectedYear}`, pageWidth / 2, 35, { align: 'center' })
+      doc.text(`Monthly Report - ${monthNames[selectedMonth - 1]} ${selectedYear}`, pageWidth / 2, 33, { align: 'center' })
 
       // Generated date
       doc.setFontSize(11)
@@ -330,18 +330,18 @@ export const ReportsPage: React.FC = () => {
         month: 'long',
         year: 'numeric'
       })
-      doc.text(`Generated: ${generatedDate}`, pageWidth / 2, 43, { align: 'center' })
+      doc.text(`Generated: ${generatedDate}`, pageWidth / 2, 39, { align: 'center' })
 
       // Horizontal divider line
       doc.setDrawColor(229, 231, 235) // Gray-200
       doc.setLineWidth(0.5)
-      doc.line(14, 48, pageWidth - 14, 48)
+      doc.line(14, 42, pageWidth - 14, 42)
 
       // ===== SUMMARY SECTION =====
       doc.setFontSize(14)
       doc.setFont('helvetica', 'bold')
       doc.setTextColor(31, 41, 55) // Gray-800
-      doc.text('Summary', 14, 58)
+      doc.text('Summary', 14, 50)
 
       // Calculate values with proper validation
       const totalExpenses = data.summary?.totalExpenses || 0
@@ -360,7 +360,7 @@ export const ReportsPage: React.FC = () => {
       ]
 
       autoTable(doc, {
-        startY: 62,
+        startY: 53,
         head: [['Metric', 'Value']],
         body: summaryData,
         theme: 'grid',
@@ -371,13 +371,13 @@ export const ReportsPage: React.FC = () => {
           fontStyle: 'bold',
           fontSize: 11,
           valign: 'middle',
-          cellPadding: { top: 4, right: 6, bottom: 4, left: 6 },
+          cellPadding: { top: 2, right: 6, bottom: 2, left: 6 },
         },
         bodyStyles: {
           fontSize: 10,
           textColor: [55, 65, 81],
           valign: 'middle',
-          cellPadding: { top: 4, right: 6, bottom: 4, left: 6 },
+          cellPadding: { top: 2, right: 6, bottom: 2, left: 6 },
           lineColor: [229, 231, 235],
           lineWidth: 0.1,
         },
@@ -420,7 +420,7 @@ export const ReportsPage: React.FC = () => {
       doc.setFontSize(14)
       doc.setFont('helvetica', 'bold')
       doc.setTextColor(31, 41, 55)
-      doc.text('Spending by Category', 14, lastY + 15)
+      doc.text('Spending by Category', 14, lastY + 8)
 
       if (data.categories && data.categories.length > 0) {
         // Sort categories by amount (highest first)
@@ -442,7 +442,7 @@ export const ReportsPage: React.FC = () => {
         })
 
         autoTable(doc, {
-          startY: lastY + 20,
+          startY: lastY + 11,
           head: [['Category', 'Amount', 'Percentage', 'Transactions']],
           body: categoryData,
           theme: 'grid',
@@ -453,13 +453,13 @@ export const ReportsPage: React.FC = () => {
             fontStyle: 'bold',
             fontSize: 11,
             valign: 'middle',
-            cellPadding: { top: 4, right: 6, bottom: 4, left: 6 },
+            cellPadding: { top: 2, right: 6, bottom: 2, left: 6 },
           },
           bodyStyles: {
             fontSize: 10,
             textColor: [55, 65, 81],
             valign: 'middle',
-            cellPadding: { top: 4, right: 6, bottom: 4, left: 6 },
+            cellPadding: { top: 2, right: 6, bottom: 2, left: 6 },
             lineColor: [229, 231, 235],
             lineWidth: 0.1,
           },
@@ -523,7 +523,7 @@ export const ReportsPage: React.FC = () => {
         doc.setFontSize(14)
         doc.setFont('helvetica', 'bold')
         doc.setTextColor(31, 41, 55)
-        doc.text('Top Merchants', 14, categoryY + 15)
+        doc.text('Top Merchants', 14, categoryY + 8)
       }
 
       if (data.topMerchants && data.topMerchants.length > 0) {
@@ -537,7 +537,7 @@ export const ReportsPage: React.FC = () => {
         ])
 
         autoTable(doc, {
-          startY: categoryY > 220 ? 25 : categoryY + 20,
+          startY: categoryY > 220 ? 23 : categoryY + 11,
           head: [['Merchant', 'Total Spent', 'Transactions']],
           body: merchantData,
           theme: 'grid',
@@ -548,13 +548,13 @@ export const ReportsPage: React.FC = () => {
             fontStyle: 'bold',
             fontSize: 11,
             valign: 'middle',
-            cellPadding: { top: 4, right: 6, bottom: 4, left: 6 },
+            cellPadding: { top: 2, right: 6, bottom: 2, left: 6 },
           },
           bodyStyles: {
             fontSize: 10,
             textColor: [55, 65, 81],
             valign: 'middle',
-            cellPadding: { top: 4, right: 6, bottom: 4, left: 6 },
+            cellPadding: { top: 2, right: 6, bottom: 2, left: 6 },
             lineColor: [229, 231, 235],
             lineWidth: 0.1,
           },
