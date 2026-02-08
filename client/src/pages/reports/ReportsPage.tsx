@@ -369,6 +369,7 @@ export const ReportsPage: React.FC = () => {
           textColor: [255, 255, 255],
           fontStyle: 'bold',
           fontSize: 11,
+          halign: 'left',
         },
         bodyStyles: {
           fontSize: 10,
@@ -378,11 +379,11 @@ export const ReportsPage: React.FC = () => {
           fillColor: [249, 250, 251],
         },
         columnStyles: {
-          0: { fontStyle: 'bold', cellWidth: 80 },
-          1: { halign: 'right', cellWidth: 80 },
+          0: { fontStyle: 'bold', cellWidth: 'auto', halign: 'left' },
+          1: { halign: 'right', cellWidth: 'auto' },
         },
         margin: { left: 14, right: 14 },
-        tableWidth: 'auto',
+        tableWidth: pageWidth - 28,
       })
 
       // ===== SPENDING BY CATEGORY SECTION =====
@@ -421,6 +422,7 @@ export const ReportsPage: React.FC = () => {
             textColor: [255, 255, 255],
             fontStyle: 'bold',
             fontSize: 11,
+            halign: 'left',
           },
           bodyStyles: {
             fontSize: 10,
@@ -430,12 +432,13 @@ export const ReportsPage: React.FC = () => {
             fillColor: [249, 250, 251],
           },
           columnStyles: {
-            0: { fontStyle: 'bold' },
-            1: { halign: 'right' },
-            2: { halign: 'center' },
-            3: { halign: 'center' },
+            0: { fontStyle: 'bold', halign: 'left', cellWidth: 'auto' },
+            1: { halign: 'right', cellWidth: 'auto' },
+            2: { halign: 'center', cellWidth: 'auto' },
+            3: { halign: 'center', cellWidth: 'auto' },
           },
           margin: { left: 14, right: 14 },
+          tableWidth: pageWidth - 28,
         })
       }
 
@@ -476,6 +479,7 @@ export const ReportsPage: React.FC = () => {
             textColor: [255, 255, 255],
             fontStyle: 'bold',
             fontSize: 11,
+            halign: 'left',
           },
           bodyStyles: {
             fontSize: 10,
@@ -485,11 +489,12 @@ export const ReportsPage: React.FC = () => {
             fillColor: [249, 250, 251],
           },
           columnStyles: {
-            0: { fontStyle: 'bold' },
-            1: { halign: 'right' },
-            2: { halign: 'center' },
+            0: { fontStyle: 'bold', halign: 'left', cellWidth: 'auto' },
+            1: { halign: 'right', cellWidth: 'auto' },
+            2: { halign: 'center', cellWidth: 'auto' },
           },
           margin: { left: 14, right: 14 },
+          tableWidth: pageWidth - 28,
         })
       }
 
