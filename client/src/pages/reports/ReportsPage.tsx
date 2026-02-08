@@ -350,7 +350,7 @@ export const ReportsPage: React.FC = () => {
       const transactionCount = data.summary?.transactionCount || 0
       const averageExpense = transactionCount > 0 ? totalExpenses / transactionCount : 0
 
-      // Summary table with clean formatting
+      // Summary table with strict alignment and professional formatting
       const summaryData = [
         ['Total Income', formatCurrencyForPDF(totalIncome)],
         ['Total Expenses', formatCurrencyForPDF(totalExpenses)],
@@ -363,27 +363,56 @@ export const ReportsPage: React.FC = () => {
         startY: 62,
         head: [['Metric', 'Value']],
         body: summaryData,
-        theme: 'striped',
+        theme: 'grid',
+        tableWidth: pageWidth - 28, // Fixed width for consistent alignment
         headStyles: {
           fillColor: [16, 185, 129],
           textColor: [255, 255, 255],
           fontStyle: 'bold',
           fontSize: 11,
-          halign: 'left',
+          valign: 'middle',
+          cellPadding: { top: 4, right: 6, bottom: 4, left: 6 },
         },
         bodyStyles: {
           fontSize: 10,
           textColor: [55, 65, 81],
+          valign: 'middle',
+          cellPadding: { top: 4, right: 6, bottom: 4, left: 6 },
+          lineColor: [229, 231, 235],
+          lineWidth: 0.1,
         },
         alternateRowStyles: {
           fillColor: [249, 250, 251],
         },
         columnStyles: {
-          0: { fontStyle: 'bold', cellWidth: 'auto', halign: 'left' },
-          1: { halign: 'right', cellWidth: 'auto' },
+          0: { 
+            fontStyle: 'bold', 
+            cellWidth: (pageWidth - 28) * 0.5, // 50% width
+            halign: 'left',
+            valign: 'middle',
+          },
+          1: { 
+            cellWidth: (pageWidth - 28) * 0.5, // 50% width
+            halign: 'right',
+            valign: 'middle',
+            fontStyle: 'normal',
+          },
         },
         margin: { left: 14, right: 14 },
-        tableWidth: pageWidth - 28,
+        styles: {
+          overflow: 'linebreak',
+          cellWidth: 'wrap',
+        },
+        didParseCell: function(data: any) {
+          // Ensure header alignment matches column content
+          if (data.section === 'head') {
+            if (data.column.index === 0) {
+              data.cell.styles.halign = 'left'
+            } else if (data.column.index === 1) {
+              data.cell.styles.halign = 'right'
+            }
+          }
+        },
       })
 
       // ===== SPENDING BY CATEGORY SECTION =====
@@ -416,29 +445,67 @@ export const ReportsPage: React.FC = () => {
           startY: lastY + 20,
           head: [['Category', 'Amount', 'Percentage', 'Transactions']],
           body: categoryData,
-          theme: 'striped',
+          theme: 'grid',
+          tableWidth: pageWidth - 28, // Fixed width for consistent alignment
           headStyles: {
             fillColor: [16, 185, 129],
             textColor: [255, 255, 255],
             fontStyle: 'bold',
             fontSize: 11,
-            halign: 'left',
+            valign: 'middle',
+            cellPadding: { top: 4, right: 6, bottom: 4, left: 6 },
           },
           bodyStyles: {
             fontSize: 10,
             textColor: [55, 65, 81],
+            valign: 'middle',
+            cellPadding: { top: 4, right: 6, bottom: 4, left: 6 },
+            lineColor: [229, 231, 235],
+            lineWidth: 0.1,
           },
           alternateRowStyles: {
             fillColor: [249, 250, 251],
           },
           columnStyles: {
-            0: { fontStyle: 'bold', halign: 'left', cellWidth: 'auto' },
-            1: { halign: 'right', cellWidth: 'auto' },
-            2: { halign: 'center', cellWidth: 'auto' },
-            3: { halign: 'center', cellWidth: 'auto' },
+            0: { 
+              fontStyle: 'bold',
+              cellWidth: (pageWidth - 28) * 0.4, // 40% width for category name
+              halign: 'left',
+              valign: 'middle',
+            },
+            1: { 
+              cellWidth: (pageWidth - 28) * 0.3, // 30% width for amount
+              halign: 'right',
+              valign: 'middle',
+            },
+            2: { 
+              cellWidth: (pageWidth - 28) * 0.15, // 15% width for percentage
+              halign: 'center',
+              valign: 'middle',
+            },
+            3: { 
+              cellWidth: (pageWidth - 28) * 0.15, // 15% width for transactions
+              halign: 'center',
+              valign: 'middle',
+            },
           },
           margin: { left: 14, right: 14 },
-          tableWidth: pageWidth - 28,
+          styles: {
+            overflow: 'linebreak',
+            cellWidth: 'wrap',
+          },
+          didParseCell: function(data: any) {
+            // Ensure header alignment matches column content
+            if (data.section === 'head') {
+              if (data.column.index === 0) {
+                data.cell.styles.halign = 'left'
+              } else if (data.column.index === 1) {
+                data.cell.styles.halign = 'right'
+              } else {
+                data.cell.styles.halign = 'center'
+              }
+            }
+          },
         })
       }
 
@@ -473,28 +540,62 @@ export const ReportsPage: React.FC = () => {
           startY: categoryY > 220 ? 25 : categoryY + 20,
           head: [['Merchant', 'Total Spent', 'Transactions']],
           body: merchantData,
-          theme: 'striped',
+          theme: 'grid',
+          tableWidth: pageWidth - 28, // Fixed width for consistent alignment
           headStyles: {
             fillColor: [16, 185, 129],
             textColor: [255, 255, 255],
             fontStyle: 'bold',
             fontSize: 11,
-            halign: 'left',
+            valign: 'middle',
+            cellPadding: { top: 4, right: 6, bottom: 4, left: 6 },
           },
           bodyStyles: {
             fontSize: 10,
             textColor: [55, 65, 81],
+            valign: 'middle',
+            cellPadding: { top: 4, right: 6, bottom: 4, left: 6 },
+            lineColor: [229, 231, 235],
+            lineWidth: 0.1,
           },
           alternateRowStyles: {
             fillColor: [249, 250, 251],
           },
           columnStyles: {
-            0: { fontStyle: 'bold', halign: 'left', cellWidth: 'auto' },
-            1: { halign: 'right', cellWidth: 'auto' },
-            2: { halign: 'center', cellWidth: 'auto' },
+            0: { 
+              fontStyle: 'bold',
+              cellWidth: (pageWidth - 28) * 0.55, // 55% width for merchant name
+              halign: 'left',
+              valign: 'middle',
+            },
+            1: { 
+              cellWidth: (pageWidth - 28) * 0.30, // 30% width for total spent
+              halign: 'right',
+              valign: 'middle',
+            },
+            2: { 
+              cellWidth: (pageWidth - 28) * 0.15, // 15% width for transactions
+              halign: 'center',
+              valign: 'middle',
+            },
           },
           margin: { left: 14, right: 14 },
-          tableWidth: pageWidth - 28,
+          styles: {
+            overflow: 'linebreak',
+            cellWidth: 'wrap',
+          },
+          didParseCell: function(data: any) {
+            // Ensure header alignment matches column content
+            if (data.section === 'head') {
+              if (data.column.index === 0) {
+                data.cell.styles.halign = 'left'
+              } else if (data.column.index === 1) {
+                data.cell.styles.halign = 'right'
+              } else if (data.column.index === 2) {
+                data.cell.styles.halign = 'center'
+              }
+            }
+          },
         })
       }
 
