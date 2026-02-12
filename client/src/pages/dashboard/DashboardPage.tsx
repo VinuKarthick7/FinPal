@@ -122,11 +122,11 @@ export const DashboardPage: React.FC = () => {
     retry: 2,
   })
 
-  // Fetch all expenses transactions (showing more transactions for home page)
+  // Fetch latest 4 expenses transactions for home page preview
   const { data: transactionsData, isLoading: transactionsLoading } = useQuery({
     queryKey: ['expenses-transactions'],
     queryFn: async () => {
-      const response = await dashboardApi.getTransactions({ limit: 20 })
+      const response = await dashboardApi.getTransactions({ limit: 4 })
       return response.data.transactions as Transaction[]
     },
     retry: 2,
