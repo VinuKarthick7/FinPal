@@ -142,7 +142,7 @@ router.get('/monthly', async (req: any, res: Response) => {
       percentage: totalExpenses > 0 ? Math.round((cat.amount / totalExpenses) * 10000) / 100 : 0,
     }));
 
-    // Get top merchants
+    // Get top merchants (all merchants sorted by amount)
     const topMerchants = await Transaction.aggregate([
       {
         $match: {
@@ -159,7 +159,6 @@ router.get('/monthly', async (req: any, res: Response) => {
         },
       },
       { $sort: { amount: -1 } },
-      { $limit: 10 },
     ]);
 
     // Get budget for the month
@@ -347,7 +346,7 @@ router.get('/export', async (req: any, res: Response) => {
 
     const totalExpenses = expenses.total || 0;
 
-    // Get top merchants
+    // Get top merchants (all merchants sorted by amount)
     const topMerchants = await Transaction.aggregate([
       {
         $match: {
@@ -364,7 +363,6 @@ router.get('/export', async (req: any, res: Response) => {
         },
       },
       { $sort: { amount: -1 } },
-      { $limit: 10 },
     ]);
 
     res.json({

@@ -1128,7 +1128,7 @@ export const ReportsPage: React.FC = () => {
                     </div>
                   ) : (monthlyData as MonthlyReport)?.topMerchants && (monthlyData as MonthlyReport).topMerchants.length > 0 ? (
                     <div className="space-y-3">
-                      {(monthlyData as MonthlyReport).topMerchants?.slice(0, 5).map((merchant, index) => (
+                      {(monthlyData as MonthlyReport).topMerchants?.map((merchant, index) => (
                         <div
                           key={merchant.merchant}
                           className="flex items-center justify-between p-3 bg-gray-50 rounded-xl"
