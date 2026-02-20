@@ -19,6 +19,7 @@ A full-stack MERN application for family expense tracking, built with React + Vi
 - **MongoDB** with Mongoose
 - **JWT** for authentication
 - **Express Validator** for input validation
+- **OpenAI API** for RAG-powered chatbot (FinMate)
 
 ## 📁 Project Structure
 
@@ -177,7 +178,37 @@ The app is fully responsive and works on:
 - [ ] Category-wise expense charts
 - [ ] Budget tracking
 
-## 🤝 Contributing
+## � FinMate - AI Chatbot (NEW!)
+
+FinMate is now powered by **RAG (Retrieval-Augmented Generation)** using OpenAI!
+
+### Features
+- 💬 Natural language conversations about your finances
+- 🎯 Personalized insights based on your real spending data
+- 🧠 Semantic search to find relevant financial context
+- 💡 Smart suggestions and actionable advice
+- 📊 Context-aware responses using GPT-4o-mini
+
+### Setup FinMate
+1. Get your OpenAI API key from [platform.openai.com](https://platform.openai.com)
+2. Add to `server/.env`:
+   ```env
+   OPENAI_API_KEY=sk-your-key-here
+   OPENAI_MODEL=gpt-4o-mini
+   OPENAI_EMBEDDING_MODEL=text-embedding-3-small
+   ```
+3. Restart the server
+4. Chat with FinMate in the app!
+
+📖 **Detailed Guide:** See [RAG_CHATBOT_GUIDE.md](RAG_CHATBOT_GUIDE.md) for complete documentation.
+
+**Example Queries:**
+- "How am I doing with my budget?"
+- "Where am I spending too much?"
+- "Can I afford ₹5000 today?"
+- "What bills are due soon?"
+
+## �🤝 Contributing
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
