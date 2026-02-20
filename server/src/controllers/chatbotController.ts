@@ -1,31 +1,30 @@
 /**
- * FinMate - Smart Budget Companion for FinPal
+ * FinMate - AI-Powered Budget Companion for FinPal (RAG Implementation)
  * 
  * Role & Identity:
- * FinMate is your friendly financial assistant built into FinPal.
- * Primary role: Help users track budgets, understand spending, and build better money habits
- * using their personal financial data.
+ * FinMate is your friendly AI financial assistant built into FinPal.
+ * Uses OpenAI with Retrieval-Augmented Generation (RAG) to provide personalized insights.
  * 
  * Core Principles:
  * - Always use the user's real data from their FinPal account
  * - Never guess or make up financial information
+ * - Uses semantic search to find relevant financial context
+ * - Generates natural, conversational responses with LLM
  * - If data is missing, guide the user to add it
  * - Keep responses simple, friendly, and actionable
  * 
+ * RAG Architecture:
+ * 1. Retrieve user's financial data from MongoDB
+ * 2. Create semantic embeddings of financial data chunks
+ * 3. Find relevant context using similarity search
+ * 4. Generate response using OpenAI with retrieved context
+ * 
  * Communication Style:
- * - Short, clear sentences
+ * - Natural, conversational language
  * - Encouraging and supportive tone
  * - No technical jargon or complex explanations
  * - Focus on what the user should do next
  * - Non-judgmental, especially for overspending
- * 
- * Data Sources:
- * - User profile and account information
- * - Monthly budgets and spending limits
- * - Expense records and categories
- * - Family sharing data and permissions
- * - Achievement history and rewards
- * - Reports and financial summaries
  */
 
 import { Request, Response } from 'express';
@@ -36,6 +35,7 @@ import { Family } from '../models/Family';
 import Achievement from '../models/Achievement';
 import { IUser } from '../models/User';
 import mongoose from 'mongoose';
+import { generateRAGResponse, generateWelcomeMessage, validateOpenAIConfig } from '../services/ragService';
 
 interface AuthenticatedRequest extends Request {
     user?: IUser;
@@ -592,8 +592,8 @@ No guessing, just facts! 😊`;
     }
 };
 
-// Main chat endpoint - FinMate Smart Budget Assistant
-// Always uses the user's real financial data from their FinPal account
+// Main chat endpoint - FinMate AI Assistant with RAG
+// Uses OpenAI to generate natural, context-aware responses
 export const sendMessage = async (req: AuthenticatedRequest, res: Response) => {
     try {
         const { message } = req.body;
@@ -615,23 +615,60 @@ export const sendMessage = async (req: AuthenticatedRequest, res: Response) => {
             });
         }
 
-        // Step 1: Detect intent from user message
-        const intent = detectIntent(message);
+        // Validate OpenAI configuration
+        if (!validateOpenAIConfig()) {
+            // Fallback to rule-based response if OpenAI is not configured
+            const intent = detectIntent(message);
+            const userData = await retrieveUserData(userId, userEmail);
+            const reply = generateResponse(intent, userData, userName, message);
+            
+            return res.status(200).json({
+                success: true,
+                reply,
+                mode: 'rule-based',
+                timestamp: new Date().toISOString()
+            });
+        }
 
-        // Step 2: Retrieve user's real financial data from database
+        // Step 1: Retrieve user's real financial data from database
         const userData = await retrieveUserData(userId, userEmail);
 
-        // Step 3: Generate response based on intent and user data
-        const reply = generateResponse(intent, userData, userName, message);
+        // Step 2: Generate AI response using RAG
+        const ragResponse = await generateRAGResponse(message, userData, userName);
 
         return res.status(200).json({
             success: true,
-            reply,
-            intent,
+            reply: ragResponse.reply,
+            mode: 'rag',
+            tokensUsed: ragResponse.tokensUsed,
             timestamp: new Date().toISOString()
         });
     } catch (error: any) {
-        console.error('FinMate chatbot error:', error);
+        console.error('FinMate RAG chatbot error:', error);
+        
+        // Fallback to rule-based system on error
+        try {
+            const userId = req.user?._id;
+            const userEmail = req.user?.email || '';
+            const userName = req.user?.fullName?.split(' ')[0] || 'User';
+            const message = req.body.message;
+            
+            if (userId && message) {
+                const intent = detectIntent(message);
+                const userData = await retrieveUserData(userId, userEmail);
+                const reply = generateResponse(intent, userData, userName, message);
+                
+                return res.status(200).json({
+                    success: true,
+                    reply,
+                    mode: 'rule-based-fallback',
+                    timestamp: new Date().toISOString()
+                });
+            }
+        } catch (fallbackError) {
+            console.error('Fallback error:', fallbackError);
+        }
+
         return res.status(500).json({
             success: false,
             message: "I'm having trouble right now. Please try again in a moment.",
@@ -640,7 +677,7 @@ export const sendMessage = async (req: AuthenticatedRequest, res: Response) => {
     }
 };
 
-// Get chat context (for initializing chat with user's current status)
+// Get chat context (for initializing chat with AI-generated welcome message)
 export const getChatContext = async (req: AuthenticatedRequest, res: Response) => {
     try {
         const userId = req.user?._id;
@@ -656,27 +693,19 @@ export const getChatContext = async (req: AuthenticatedRequest, res: Response) =
 
         const userData = await retrieveUserData(userId, userEmail);
 
-        // Generate personalized welcome message based on user's data
-        let welcomeMessage = `Hi ${userName}! 👋 I'm **FinMate**, your personal budget companion.\n\n`;
+        let welcomeMessage: string;
 
-        if (userData.isEndOfMonth) {
-            welcomeMessage += `We're in the last ${userData.daysLeft} days of the month!\n\n`;
-        }
-
-        if (userData.budget) {
-            const { percentage, isOverBudget, remaining } = userData.budget;
-            if (isOverBudget) {
-                welcomeMessage += `You've spent a bit over your budget this month.\nThat's okay — it happens 🙂\nLet me help you understand your spending better.\n`;
-            } else if (percentage >= 80) {
-                welcomeMessage += `You're close to your budget limit.\nYou have ${formatCurrency(remaining)} left to spend.\nLet's be mindful! 💡\n`;
-            } else {
-                welcomeMessage += `Your budget is looking good! ✅\nYou have ${formatCurrency(remaining)} remaining.\nKeep up the great work!\n`;
+        // Try to generate AI welcome message
+        if (validateOpenAIConfig()) {
+            try {
+                welcomeMessage = await generateWelcomeMessage(userData, userName);
+            } catch (error) {
+                console.error('AI welcome message error, using fallback:', error);
+                welcomeMessage = generateFallbackWelcome(userData, userName);
             }
         } else {
-            welcomeMessage += `I'll help you track your budget and spend smarter.\nStart by setting your monthly budget 😊\n`;
+            welcomeMessage = generateFallbackWelcome(userData, userName);
         }
-
-        welcomeMessage += `\nWhat would you like to know?`;
 
         return res.status(200).json({
             success: true,
@@ -695,4 +724,29 @@ export const getChatContext = async (req: AuthenticatedRequest, res: Response) =
             message: 'Failed to get chat context'
         });
     }
+};
+
+// Fallback welcome message (rule-based)
+const generateFallbackWelcome = (userData: any, userName: string): string => {
+    let welcomeMessage = `Hi ${userName}! 👋 I'm **FinMate**, your personal budget companion.\n\n`;
+
+    if (userData.isEndOfMonth) {
+        welcomeMessage += `We're in the last ${userData.daysLeft} days of the month!\n\n`;
+    }
+
+    if (userData.budget) {
+        const { percentage, isOverBudget, remaining } = userData.budget;
+        if (isOverBudget) {
+            welcomeMessage += `You've spent a bit over your budget this month.\nThat's okay — it happens 🙂\nLet me help you understand your spending better.\n`;
+        } else if (percentage >= 80) {
+            welcomeMessage += `You're close to your budget limit.\nYou have ${formatCurrency(remaining)} left to spend.\nLet's be mindful! 💡\n`;
+        } else {
+            welcomeMessage += `Your budget is looking good! ✅\nYou have ${formatCurrency(remaining)} remaining.\nKeep up the great work!\n`;
+        }
+    } else {
+        welcomeMessage += `I'll help you track your budget and spend smarter.\nStart by setting your monthly budget 😊\n`;
+    }
+
+    welcomeMessage += `\nWhat would you like to know?`;
+    return welcomeMessage;
 };
