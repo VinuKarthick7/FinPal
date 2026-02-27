@@ -34,6 +34,11 @@ export const config = {
   smtpSecure: process.env.SMTP_SECURE === 'true',
   emailFrom: process.env.EMAIL_FROM || 'FinPal <no-reply@finpal.local>',
   
+  // OpenAI (RAG Chatbot — FinMate)
+  openaiApiKey: process.env.OPENAI_API_KEY || '',
+  openaiModel: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+  openaiEmbeddingModel: process.env.OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small',
+
   // Google OAuth
   googleClientId: process.env.GOOGLE_CLIENT_ID || '',
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET || '',

@@ -46,9 +46,9 @@ export const authApi = {
     const normalizedEmail = email.toLowerCase().trim()
     // Trim password but preserve case
     const trimmedPassword = password.trim()
-    const response = await api.post('/auth/login', { 
-      email: normalizedEmail, 
-      password: trimmedPassword 
+    const response = await api.post('/auth/login', {
+      email: normalizedEmail,
+      password: trimmedPassword
     })
     return response.data
   },
@@ -567,15 +567,24 @@ export const achievementApi = {
 
 // Chatbot API (FinMate)
 export const chatbotApi = {
-  // Send a message to FinMate
-  sendMessage: async (message: string) => {
-    const response = await api.post('/chatbot/message', { message })
+  // Send a message to FinMate with optional conversation history
+  sendMessage: async (message: string, conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string }>) => {
+    const response = await api.post('/chatbot/message', {
+      message,
+      conversationHistory: conversationHistory ?? [],
+    })
     return response.data
   },
 
-  // Get chat context for initializing chat
+  // Get chat context for initializing chat (clears server history too)
   getContext: async () => {
     const response = await api.get('/chatbot/context')
+    return response.data
+  },
+
+  // Clear conversation history for a new session
+  clearHistory: async () => {
+    const response = await api.delete('/chatbot/history')
     return response.data
   },
 }
