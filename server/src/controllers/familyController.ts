@@ -546,16 +546,36 @@ export const getFamilyDashboard = async (req: Request, res: Response, next: Next
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
-    // Get all member IDs
-    const memberIds = family.members.map(m => m.userId);
+    // CRITICAL FIX: After .populate(), member.userId is a populated User document object,
+    // NOT a raw ObjectId. We must extract ._id from each populated doc for DB queries.
+    // Also build a lookup map from raw ObjectId string → populated user info.
+    const rawMemberIds: mongoose.Types.ObjectId[] = [];
+    const memberInfoMap: Record<string, { fullName: string; email: string; avatar?: string; nickname: string; relation: string }> = {};
 
-    // Fetch real transactions for all family members
+    family.members.forEach((member) => {
+      const populated = member.userId as any;
+      // After populate: populated = { _id: ObjectId, fullName, email, avatar }
+      // Before populate or if populate failed: populated = ObjectId
+      const rawId: mongoose.Types.ObjectId = populated._id ? populated._id : populated;
+      const rawIdStr = rawId.toString();
+
+      rawMemberIds.push(rawId);
+      memberInfoMap[rawIdStr] = {
+        fullName: populated.fullName || member.nickname || '',
+        email: populated.email || member.email || '',
+        avatar: populated.avatar || (member as any).avatar || '',
+        nickname: member.nickname || populated.fullName || '',
+        relation: member.relation || 'Other',
+      };
+    });
+
+    // Fetch real transactions for all family members using raw ObjectIds
     const transactions = await Transaction.find({
-      user: { $in: memberIds },
+      user: { $in: rawMemberIds },
       date: { $gte: startOfMonth, $lte: endOfMonth },
     }).sort({ date: -1 });
 
-    // Calculate member-wise spending
+    // Calculate member-wise spending using raw ObjectId strings as keys
     const memberSpending: Record<string, number> = {};
     const categorySpending: Record<string, number> = {};
     let totalFamilyExpenses = 0;
@@ -582,26 +602,28 @@ export const getFamilyDashboard = async (req: Request, res: Response, next: Next
       };
     });
 
-    // Get reminders for all members
+    // Get reminders for all members using raw ObjectIds
     const reminders = await Reminder.find({
-      user: { $in: memberIds },
+      user: { $in: rawMemberIds },
       dueDate: { $gte: new Date() },
       isPaid: false,
     }).sort({ dueDate: 1 }).limit(10);
 
-    // Prepare member data with real spending
+    // Prepare member data with real spending - use rawId for correct lookup
     const membersWithSpending = family.members.map((member) => {
-      const memberUser = member.userId as any;
+      const populated = member.userId as any;
+      const rawId: mongoose.Types.ObjectId = populated._id ? populated._id : populated;
+      const rawIdStr = rawId.toString();
       const memberObj = (member as any).toObject ? (member as any).toObject() : member;
-      const memberIdStr = member.userId.toString();
-      const spending = memberSpending[memberIdStr] || 0;
+      const info = memberInfoMap[rawIdStr] || {};
+      const spending = memberSpending[rawIdStr] || 0;
       
       return {
         ...memberObj,
-        userId: memberIdStr,
-        fullName: memberUser.fullName || member.nickname,
-        email: memberUser.email || member.email,
-        avatar: memberUser.avatar || member.avatar,
+        userId: rawIdStr,
+        fullName: info.fullName || member.nickname,
+        email: info.email || member.email,
+        avatar: info.avatar || (member as any).avatar,
         monthlySpending: spending,
       };
     });
@@ -646,7 +668,7 @@ export const getFamilyDashboard = async (req: Request, res: Response, next: Next
               : 0,
           })).sort((a, b) => b.amount - a.amount),
         },
-        recentTransactions: transactionsData.slice(0, 20),
+        recentTransactions: transactionsData.slice(0, 50),
         upcomingReminders: reminders,
         lastSyncedAt: new Date(),
       },
@@ -687,8 +709,8 @@ export const getMemberExpenses = async (req: Request, res: Response, next: NextF
       });
     }
 
-    // Build query
-    const query: any = { user: memberId };
+    // Build query - ensure memberId is cast to ObjectId for proper matching
+    const query: any = { user: new mongoose.Types.ObjectId(memberId) };
     
     if (startDate && endDate) {
       query.date = {
