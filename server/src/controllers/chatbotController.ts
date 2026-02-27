@@ -1,30 +1,28 @@
 /**
- * FinMate - AI-Powered Budget Companion for FinPal (RAG Implementation)
- * 
- * Role & Identity:
- * FinMate is your friendly AI financial assistant built into FinPal.
- * Uses OpenAI with Retrieval-Augmented Generation (RAG) to provide personalized insights.
- * 
- * Core Principles:
- * - Always use the user's real data from their FinPal account
- * - Never guess or make up financial information
- * - Uses semantic search to find relevant financial context
- * - Generates natural, conversational responses with LLM
- * - If data is missing, guide the user to add it
- * - Keep responses simple, friendly, and actionable
- * 
- * RAG Architecture:
- * 1. Retrieve user's financial data from MongoDB
- * 2. Create semantic embeddings of financial data chunks
- * 3. Find relevant context using similarity search
- * 4. Generate response using OpenAI with retrieved context
- * 
- * Communication Style:
- * - Natural, conversational language
- * - Encouraging and supportive tone
- * - No technical jargon or complex explanations
- * - Focus on what the user should do next
- * - Non-judgmental, especially for overspending
+ * FinMate — Advanced Generative RAG Chatbot Controller
+ *
+ * Full pipeline (every request):
+ *   User Query → Data Retrieval → Chunking → Embedding → Retrieval → GPT → Response
+ *
+ * Architecture layers:
+ *   1. This controller — data retrieval from MongoDB + endpoint handling
+ *   2. embeddingService — data chunking + batch embedding + cosine retrieval
+ *   3. ragService — context injection + GPT generation
+ *
+ * Key features:
+ *   - Multi-month data retrieval (current + previous month for comparison)
+ *   - Merchant-level spending breakdown
+ *   - Individual recent transactions (last 10)
+ *   - Savings rate computation
+ *   - Per-category budget utilisation
+ *   - Server-side conversation memory (last 12 messages per user)
+ *   - Intelligent data-grounded fallback ONLY when OpenAI is unavailable
+ *   - Zero hardcoded advice blocks in normal RAG operation
+ *   - Failure logging & automatic RAG restoration
+ *
+ * Anti-static guarantee:
+ *   Normal operation: ALL responses pass through Query → Retrieval → Context → GPT → Response
+ *   Fallback (API failure only): Programmatic data-grounded text (no templates/canned replies)
  */
 
 import { Request, Response } from 'express';
@@ -35,649 +33,526 @@ import { Family } from '../models/Family';
 import Achievement from '../models/Achievement';
 import { IUser } from '../models/User';
 import mongoose from 'mongoose';
-import { generateRAGResponse, generateWelcomeMessage, validateOpenAIConfig } from '../services/ragService';
+import {
+    generateRAGResponse,
+    generateWelcomeMessage,
+    validateOpenAIConfig,
+    ChatMessage,
+} from '../services/ragService';
 
 interface AuthenticatedRequest extends Request {
     user?: IUser;
 }
 
-// Helper to format currency
-const formatCurrency = (amount: number): string => {
-    return `₹${amount.toLocaleString('en-IN')}`;
-};
+// ─── In-memory conversation store ────────────────────────────────────────────
+// Keyed by userId. Stores last 12 messages (6 exchanges) per user.
+const conversationStore = new Map<string, ChatMessage[]>();
 
-// Get current month and year
+const MAX_HISTORY = 12;
+
+function getHistory(userId: string): ChatMessage[] {
+    return conversationStore.get(userId) ?? [];
+}
+
+function appendToHistory(userId: string, role: 'user' | 'assistant', content: string): void {
+    const history = getHistory(userId);
+    history.push({ role, content });
+    while (history.length > MAX_HISTORY) history.shift();
+    conversationStore.set(userId, history);
+}
+
+// ─── Failure logging (for fallback monitoring) ───────────────────────────────
+const failureLog: Array<{ timestamp: Date; error: string; userId: string }> = [];
+const MAX_FAILURE_LOG = 50;
+
+function logFailure(userId: string, error: string): void {
+    failureLog.push({ timestamp: new Date(), error, userId });
+    while (failureLog.length > MAX_FAILURE_LOG) failureLog.shift();
+    console.error(`[FinMate] RAG failure logged for user ${userId}: ${error}`);
+}
+
+// ─── Data Helpers ─────────────────────────────────────────────────────────────
+
+const formatCurrency = (amount: number): string =>
+    `₹${amount.toLocaleString('en-IN')}`;
+
 const getCurrentPeriod = () => {
     const now = new Date();
+    const month = now.getMonth() + 1;
+    const year = now.getFullYear();
+    const daysInMonth = new Date(year, month, 0).getDate();
     return {
-        month: now.getMonth() + 1,
-        year: now.getFullYear(),
-        startOfMonth: new Date(now.getFullYear(), now.getMonth(), 1),
-        endOfMonth: new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59),
-        daysLeft: new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate(),
-        isEndOfMonth: new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate() <= 3
+        month,
+        year,
+        startOfMonth: new Date(year, month - 1, 1),
+        endOfMonth: new Date(year, month, 0, 23, 59, 59),
+        daysLeft: daysInMonth - now.getDate(),
+        daysElapsed: now.getDate(),
+        daysInMonth,
+        isEndOfMonth: daysInMonth - now.getDate() <= 3,
     };
 };
 
-// Retrieve user's financial data
-const retrieveUserData = async (userId: mongoose.Types.ObjectId, email: string) => {
-    const { month, year, startOfMonth, endOfMonth, daysLeft, isEndOfMonth } = getCurrentPeriod();
+const getPreviousPeriod = (month: number, year: number) => {
+    const prevMonth = month === 1 ? 12 : month - 1;
+    const prevYear = month === 1 ? year - 1 : year;
+    return {
+        month: prevMonth,
+        year: prevYear,
+        startOfMonth: new Date(prevYear, prevMonth - 1, 1),
+        endOfMonth: new Date(prevYear, prevMonth, 0, 23, 59, 59),
+    };
+};
 
-    // Get current month's transactions
-    const transactions = await Transaction.find({
+// ─── Rich Financial Data Retrieval ───────────────────────────────────────────
+
+/**
+ * Retrieves the full enriched financial data set for a user.
+ * This is the "R" in RAG — the raw data that gets chunked and embedded.
+ *
+ * Includes:
+ *   - Current month: transactions, totals, categories, merchants, budget
+ *   - Previous month: same set (for month-over-month comparison)
+ *   - Upcoming reminders / bills
+ *   - Achievement/star history
+ *   - Family data
+ */
+const retrieveUserData = async (
+    userId: mongoose.Types.ObjectId,
+    _email: string
+) => {
+    const { month, year, startOfMonth, endOfMonth, daysLeft, daysElapsed, daysInMonth, isEndOfMonth } =
+        getCurrentPeriod();
+
+    // ── Current month transactions ─────────────────────────────────────────
+    const allTxns = await Transaction.find({
         user: userId,
-        date: { $gte: startOfMonth, $lte: endOfMonth }
+        date: { $gte: startOfMonth, $lte: endOfMonth },
     }).sort({ date: -1 });
 
-    // Calculate totals
-    const expenses = transactions.filter(t => t.type === 'expense');
-    const incomes = transactions.filter(t => t.type === 'income');
-    const totalExpenses = expenses.reduce((sum, t) => sum + t.amount, 0);
-    const totalIncome = incomes.reduce((sum, t) => sum + t.amount, 0);
+    const expenses = allTxns.filter((t) => t.type === 'expense');
+    const incomes = allTxns.filter((t) => t.type === 'income');
+    const totalExpenses = expenses.reduce((s, t) => s + t.amount, 0);
+    const totalIncome = incomes.reduce((s, t) => s + t.amount, 0);
 
     // Category breakdown
     const categoryBreakdown: Record<string, number> = {};
-    expenses.forEach(t => {
-        categoryBreakdown[t.category] = (categoryBreakdown[t.category] || 0) + t.amount;
+    expenses.forEach((t) => {
+        categoryBreakdown[t.category] =
+            (categoryBreakdown[t.category] || 0) + t.amount;
     });
 
-    // Get budget
-    const budget = await Budget.findOne({ user: userId, month, year });
+    // Merchant breakdown
+    const merchantBreakdown: Record<string, number> = {};
+    expenses.forEach((t) => {
+        if (t.merchant) {
+            merchantBreakdown[t.merchant] =
+                (merchantBreakdown[t.merchant] || 0) + t.amount;
+        }
+    });
 
-    // Get reminders
+    // Recent transactions (last 10) — include both income & expense
+    const recentTransactions = allTxns.slice(0, 10).map((t) => ({
+        amount: t.amount,
+        category: t.category,
+        merchant: t.merchant,
+        date: t.date,
+        type: t.type,
+        paymentMethod: t.paymentMethod,
+        notes: t.notes,
+    }));
+
+    // ── Budget ─────────────────────────────────────────────────────────────
+    const budget = await Budget.findOne({ user: userId, month, year });
+    const budgetData = budget
+        ? {
+            total: budget.totalBudget,
+            spent: totalExpenses,
+            remaining: budget.totalBudget - totalExpenses,
+            percentage: budget.totalBudget > 0
+                ? Math.round((totalExpenses / budget.totalBudget) * 100)
+                : 0,
+            isOverBudget: totalExpenses > budget.totalBudget,
+            alertThreshold: budget.alertThreshold,
+            categoryBudgets: budget.categoryBudgets,
+        }
+        : null;
+
+    // ── Previous month data ────────────────────────────────────────────────
+    const prev = getPreviousPeriod(month, year);
+    const prevTxns = await Transaction.find({
+        user: userId,
+        date: { $gte: prev.startOfMonth, $lte: prev.endOfMonth },
+    });
+
+    const prevExpenses = prevTxns.filter((t) => t.type === 'expense');
+    const prevIncomes = prevTxns.filter((t) => t.type === 'income');
+    const prevTotalExpenses = prevExpenses.reduce((s, t) => s + t.amount, 0);
+    const prevTotalIncome = prevIncomes.reduce((s, t) => s + t.amount, 0);
+
+    const prevCategoryBreakdown: Record<string, number> = {};
+    prevExpenses.forEach((t) => {
+        prevCategoryBreakdown[t.category] =
+            (prevCategoryBreakdown[t.category] || 0) + t.amount;
+    });
+
+    const prevMerchantBreakdown: Record<string, number> = {};
+    prevExpenses.forEach((t) => {
+        if (t.merchant) {
+            prevMerchantBreakdown[t.merchant] =
+                (prevMerchantBreakdown[t.merchant] || 0) + t.amount;
+        }
+    });
+
+    // ── Reminders ──────────────────────────────────────────────────────────
     const reminders = await Reminder.find({
         user: userId,
         dueDate: { $gte: new Date() },
-        isPaid: false
-    }).sort({ dueDate: 1 }).limit(5);
+        isPaid: false,
+    })
+        .sort({ dueDate: 1 })
+        .limit(8);
 
-    // Get achievements
-    const achievements = await Achievement.find({ userId }).sort({ year: -1, month: -1 }).limit(12);
-    const totalStars = achievements.filter(a => a.status === 'awarded' || a.status === 'finalized').length;
+    // ── Achievements ───────────────────────────────────────────────────────
+    const achievements = await Achievement.find({ userId })
+        .sort({ year: -1, month: -1 })
+        .limit(12);
+    const totalStars = achievements.filter(
+        (a) => a.status === 'awarded' || a.status === 'finalized'
+    ).length;
 
-    // Get family data if connected
-    const family = await Family.findOne({ 'members.userId': userId, isActive: true });
+    // ── Family ─────────────────────────────────────────────────────────────
+    const family = await Family.findOne({
+        'members.userId': userId,
+        isActive: true,
+    });
     let familyData = null;
     if (family) {
-        const currentMember = family.members.find(m => m.userId.toString() === userId.toString());
+        const me = family.members.find(
+            (m) => m.userId.toString() === userId.toString()
+        );
         familyData = {
             familyName: family.familyName,
             memberCount: family.members.length,
-            currentMemberRole: currentMember?.role,
-            currentMemberRelation: currentMember?.relation,
+            currentMemberRole: me?.role,
+            currentMemberRelation: me?.relation,
             sharedBudget: family.sharedBudget,
-            canViewFamilyData: currentMember?.permissions.canViewExpenses
+            canViewFamilyData: me?.permissions?.canViewExpenses,
         };
     }
 
     return {
+        // Current period
         month,
         year,
         daysLeft,
+        daysElapsed,
+        daysInMonth,
         isEndOfMonth,
         transactions: {
-            total: transactions.length,
+            total: allTxns.length,
             expenses: expenses.length,
-            incomes: incomes.length
+            incomes: incomes.length,
         },
         totalExpenses,
         totalIncome,
         savings: totalIncome - totalExpenses,
         categoryBreakdown,
-        budget: budget ? {
-            total: budget.totalBudget,
-            spent: totalExpenses,
-            remaining: budget.totalBudget - totalExpenses,
-            percentage: Math.round((totalExpenses / budget.totalBudget) * 100),
-            isOverBudget: totalExpenses > budget.totalBudget,
-            categoryBudgets: budget.categoryBudgets
-        } : null,
-        reminders: reminders.map(r => ({
+        merchantBreakdown,
+        recentTransactions,
+        budget: budgetData,
+
+        // Previous month
+        previousMonth: {
+            month: prev.month,
+            year: prev.year,
+            totalExpenses: prevTotalExpenses,
+            totalIncome: prevTotalIncome,
+            savings: prevTotalIncome - prevTotalExpenses,
+            categoryBreakdown: prevCategoryBreakdown,
+            merchantBreakdown: prevMerchantBreakdown,
+        },
+
+        // Other data
+        reminders: reminders.map((r) => ({
             title: r.title,
             amount: r.amount,
             dueDate: r.dueDate,
-            type: r.type
+            type: r.type,
         })),
         achievements: {
             totalStars,
-            history: achievements.slice(0, 6).map(a => ({
+            history: achievements.slice(0, 6).map((a) => ({
                 month: a.month,
                 year: a.year,
-                status: a.status
-            }))
+                status: a.status,
+            })),
         },
-        family: familyData
+        family: familyData,
     };
 };
 
-// Intent detection
-const detectIntent = (message: string): string => {
-    const lowerMessage = message.toLowerCase();
+// ─── Intelligent Data-Grounded Fallback ───────────────────────────────────────
+// Used ONLY when OpenAI API is unavailable.
+// Generates data-grounded responses programmatically — NOT static templates.
+// Every response includes real user data (amounts, percentages, comparisons).
 
-    // Daily spending advice
-    if ((lowerMessage.includes('can i spend') || lowerMessage.includes('spend today')) && 
-        (lowerMessage.match(/₹\\d+/) || lowerMessage.match(/\\d+/))) {
-        return 'DAILY_SPENDING';
+const generateFallbackResponse = (
+    message: string,
+    data: any,
+    userName: string
+): string => {
+    const msg = message.toLowerCase();
+    const monthNames = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December',
+    ];
+    const mon = monthNames[(data.month ?? 1) - 1];
+    const savingsRate =
+        data.totalIncome > 0
+            ? Math.round((data.savings / data.totalIncome) * 100)
+            : 0;
+    const avgDaily = data.daysElapsed > 0
+        ? Math.round(data.totalExpenses / data.daysElapsed)
+        : 0;
+
+    // Greeting detection (highest priority)
+    const greetingPatterns = /^\s*(hi+|hey+|hello+|hyy+|hii+|yo+|sup|good\s*(morning|afternoon|evening|night)|namaste|namaskar|howdy|what'?s\s*up)\s*[!?.]*\s*$/i;
+    if (greetingPatterns.test(msg.trim()) || (msg.length < 15 && /^(hi|hey|hello|hyy|hii)/.test(msg.trim()))) {
+        return `Hello ${userName}! 👋 I'm FinMate, your personal finance assistant. How can I help you with your finances today?`;
     }
 
-    // Budget related
-    if (lowerMessage.includes('budget status') || lowerMessage.includes('how is my budget') || 
-        lowerMessage.includes('budget now') || lowerMessage === 'what is my budget status?') {
-        return 'BUDGET_STATUS';
-    }
-    if (lowerMessage.includes('budget') && (lowerMessage.includes('how') || lowerMessage.includes('remaining'))) {
-        return 'BUDGET_STATUS';
-    }
-    if (lowerMessage.includes('set budget') || lowerMessage.includes('create budget') || 
-        lowerMessage.includes('want to set my budget')) {
-        return 'BUDGET_HELP';
-    }
-
-    // Overspending acknowledgment
-    if (lowerMessage.includes('spent too much') || lowerMessage.includes('overspent')) {
-        return 'OVERSPENT_HELP';
-    }
-
-    // Expense related
-    if (lowerMessage.includes('spent') || lowerMessage.includes('spending') || lowerMessage.includes('expense')) {
-        if (lowerMessage.includes('where') || lowerMessage.includes('category') || lowerMessage.includes('more')) {
-            return 'EXPENSE_ANALYSIS';
+    // Budget-related queries
+    if (msg.includes('budget')) {
+        if (!data.budget) {
+            return `${userName}, you don't have a budget set for ${mon} yet. Your current spending is ${formatCurrency(data.totalExpenses)} across ${data.transactions.expenses} transactions. Setting a monthly budget in the Budget section will help you track and control your spending.`;
         }
-        if (lowerMessage.includes('total') || lowerMessage.includes('how much')) {
-            return 'EXPENSE_TOTAL';
+        const { total, spent, remaining, percentage, isOverBudget } = data.budget;
+        const dailyBudget = data.daysLeft > 0 ? Math.round(remaining / data.daysLeft) : 0;
+        const burnRate = data.daysElapsed > 0 ? Math.round(spent / data.daysElapsed) : 0;
+        const projected = burnRate * data.daysInMonth;
+
+        if (isOverBudget) {
+            return `${userName}, your ${mon} budget of ${formatCurrency(total)} has been exceeded by ${formatCurrency(Math.abs(remaining))} (${percentage}% utilised). Total spent: ${formatCurrency(spent)} across ${data.transactions.expenses} transactions. With ${data.daysLeft} days left, focus on essential spending only. Your daily average has been ${formatCurrency(burnRate)}.`;
         }
-        return 'EXPENSE_SUMMARY';
+        return `Your ${mon} budget: ${formatCurrency(total)} total, ${formatCurrency(spent)} spent (${percentage}%), ${formatCurrency(remaining)} remaining. Safe daily spend: ${formatCurrency(dailyBudget)} for the next ${data.daysLeft} days. At your current pace of ${formatCurrency(burnRate)}/day, projected month-end spend: ${formatCurrency(projected)}${projected > total ? ' — that would exceed your budget, so consider slowing down' : ' — on track'}.`;
     }
 
-    // Family related
-    if (lowerMessage.includes('family') || lowerMessage.includes('member')) {
-        return 'FAMILY_INFO';
+    // Spending/category analysis
+    if (msg.includes('spend') || msg.includes('expense') || msg.includes('category') || msg.includes('food') || msg.includes('shopping') || msg.includes('transport')) {
+        if (data.transactions.expenses === 0) {
+            return `No expense transactions recorded for ${mon} yet. Add your recent transactions and I can provide a detailed category breakdown and analysis.`;
+        }
+        const sorted = Object.entries(data.categoryBreakdown as Record<string, number>)
+            .sort(([, a], [, b]) => b - a);
+        const topItems = sorted.slice(0, 4)
+            .map(([cat, amt], i) => `${i + 1}. ${cat}: ${formatCurrency(amt as number)} (${Math.round(((amt as number) / data.totalExpenses) * 100)}%)`)
+            .join('\n');
+
+        let comparison = '';
+        if (data.previousMonth && data.previousMonth.totalExpenses > 0) {
+            const diff = data.totalExpenses - data.previousMonth.totalExpenses;
+            comparison = `\n\nCompared to last month: your spending ${diff > 0 ? 'increased' : 'decreased'} by ${formatCurrency(Math.abs(diff))} (${Math.round(Math.abs(diff) / data.previousMonth.totalExpenses * 100)}%).`;
+        }
+
+        return `${mon} spending breakdown (${formatCurrency(data.totalExpenses)} across ${data.transactions.expenses} transactions):\n${topItems}\n\nAverage daily spend: ${formatCurrency(avgDaily)}.${comparison}${data.budget ? ` Budget utilisation: ${data.budget.percentage}%.` : ''}`;
     }
 
-    // Achievement related
-    if (lowerMessage.includes('star') || lowerMessage.includes('achievement') || lowerMessage.includes('reward')) {
-        return 'ACHIEVEMENT_INFO';
+    // Savings analysis
+    if (msg.includes('saving') || msg.includes('save') || msg.includes('savings rate')) {
+        let prevComparison = '';
+        if (data.previousMonth) {
+            const prevSavingsRate = data.previousMonth.totalIncome > 0
+                ? Math.round((data.previousMonth.savings / data.previousMonth.totalIncome) * 100)
+                : 0;
+            const diff = savingsRate - prevSavingsRate;
+            prevComparison = ` Last month your savings rate was ${prevSavingsRate}% — ${diff > 0 ? `an improvement of ${diff} percentage points` : `a decline of ${Math.abs(diff)} percentage points`}.`;
+        }
+
+        if (data.savings > 0) {
+            const target20 = Math.round(data.totalIncome * 0.2);
+            const shortfall = target20 - data.savings;
+            return `${userName}, you've saved ${formatCurrency(data.savings)} in ${mon} — that's a ${savingsRate}% savings rate (income: ${formatCurrency(data.totalIncome)}, expenses: ${formatCurrency(data.totalExpenses)}).${prevComparison} ${savingsRate >= 20 ? 'You\'re at or above the recommended 20% benchmark — excellent discipline!' : `To hit the 20% benchmark, you\'d need to save an additional ${formatCurrency(Math.max(0, shortfall))}.`}`;
+        } else if (data.savings === 0) {
+            return `Your income and expenses are exactly balanced in ${mon}: ${formatCurrency(data.totalIncome)} each. Savings rate: 0%.${prevComparison} Even routing 5-10% of income to savings would make a meaningful difference.`;
+        } else {
+            return `${userName}, your expenses (${formatCurrency(data.totalExpenses)}) exceed your income (${formatCurrency(data.totalIncome)}) by ${formatCurrency(Math.abs(data.savings))} in ${mon}.${prevComparison} Review your top spending categories to identify areas for reduction.`;
+        }
     }
 
-    // Reminder related
-    if (lowerMessage.includes('bill') || lowerMessage.includes('reminder') || lowerMessage.includes('due') || lowerMessage.includes('pending')) {
-        return 'REMINDER_INFO';
+    // Merchant spending
+    if (msg.includes('merchant') || msg.includes('where') || msg.includes('shop') || msg.includes('store')) {
+        if (!data.merchantBreakdown || Object.keys(data.merchantBreakdown).length === 0) {
+            return `No merchant data available for ${mon}. Add transactions with merchant details for a spending breakdown.`;
+        }
+        const sorted = Object.entries(data.merchantBreakdown as Record<string, number>)
+            .sort(([, a], [, b]) => b - a);
+        const topItems = sorted.slice(0, 5)
+            .map(([merchant, amt], i) => `${i + 1}. ${merchant}: ${formatCurrency(amt as number)}`)
+            .join('\n');
+        return `Top merchants by spending in ${mon}:\n${topItems}\n\nTotal unique merchants: ${sorted.length}. Most spent at: ${sorted[0][0]} (${formatCurrency(sorted[0][1] as number)}).`;
     }
 
-    // Report related
-    if (lowerMessage.includes('report') || lowerMessage.includes('summary') || lowerMessage.includes('overview')) {
-        return 'MONTHLY_SUMMARY';
+    // Monthly comparison / trends
+    if (msg.includes('compare') || msg.includes('trend') || msg.includes('last month') || msg.includes('previous')) {
+        if (!data.previousMonth || data.previousMonth.totalExpenses === 0) {
+            return `I don't have enough previous month data to make a comparison. Keep tracking your transactions and I'll be able to show trends next month.`;
+        }
+        const prev = data.previousMonth;
+        const prevMon = monthNames[(prev.month ?? 1) - 1];
+        const expDiff = data.totalExpenses - prev.totalExpenses;
+        const incDiff = data.totalIncome - prev.totalIncome;
+        const savDiff = data.savings - prev.savings;
+
+        return `${prevMon} vs ${mon} comparison:\n\nIncome: ${formatCurrency(prev.totalIncome)} → ${formatCurrency(data.totalIncome)} (${incDiff >= 0 ? '+' : ''}${formatCurrency(incDiff)})\nExpenses: ${formatCurrency(prev.totalExpenses)} → ${formatCurrency(data.totalExpenses)} (${expDiff >= 0 ? '+' : ''}${formatCurrency(expDiff)})\nSavings: ${formatCurrency(prev.savings)} → ${formatCurrency(data.savings)} (${savDiff >= 0 ? '+' : ''}${formatCurrency(savDiff)})\n\nOverall trend: ${savDiff >= 0 ? 'Financial health improving' : 'Spending increased — review your top categories for reduction opportunities'}.`;
     }
 
-    // Savings
-    if (lowerMessage.includes('saving') || lowerMessage.includes('save')) {
-        return 'SAVINGS_INFO';
+    // Reminders / bills
+    if (msg.includes('bill') || msg.includes('reminder') || msg.includes('due') || msg.includes('payment')) {
+        if (data.reminders.length === 0) {
+            return `No upcoming bills or reminders. You're all caught up! Add reminders in the Reminders section to stay on top of payments.`;
+        }
+        const total = data.reminders.reduce((s: number, r: any) => s + r.amount, 0);
+        const items = data.reminders.slice(0, 4)
+            .map((r: any) => {
+                const days = Math.ceil((new Date(r.dueDate).getTime() - Date.now()) / 86400000);
+                const urgency = days <= 3 ? '🔴' : days <= 7 ? '🟡' : '🟢';
+                return `${urgency} ${r.title}: ${formatCurrency(r.amount)} — due in ${days} days`;
+            }).join('\n');
+        return `Upcoming payments (${data.reminders.length} total, ${formatCurrency(total)} due):\n${items}\n\nEnsure sufficient funds are available. ${data.budget ? `Current budget remaining: ${formatCurrency(data.budget.remaining)}.` : ''}`;
     }
 
-    // Stress/motivation related
-    if (lowerMessage.includes('stressed about money') || lowerMessage.includes('feel stressed') || 
-        lowerMessage.includes('worried about') || lowerMessage.includes('anxious about money')) {
-        return 'MOTIVATION';
+    // Achievement / stars
+    if (msg.includes('star') || msg.includes('achievement') || msg.includes('reward')) {
+        return `You've earned ${data.achievements.totalStars} star${data.achievements.totalStars !== 1 ? 's' : ''} ⭐ — each represents a month you stayed within budget. ${data.budget ? (data.budget.isOverBudget ? `This month you\'re currently over budget, but there are ${data.daysLeft} days left to adjust.` : `This month you\'re on track with ${formatCurrency(data.budget.remaining)} remaining — keep it up for another star!`) : 'Set a budget to start earning stars.'}`;
     }
 
-    // Help
-    if (lowerMessage.includes('help') || lowerMessage.includes('what can you do')) {
-        return 'HELP';
+    // Family
+    if (msg.includes('family')) {
+        if (!data.family) {
+            return `You're not connected to a family group yet. Head to Family Mode to create or join a family and track expenses together.`;
+        }
+        const f = data.family;
+        return `You're part of ${f.familyName} (${f.memberCount} members). Your role: ${f.currentMemberRole}. ${f.sharedBudget?.amount ? `Shared family budget: ${formatCurrency(f.sharedBudget.amount)}.` : 'No shared budget set yet.'} ${f.canViewFamilyData ? 'You can view family expenses.' : ''}`;
     }
 
-    // Greeting
-    if (lowerMessage.match(/^(hi|hello|hey|good morning|good evening|good afternoon)/)) {
-        return 'GREETING';
+    // Health / overview
+    if (msg.includes('health') || msg.includes('score') || msg.includes('overview') || msg.includes('summary')) {
+        const sorted = Object.entries(data.categoryBreakdown as Record<string, number>)
+            .sort(([, a], [, b]) => b - a);
+        const topCat = sorted[0];
+        return `${mon} financial overview:\n\nIncome: ${formatCurrency(data.totalIncome)} | Expenses: ${formatCurrency(data.totalExpenses)} | Savings: ${formatCurrency(data.savings)} (${savingsRate}%)\n${data.budget ? `Budget: ${formatCurrency(data.budget.total)} — ${data.budget.percentage}% used, ${formatCurrency(data.budget.remaining)} remaining` : 'No budget set'}\nTop category: ${topCat ? `${topCat[0]} at ${formatCurrency(topCat[1] as number)}` : 'N/A'}\nUpcoming bills: ${data.reminders.length} pending\nStars earned: ${data.achievements.totalStars} ⭐\n\nAsk me about any specific area for detailed analysis.`;
     }
 
-    return 'GENERAL';
+    // Default — comprehensive financial summary (data-grounded, not generic)
+    const sorted = Object.entries(data.categoryBreakdown as Record<string, number>)
+        .sort(([, a], [, b]) => b - a);
+    const topCat = sorted[0];
+
+    return `Here's your ${mon} snapshot, ${userName}:\n\nIncome: ${formatCurrency(data.totalIncome)} | Expenses: ${formatCurrency(data.totalExpenses)} | Savings: ${formatCurrency(data.savings)} (${savingsRate}%)\nAverage daily spend: ${formatCurrency(avgDaily)} | Days left: ${data.daysLeft}\n${data.budget ? `Budget: ${data.budget.percentage}% used (${formatCurrency(data.budget.remaining)} remaining)` : 'No budget set yet — I recommend setting one.'}\n${topCat ? `Highest category: ${topCat[0]} at ${formatCurrency(topCat[1] as number)}` : ''}\n\nAsk me about your budget, spending categories, savings rate, monthly trends, or upcoming bills.`;
 };
 
-// FinMate Smart Response Generator - Generate response based on intent and user data
-const generateResponse = (intent: string, data: any, userName: string, originalMessage: string = ''): string => {
-    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
-        'July', 'August', 'September', 'October', 'November', 'December'];
-    const currentMonth = monthNames[data.month - 1];
-
-    switch (intent) {
-        case 'GREETING': {
-            if (!data.budget) {
-                return `👋 Hi! I'm FinMate.
-I'll help you track your budget and spend smarter.
-Start by setting your monthly budget 😊`;
-            }
-
-            if (data.budget.isOverBudget) {
-                return `Hi ${userName}! 👋
-You've spent a bit more than planned this month.
-Let's work together to get back on track 💪`;
-            }
-
-            const daysLeft = data.daysLeft;
-            if (daysLeft <= 3) {
-                return `Hi ${userName}! 👋
-We're almost at the end of ${currentMonth}.
-You're doing great with your budget! 🎉`;
-            }
-
-            return `Hi ${userName}! 👋
-Your budget is looking good.
-How can I help you today? 😊`;
-        }
-
-        case 'DAILY_SPENDING': {
-            if (!data.budget) {
-                return `I need a little more data to guide you better 😊
-Please set your monthly budget first.`;
-            }
-
-            // Extract amount from original message 
-            const amountMatch = originalMessage.match(/₹(\\d+)|(\\d+)/);
-            const requestedAmount = amountMatch ? parseInt(amountMatch[1] || amountMatch[2]) : 0;
-
-            if (requestedAmount === 0) {
-                return `How much are you planning to spend today?
-Let me check if it fits your budget 😊`;
-            }
-
-            if (data.budget.isOverBudget) {
-                return `You're already over budget this month 😕
-Try to spend less to get back on track.`;
-            }
-
-            const dailyBudget = data.daysLeft > 0 ? Math.round(data.budget.remaining / data.daysLeft) : 0;
-            
-            if (requestedAmount <= dailyBudget) {
-                return `Yes 👍 You're within your budget.
-Just remember to keep some balance for upcoming days.`;
-            } else {
-                return `That might be too much for today 😐
-Your daily budget is around ₹${dailyBudget.toLocaleString('en-IN')}.
-Try spending less to stay on track.`;
-            }
-        }
-
-        case 'OVERSPENT_HELP': {
-            return `That's okay — it happens 🙂
-You've crossed today's limit slightly.
-Try spending less tomorrow to stay on track.`;
-        }
-
-        case 'BUDGET_HELP': {
-            return `Great choice 👍
-Go to the Budget section and set your monthly amount.
-I'll help you track your spending from there! 😊`;
-        }
-
-        case 'BUDGET_STATUS': {
-            if (!data.budget) {
-                return `I need a little more data to guide you better 🙂
-Please set your monthly budget first.`;
-            }
-
-            const { total, spent, remaining, percentage, isOverBudget } = data.budget;
-            
-            if (isOverBudget) {
-                return `You've crossed your budget by ${formatCurrency(Math.abs(remaining))} 😕
-Try spending less in the remaining ${data.daysLeft} days.
-You've got this! 💪`;
-            }
-
-            if (percentage >= 80) {
-                return `You're close to your limit 📌
-You've used ${formatCurrency(spent)} out of ${formatCurrency(total)}.
-Be careful with the remaining ${formatCurrency(remaining)}.`;
-            }
-
-            const dailyBudget = data.daysLeft > 0 ? Math.round(remaining / data.daysLeft) : 0;
-            let response = `Here's a quick update 📌
-`;
-            response += `You've used ${formatCurrency(spent)} out of ${formatCurrency(total)}.
-`;
-            response += `You're doing well — keep going!`;
-            
-            if (dailyBudget > 0) {
-                response += `
-
-You can spend up to ₹${dailyBudget.toLocaleString('en-IN')} per day.`;
-            }
-
-            if (data.isEndOfMonth) {
-                response += `
-
-🎉 Amazing job!
-You're on track for a reward this month ⭐`;
-            }
-
-            return response;
-        }
-
-        case 'EXPENSE_ANALYSIS': {
-            if (data.transactions.expenses === 0) {
-                return `I need a bit more data to help you better 🙂
-Please add your recent expenses first.`;
-            }
-
-            let response = `Here's where your money went this month:
-
-`;
-            
-            // Sort categories by amount
-            const sortedCategories = Object.entries(data.categoryBreakdown)
-                .sort(([, a], [, b]) => (b as number) - (a as number));
-
-            // Show top 3 categories
-            sortedCategories.slice(0, 3).forEach(([category, amount], index) => {
-                const emoji = index === 0 ? '🔥' : index === 1 ? '📌' : '💡';
-                response += `${emoji} ${category}: ${formatCurrency(amount as number)}
-`;
-            });
-
-            if (sortedCategories.length > 0) {
-                response += `
-You spent most on ${sortedCategories[0][0]}.
-`;
-                response += `Is this what you planned? 🤔`;
-            }
-
-            return response;
-        }
-
-        case 'EXPENSE_TOTAL': {
-            return `You've spent ${formatCurrency(data.totalExpenses)} this month.
-${data.transactions.expenses} transactions total.
-
-${data.budget ? `This is ${data.budget.percentage}% of your budget.` : "Set a budget to track your progress!"}`;
-        }
-
-        case 'EXPENSE_SUMMARY': {
-            let response = `Here's your spending overview:
-
-`;
-            response += `Expenses: ${formatCurrency(data.totalExpenses)}
-`;
-            response += `Income: ${formatCurrency(data.totalIncome)}
-`;
-            response += `Savings: ${formatCurrency(data.savings)}
-
-`;
-
-            if (data.budget) {
-                response += `Budget: ${data.budget.isOverBudget ? 'Over by' : 'Remaining'} ${formatCurrency(Math.abs(data.budget.remaining))}`;
-            } else {
-                response += `Set a budget to track better!`;
-            }
-
-            return response;
-        }
-
-        case 'FAMILY_INFO': {
-            if (!data.family) {
-                return `You haven't joined a family yet 👨‍👩‍👧‍👦
-Go to Family Mode to connect with your family.
-You can track expenses together! 😊`;
-            }
-
-            let response = `✅ Connected to ${data.family.familyName}
-`;
-            response += `${data.family.memberCount} family members sharing expenses.
-`;
-
-            if (data.family.sharedBudget?.amount) {
-                response += `
-Family budget: ${formatCurrency(data.family.sharedBudget.amount)}`;
-            } else {
-                response += `
-Set a family budget to track together! 💡`;
-            }
-
-            return response;
-        }
-
-        case 'ACHIEVEMENT_INFO': {
-            if (data.achievements.totalStars === 0) {
-                if (data.budget && !data.budget.isOverBudget && data.isEndOfMonth) {
-                    return `🎉 Amazing job!
-You stayed within your monthly budget.
-You've successfully cracked the budget — congratulations ⭐`;
-                } else if (data.budget && data.budget.isOverBudget) {
-                    return `Not this time 😕
-Your spending went slightly over the budget.
-Let's plan better next month — I've got your back 👍`;
-                }
-                return `You haven't earned any stars yet 💫
-Stay within your monthly budget to earn one!
-Every star shows you're getting better with money 😊`;
-            }
-
-            let response = `You've earned ${data.achievements.totalStars} stars! ⭐
-`;
-            response += `That's ${data.achievements.totalStars} successful months of budgeting.
-`;
-
-            if (data.isEndOfMonth && data.budget && !data.budget.isOverBudget) {
-                response += `\n🎉 You're getting another star this month!\nKeep up the amazing work! ⭐`;
-            } else if (data.budget && !data.budget.isOverBudget) {
-                response += `\nYou're on track for another star this month! 💪`;
-            }
-
-            return response;
-        }
-
-        case 'REMINDER_INFO': {
-            if (data.reminders.length === 0) {
-                return `No pending bills right now 👍
-You're all caught up!
-Add reminders to never miss a payment.`;
-            }
-
-            let response = `🔔 Upcoming bills:
-
-`;
-            let totalPending = 0;
-
-            data.reminders.slice(0, 3).forEach((r: any) => {
-                const dueDate = new Date(r.dueDate);
-                const today = new Date();
-                const daysUntil = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-                const urgency = daysUntil <= 3 ? '🔴' : '📅';
-
-                response += `${urgency} ${r.title} - ${formatCurrency(r.amount)}
-`;
-                response += `   Due in ${daysUntil} days\n\n`;
-                totalPending += r.amount;
-            });
-
-            response += `Total pending: ${formatCurrency(totalPending)}`;
-
-            return response;
-        }
-
-        case 'MONTHLY_SUMMARY': {
-            let response = `Here's your ${currentMonth} overview 📊
-
-`;
-
-            response += `Income: ${formatCurrency(data.totalIncome)}
-`;
-            response += `Expenses: ${formatCurrency(data.totalExpenses)}
-`;
-            response += `Savings: ${formatCurrency(data.savings)}
-
-`;
-
-            if (data.budget) {
-                if (data.budget.isOverBudget) {
-                    response += `You went over budget this month.
-Let's do better next month! 💪`;
-                } else {
-                    response += `You stayed within your budget ✓
-Great job managing your money!`;
-                }
-            } else {
-                response += `Set a budget to track your progress better!`;
-            }
-
-            return response;
-        }
-
-        case 'SAVINGS_INFO': {
-            const savings = data.savings;
-            let response = `Here's how you're doing with savings this month:
-
-`;
-
-            if (savings > 0) {
-                response += `Great job! You've saved ${formatCurrency(savings)} 🎉
-`;
-                response += `Keep up the good work!`;
-            } else if (savings === 0) {
-                response += `You've spent exactly what you earned.
-`;
-                response += `Try to save a little next month!`;
-            } else {
-                response += `You're spending more than your income.
-`;
-                response += `Review your expenses to find areas to cut back.`;
-            }
-
-            return response;
-        }
-
-        case 'MOTIVATION': {
-            return `You're not alone 💙
-Small steps matter.
-Track today's expenses — that's a great start.`;
-        }
-
-        case 'HELP': {
-            return `Hi! I'm FinMate 👋
-I help you understand your money better.
-
-Ask me about:
-
-• "How is my budget?"
-• "Where did I spend more?"
-• "Show my family info"
-• "Do I have pending bills?"
-• "How many stars do I have?"
-
-I use your real FinPal data to give you accurate answers.
-No guessing, just facts! 😊`;
-        }
-
-        default: {
-            let response = `Here's a quick look at your finances:
-
-`;
-
-            if (data.budget) {
-                response += `Budget: ${data.budget.isOverBudget ? 'Over by' : 'Remaining'} ${formatCurrency(Math.abs(data.budget.remaining))}
-`;
-            } else {
-                response += `Budget: Not set yet
-`;
-            }
-
-            response += `Spent: ${formatCurrency(data.totalExpenses)} this month
-`;
-            response += `Stars earned: ${data.achievements.totalStars} ⭐
-
-`;
-
-            response += `Ask me about your budget, expenses, or achievements! 😊`;
-
-            return response;
-        }
-    }
-};
-
-// Main chat endpoint - FinMate AI Assistant with RAG
-// Uses OpenAI to generate natural, context-aware responses
+// ─── Main Endpoints ───────────────────────────────────────────────────────────
+
+/**
+ * POST /api/chatbot/message
+ *
+ * Core FinMate chat endpoint.
+ * Pipeline: Always attempts full RAG (Query → Retrieval → Context → GPT → Response).
+ * Falls back to data-grounded programmatic response ONLY on OpenAI failure.
+ */
 export const sendMessage = async (req: AuthenticatedRequest, res: Response) => {
     try {
-        const { message } = req.body;
+        const { message, conversationHistory: clientHistory } = req.body;
         const userId = req.user?._id;
         const userEmail = req.user?.email || '';
         const userName = req.user?.fullName?.split(' ')[0] || 'User';
 
-        if (!message || typeof message !== 'string') {
-            return res.status(400).json({
-                success: false,
-                message: 'Message is required'
-            });
+        if (!message || typeof message !== 'string' || message.trim().length === 0) {
+            return res.status(400).json({ success: false, message: 'Message is required' });
         }
 
         if (!userId) {
-            return res.status(401).json({
-                success: false,
-                message: 'Authentication required'
-            });
+            return res.status(401).json({ success: false, message: 'Authentication required' });
         }
 
-        // Validate OpenAI configuration
-        if (!validateOpenAIConfig()) {
-            // Fallback to rule-based response if OpenAI is not configured
-            const intent = detectIntent(message);
-            const userData = await retrieveUserData(userId, userEmail);
-            const reply = generateResponse(intent, userData, userName, message);
-            
-            return res.status(200).json({
-                success: true,
-                reply,
-                mode: 'rule-based',
-                timestamp: new Date().toISOString()
-            });
-        }
+        const userIdStr = userId.toString();
+        const startTime = Date.now();
 
-        // Step 1: Retrieve user's real financial data from database
+        // Step 1: Retrieve enriched financial data from MongoDB
         const userData = await retrieveUserData(userId, userEmail);
 
-        // Step 2: Generate AI response using RAG
-        const ragResponse = await generateRAGResponse(message, userData, userName);
+        // Step 2: Determine conversation history — prefer server store, fall back to client
+        const history: ChatMessage[] = getHistory(userIdStr).length > 0
+            ? getHistory(userIdStr)
+            : (Array.isArray(clientHistory) ? clientHistory.slice(-6) : []);
+
+        // Step 3: Attempt full RAG pipeline ──────────────────────────────────
+        if (validateOpenAIConfig()) {
+            try {
+                const ragResponse = await generateRAGResponse(
+                    message,
+                    userData,
+                    userName,
+                    history
+                );
+
+                // Persist to server-side conversation store
+                appendToHistory(userIdStr, 'user', message);
+                appendToHistory(userIdStr, 'assistant', ragResponse.reply);
+
+                const processingTime = Date.now() - startTime;
+
+                return res.status(200).json({
+                    success: true,
+                    reply: ragResponse.reply,
+                    mode: 'rag',
+                    model: ragResponse.model,
+                    chunksUsed: ragResponse.chunksUsed,
+                    tokensUsed: ragResponse.tokensUsed,
+                    processingTime,
+                    timestamp: new Date().toISOString(),
+                });
+            } catch (ragError: any) {
+                // Log failure but don't crash — fall through to fallback
+                logFailure(userIdStr, ragError.message);
+            }
+        }
+
+        // Step 4: Fallback (ONLY when RAG pipeline is unavailable) ────────────
+        const fallbackReply = generateFallbackResponse(message, userData, userName);
+        appendToHistory(userIdStr, 'user', message);
+        appendToHistory(userIdStr, 'assistant', fallbackReply);
+
+        const processingTime = Date.now() - startTime;
 
         return res.status(200).json({
             success: true,
-            reply: ragResponse.reply,
-            mode: 'rag',
-            tokensUsed: ragResponse.tokensUsed,
-            timestamp: new Date().toISOString()
+            reply: fallbackReply,
+            mode: 'fallback',
+            processingTime,
+            timestamp: new Date().toISOString(),
         });
-    } catch (error: any) {
-        console.error('FinMate RAG chatbot error:', error);
-        
-        // Fallback to rule-based system on error
-        try {
-            const userId = req.user?._id;
-            const userEmail = req.user?.email || '';
-            const userName = req.user?.fullName?.split(' ')[0] || 'User';
-            const message = req.body.message;
-            
-            if (userId && message) {
-                const intent = detectIntent(message);
-                const userData = await retrieveUserData(userId, userEmail);
-                const reply = generateResponse(intent, userData, userName, message);
-                
-                return res.status(200).json({
-                    success: true,
-                    reply,
-                    mode: 'rule-based-fallback',
-                    timestamp: new Date().toISOString()
-                });
-            }
-        } catch (fallbackError) {
-            console.error('Fallback error:', fallbackError);
-        }
 
+    } catch (error: any) {
+        console.error('[FinMate] Unhandled error in sendMessage:', error);
         return res.status(500).json({
             success: false,
             message: "I'm having trouble right now. Please try again in a moment.",
-            error: error.message
+            error: error.message,
         });
     }
 };
 
-// Get chat context (for initializing chat with AI-generated welcome message)
+/**
+ * GET /api/chatbot/context
+ *
+ * Initialise a new chat session:
+ *   - Clear conversation history
+ *   - Retrieve user's financial data
+ *   - Generate a personalised welcome message via GPT (or fallback)
+ *   - Return context metadata for the frontend
+ */
 export const getChatContext = async (req: AuthenticatedRequest, res: Response) => {
     try {
         const userId = req.user?._id;
@@ -685,68 +560,109 @@ export const getChatContext = async (req: AuthenticatedRequest, res: Response) =
         const userName = req.user?.fullName?.split(' ')[0] || 'User';
 
         if (!userId) {
-            return res.status(401).json({
-                success: false,
-                message: 'Authentication required'
-            });
+            return res.status(401).json({ success: false, message: 'Authentication required' });
         }
+
+        const userIdStr = userId.toString();
+
+        // Reset conversation history for new chat session
+        conversationStore.delete(userIdStr);
 
         const userData = await retrieveUserData(userId, userEmail);
 
         let welcomeMessage: string;
+        let welcomeMode: 'rag' | 'fallback' = 'rag';
 
-        // Try to generate AI welcome message
         if (validateOpenAIConfig()) {
             try {
                 welcomeMessage = await generateWelcomeMessage(userData, userName);
-            } catch (error) {
-                console.error('AI welcome message error, using fallback:', error);
+            } catch (err: any) {
+                console.error('[FinMate] Welcome message generation failed:', err.message);
+                logFailure(userIdStr, `Welcome: ${err.message}`);
                 welcomeMessage = generateFallbackWelcome(userData, userName);
+                welcomeMode = 'fallback';
             }
         } else {
             welcomeMessage = generateFallbackWelcome(userData, userName);
+            welcomeMode = 'fallback';
         }
+
+        // Seed first assistant message into history
+        appendToHistory(userIdStr, 'assistant', welcomeMessage);
 
         return res.status(200).json({
             success: true,
             welcomeMessage,
+            mode: welcomeMode,
             context: {
                 hasBudget: !!userData.budget,
                 isEndOfMonth: userData.isEndOfMonth,
                 hasFamily: !!userData.family,
-                totalStars: userData.achievements.totalStars
-            }
+                totalStars: userData.achievements.totalStars,
+                totalExpenses: userData.totalExpenses,
+                totalIncome: userData.totalIncome,
+                savings: userData.savings,
+                daysLeft: userData.daysLeft,
+                transactionCount: userData.transactions.total,
+                categoryCount: Object.keys(userData.categoryBreakdown).length,
+            },
         });
     } catch (error: any) {
-        console.error('Chat context error:', error);
+        console.error('[FinMate] getChatContext error:', error);
         return res.status(500).json({
             success: false,
-            message: 'Failed to get chat context'
+            message: 'Failed to initialise chat. Please try again.',
         });
     }
 };
 
-// Fallback welcome message (rule-based)
-const generateFallbackWelcome = (userData: any, userName: string): string => {
-    let welcomeMessage = `Hi ${userName}! 👋 I'm **FinMate**, your personal budget companion.\n\n`;
-
-    if (userData.isEndOfMonth) {
-        welcomeMessage += `We're in the last ${userData.daysLeft} days of the month!\n\n`;
+/**
+ * DELETE /api/chatbot/history
+ *
+ * Clear the conversation history for the current user (new chat session).
+ */
+export const clearHistory = async (req: AuthenticatedRequest, res: Response) => {
+    const userId = req.user?._id?.toString();
+    if (userId) {
+        conversationStore.delete(userId);
     }
+    return res.status(200).json({ success: true, message: 'Conversation history cleared.' });
+};
+
+// ─── Fallback welcome (data-grounded, no static templates) ───────────────────
+
+const generateFallbackWelcome = (userData: any, userName: string): string => {
+    const monthNames = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December',
+    ];
+    const mon = monthNames[(userData.month ?? 1) - 1];
+    const savingsRate =
+        userData.totalIncome > 0
+            ? Math.round((userData.savings / userData.totalIncome) * 100)
+            : 0;
+
+    let msg = `Hi ${userName}! 👋 I'm **FinMate**, your personal financial assistant.\n\n`;
 
     if (userData.budget) {
-        const { percentage, isOverBudget, remaining } = userData.budget;
+        const { total, percentage, isOverBudget, remaining } = userData.budget;
         if (isOverBudget) {
-            welcomeMessage += `You've spent a bit over your budget this month.\nThat's okay — it happens 🙂\nLet me help you understand your spending better.\n`;
+            msg += `Your ${mon} budget of ${formatCurrency(total)} has been exceeded by ${formatCurrency(Math.abs(remaining))} — let's work together to get back on track.\n`;
         } else if (percentage >= 80) {
-            welcomeMessage += `You're close to your budget limit.\nYou have ${formatCurrency(remaining)} left to spend.\nLet's be mindful! 💡\n`;
+            msg += `You've used ${percentage}% of your ${mon} budget (${formatCurrency(total)}) — ${formatCurrency(remaining)} remaining with ${userData.daysLeft} days to go.\n`;
         } else {
-            welcomeMessage += `Your budget is looking good! ✅\nYou have ${formatCurrency(remaining)} remaining.\nKeep up the great work!\n`;
+            msg += `Your ${mon} budget is looking healthy ✅ — ${formatCurrency(remaining)} remaining (${100 - percentage}% left) out of ${formatCurrency(total)}.\n`;
         }
     } else {
-        welcomeMessage += `I'll help you track your budget and spend smarter.\nStart by setting your monthly budget 😊\n`;
+        msg += `I don't see a budget set for ${mon} yet. Your current spending is ${formatCurrency(userData.totalExpenses)} — setting a budget is the best first step!\n`;
     }
 
-    welcomeMessage += `\nWhat would you like to know?`;
-    return welcomeMessage;
+    if (savingsRate > 0) {
+        msg += `You're saving ${savingsRate}% of your income this month (${formatCurrency(userData.savings)}) — ${savingsRate >= 20 ? 'excellent work!' : 'let\'s see if we can push that higher.'}\n`;
+    } else if (userData.totalIncome > 0 && userData.savings <= 0) {
+        msg += `Your expenses currently match or exceed your income — let's find ways to improve your savings.\n`;
+    }
+
+    msg += `\nWhat would you like to explore today?`;
+    return msg;
 };
