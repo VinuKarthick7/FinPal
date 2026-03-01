@@ -4,6 +4,7 @@ import { User, IUser } from '../models';
 import config from '../config';
 import { buildVerifyEmailHtml, sendEmail } from '../utils/email';
 import { createVerificationToken, hashToken } from '../utils/tokens';
+import { trackLoginForAchievements } from '../utils/achievementVisibility';
 
 // Generate JWT Token
 const generateToken = (id: string): string => {
@@ -180,6 +181,12 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       });
       return;
     }
+
+    // ⭐ Track login for achievement visibility (3-login rule)
+    // This runs asynchronously and doesn't block login
+    trackLoginForAchievements(user._id.toString()).catch(err => {
+      console.error('Achievement tracking error (non-blocking):', err);
+    });
 
     // Generate token
     const token = generateToken(user._id.toString());

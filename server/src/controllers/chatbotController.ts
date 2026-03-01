@@ -214,7 +214,8 @@ const retrieveUserData = async (
         .limit(8);
 
     // ── Achievements ───────────────────────────────────────────────────────
-    const achievements = await Achievement.find({ userId })
+    // ⭐ ONLY count VISIBLE achievements (3-login unlock rule)
+    const achievements = await Achievement.find({ userId, visibleToUser: true })
         .sort({ year: -1, month: -1 })
         .limit(12);
     const totalStars = achievements.filter(

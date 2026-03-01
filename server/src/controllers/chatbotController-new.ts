@@ -91,8 +91,8 @@ const retrieveUserData = async (userId: mongoose.Types.ObjectId, email: string) 
         isPaid: false
     }).sort({ dueDate: 1 }).limit(5);
 
-    // Get achievements
-    const achievements = await Achievement.find({ userId }).sort({ year: -1, month: -1 }).limit(12);
+    // Get achievements - ONLY visible ones (3-login unlock rule)
+    const achievements = await Achievement.find({ userId, visibleToUser: true }).sort({ year: -1, month: -1 }).limit(12);
     const totalStars = achievements.filter(a => a.status === 'awarded' || a.status === 'finalized').length;
 
     // Get family data if connected
