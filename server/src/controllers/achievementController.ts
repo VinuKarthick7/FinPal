@@ -11,10 +11,12 @@ export const getUserAchievements = async (req: Request, res: Response) => {
     const userEmail = (req as any).user.email;
 
     // Fetch achievements for this specific user only
+    // ⭐ ONLY show achievements that are visible (after 3 logins)
     const achievements = await Achievement.find({ 
       userId,
       email: userEmail, // Double-check email matches
-      status: { $in: ['awarded', 'finalized'] }
+      status: { $in: ['awarded', 'finalized'] },
+      visibleToUser: true // ⭐ NEW: Only show unlocked achievements
     })
       .sort({ year: -1, month: -1 })
       .lean();
@@ -27,9 +29,9 @@ export const getUserAchievements = async (req: Request, res: Response) => {
       const endOfMonth = new Date(achievement.year, achievement.month, 0, 23, 59, 59);
       
       const budget = await Budget.findOne({
-        userId,
-        period: 'monthly',
-        createdAt: { $lte: endOfMonth }, // Budget must exist before/during the month
+        user: userId,
+        month: achievement.month,
+        year: achievement.year,
       });
 
       // ❌ NO BUDGET → NO ACHIEVEMENT (delete invalid achievement)
@@ -48,7 +50,7 @@ export const getUserAchievements = async (req: Request, res: Response) => {
 
       // 🚫 STRICT: Verify user actually TRACKED expenses (used the app)
       const transactionCount = await Transaction.countDocuments({
-        userId: new mongoose.Types.ObjectId(userId),
+        user: new mongoose.Types.ObjectId(userId),
         type: 'expense',
         date: { $gte: startOfMonth, $lte: endOfMonth },
       });
@@ -69,6 +71,14 @@ export const getUserAchievements = async (req: Request, res: Response) => {
     };
 
     console.log(`📊 Fetched ${validAchievements.length} VALID achievements for user: ${userEmail}`);
+
+    // Add no-cache headers to prevent browser/proxy caching
+    res.set({
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+      'Surrogate-Control': 'no-store'
+    });
 
     res.json({
       success: true,
@@ -136,7 +146,7 @@ export const checkMonthlyBudget = async (req: Request, res: Response) => {
     const transactions = await Transaction.aggregate([
       {
         $match: {
-          userId: new mongoose.Types.ObjectId(userId),
+          user: new mongoose.Types.ObjectId(userId),
           type: 'expense',
           date: { $gte: startOfMonth, $lte: endOfMonth },
         },
@@ -164,7 +174,7 @@ export const checkMonthlyBudget = async (req: Request, res: Response) => {
     // 🚫 STRICT RULE: User must have ACTUALLY USED THE APP (tracked expenses)
     // If totalExpenses = 0 AND no transactions, user hasn't used the app
     const transactionCount = await Transaction.countDocuments({
-      userId: new mongoose.Types.ObjectId(userId),
+      user: new mongoose.Types.ObjectId(userId),
       type: 'expense',
       date: { $gte: startOfMonth, $lte: endOfMonth },
     });
@@ -298,10 +308,12 @@ export const getAchievementStats = async (req: Request, res: Response) => {
     const currentYear = new Date().getFullYear();
 
     // Fetch achievements for this specific user only
+    // ⭐ ONLY count VISIBLE achievements (3-login unlock rule)
     const achievements = await Achievement.find({
       userId,
       email: userEmail, // Double-check email matches
       status: { $in: ['awarded', 'finalized'] },
+      visibleToUser: true, // ⭐ CRITICAL: Only count unlocked achievements
     }).lean();
 
     // 🔐 CRITICAL VALIDATION: Only count achievements with valid budgets
@@ -333,7 +345,7 @@ export const getAchievementStats = async (req: Request, res: Response) => {
       const startOfMonth = new Date(achievement.year, achievement.month - 1, 1);
       const endOfMonth2 = new Date(achievement.year, achievement.month, 0, 23, 59, 59);
       const transactionCount = await Transaction.countDocuments({
-        userId: new mongoose.Types.ObjectId(userId),
+        user: new mongoose.Types.ObjectId(userId),
         type: 'expense',
         date: { $gte: startOfMonth, $lte: endOfMonth2 },
       });
@@ -366,6 +378,14 @@ export const getAchievementStats = async (req: Request, res: Response) => {
     };
 
     console.log(`📊 Stats for ${userEmail}: ${stats.total} VALID stars, ${stats.currentYear} this year`);
+
+    // Add no-cache headers to prevent browser/proxy caching
+    res.set({
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+      'Surrogate-Control': 'no-store'
+    });
 
     res.json({
       success: true,
@@ -426,6 +446,20 @@ export const checkSuccessAnnouncement = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user._id;
     const now = new Date();
+
+    // ⏰ POPUP WINDOW: Only show the reward popup during the FIRST 24 HOURS of the 1st day of the month
+    // After the 1st day ends (i.e., from the 2nd onwards), the popup window is closed permanently
+    const currentDay = now.getDate();
+    if (currentDay !== 1) {
+      console.log(`⏰ Popup window closed - today is day ${currentDay}, popup only shows on the 1st`);
+      return res.json({
+        success: true,
+        data: {
+          showAnnouncement: false,
+          reason: 'popup_window_closed',
+        },
+      });
+    }
     
     // Get last month
     let lastMonth = now.getMonth(); // 0-11
@@ -439,13 +473,16 @@ export const checkSuccessAnnouncement = async (req: Request, res: Response) => {
     // Get user's email for proper identification
     const userEmail = (req as any).user.email;
     
-    // Check if user earned achievement last month AND popup hasn't been shown yet
+    // Check if user earned achievement last month
+    // ⭐ ONLY show announcement for VISIBLE achievements (after 3 logins)
+    // 🔁 During the 1st day (24-hour window), popup shows on EVERY login — ignore popupShown
     const lastMonthAchievement = await Achievement.findOne({
       userId,
       month: lastMonth,
       year: lastYear,
       status: { $in: ['awarded', 'finalized'] },
-      popupShown: { $ne: true } // Only show if popup hasn't been shown yet
+      visibleToUser: true, // ⭐ CRITICAL: Only announce visible achievements
+      // NO popupShown filter — popup shows on EVERY login during the 1st day
     });
 
     // 🔐 CRITICAL: Verify budget existed for that month before showing reward
@@ -487,7 +524,7 @@ export const checkSuccessAnnouncement = async (req: Request, res: Response) => {
       const startOfLastMonth = new Date(lastYear, lastMonth - 1, 1);
       const endOfLastMonth = new Date(lastYear, lastMonth, 0, 23, 59, 59);
       const transactionCount = await Transaction.countDocuments({
-        userId: new mongoose.Types.ObjectId(userId),
+        user: new mongoose.Types.ObjectId(userId),
         type: 'expense',
         date: { $gte: startOfLastMonth, $lte: endOfLastMonth },
       });
@@ -582,14 +619,15 @@ export const markPopupShown = async (req: Request, res: Response) => {
       });
     }
 
-    // Find and update the achievement
+    // Find and update the achievement - only mark popup shown for VISIBLE achievements
     const achievement = await Achievement.findOneAndUpdate(
       {
         userId,
         email: userEmail,
         month,
         year,
-        status: { $in: ['awarded', 'finalized'] }
+        status: { $in: ['awarded', 'finalized'] },
+        visibleToUser: true
       },
       {
         $set: {
@@ -662,7 +700,7 @@ export const validateAndCleanAchievements = async (req: Request, res: Response) 
       const transactions = await Transaction.aggregate([
         {
           $match: {
-            userId: new mongoose.Types.ObjectId(userId),
+            user: new mongoose.Types.ObjectId(userId),
             type: 'expense',
             date: { $gte: startOfMonth, $lte: endOfMonth },
           },
@@ -743,7 +781,7 @@ export const deleteInvalidAchievements = async (req: Request, res: Response) => 
       const transactions = await Transaction.aggregate([
         {
           $match: {
-            userId: new mongoose.Types.ObjectId(userId),
+            user: new mongoose.Types.ObjectId(userId),
             type: 'expense',
             date: { $gte: startOfMonth, $lte: endOfMonth },
           },
@@ -784,5 +822,43 @@ export const deleteInvalidAchievements = async (req: Request, res: Response) => 
   } catch (error) {
     console.error('Error deleting invalid achievements:', error);
     res.status(500).json({ success: false, message: 'Failed to delete invalid achievements' });
+  }
+};
+
+// ⭐ NEW: Get achievement unlock progress (3-login rule)
+export const getAchievementUnlockProgress = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user._id;
+
+    // Find hidden achievements (not yet visible)
+    const hiddenAchievements = await Achievement.find({
+      userId,
+      status: 'finalized',
+      visibleToUser: false,
+    }).sort({ year: -1, month: -1 });
+
+    const progress = hiddenAchievements.map(ach => ({
+      month: ach.month,
+      year: ach.year,
+      loginsCompleted: ach.loginCountAfterAward,
+      loginsRequired: 3,
+      loginsRemaining: Math.max(0, 3 - ach.loginCountAfterAward),
+      progress: Math.min(100, (ach.loginCountAfterAward / 3) * 100),
+      message: ach.loginCountAfterAward < 3 
+        ? `Log in ${3 - ach.loginCountAfterAward} more time(s) to unlock your achievement!`
+        : 'Ready to unlock!'
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        hasHiddenAchievements: progress.length > 0,
+        hiddenCount: progress.length,
+        unlockProgress: progress,
+      },
+    });
+  } catch (error) {
+    console.error('Error getting unlock progress:', error);
+    res.status(500).json({ success: false, message: 'Failed to get unlock progress' });
   }
 };

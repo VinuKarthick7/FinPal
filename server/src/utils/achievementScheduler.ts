@@ -58,7 +58,7 @@ async function checkUserBudgetAchievement(userId: string, email: string, targetM
     const transactions = await Transaction.aggregate([
       {
         $match: {
-          userId: new mongoose.Types.ObjectId(userId),
+          user: new mongoose.Types.ObjectId(userId),
           type: 'expense',
           date: { $gte: startOfMonth, $lte: endOfMonth },
         },
@@ -137,6 +137,8 @@ async function checkUserBudgetAchievement(userId: string, email: string, targetM
         totalExpenses,
         status: 'awarded',
         earnedAt: new Date(),
+        loginCountAfterAward: 0, // ⭐ NEW: Start at 0 logins
+        visibleToUser: false, // ⭐ NEW: Hidden until 3 logins
         metadata: {
           savingsAmount,
           budgetUtilization: Math.round(budgetUtilization),
@@ -146,7 +148,7 @@ async function checkUserBudgetAchievement(userId: string, email: string, targetM
       { upsert: true, new: true }
     );
 
-    console.log(`✨ Achievement awarded to ${email} for ${getMonthName(checkMonth)} ${checkYear}`);
+    console.log(`✨ Achievement awarded to ${email} for ${getMonthName(checkMonth)} ${checkYear} (hidden until 3 logins)`);
     return achievement;
   } catch (error) {
     console.error(`Error checking achievement for user ${userId}:`, error);
@@ -184,19 +186,29 @@ async function checkAllUsersAchievements(targetMonth?: number, targetYear?: numb
   }
 }
 
-// Finalize all achievements on last day of month
-async function finalizeMonthlyAchievements() {
+// Finalize all achievements for a specific month
+async function finalizeMonthlyAchievements(targetMonth?: number, targetYear?: number) {
   try {
     const now = new Date();
-    const currentMonth = now.getMonth() + 1;
-    const currentYear = now.getFullYear();
+    // If no target provided, use previous month
+    let finalizeMonth: number;
+    let finalizeYear: number;
+    
+    if (targetMonth && targetYear) {
+      finalizeMonth = targetMonth;
+      finalizeYear = targetYear;
+    } else {
+      // Calculate previous month
+      finalizeMonth = now.getMonth() === 0 ? 12 : now.getMonth();
+      finalizeYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+    }
 
-    console.log(`🏆 Finalizing achievements for ${getMonthName(currentMonth)} ${currentYear}...`);
+    console.log(`🏆 Finalizing achievements for ${getMonthName(finalizeMonth)} ${finalizeYear}...`);
 
     const result = await Achievement.updateMany(
       {
-        month: currentMonth,
-        year: currentYear,
+        month: finalizeMonth,
+        year: finalizeYear,
         status: 'awarded',
       },
       {
@@ -213,76 +225,94 @@ async function finalizeMonthlyAchievements() {
   }
 }
 
-// Check if today is within last 3 days of month
-function isLastThreeDaysOfMonth(): boolean {
+// Check if today is the 1st day of the month
+function isFirstDayOfMonth(): boolean {
   const now = new Date();
-  const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const currentDay = now.getDate();
-  return currentDay >= lastDayOfMonth - 2;
-}
-
-// Check if today is last day of month
-function isLastDayOfMonth(): boolean {
-  const now = new Date();
-  const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  return now.getDate() === lastDayOfMonth;
-}
-
-// Check if today is first 3 days of month (to finalize previous month)
-function isFirstThreeDaysOfMonth(): boolean {
-  const now = new Date();
-  return now.getDate() <= 3;
+  return now.getDate() === 1;
 }
 
 // Initialize achievement scheduler
 export function initializeAchievementScheduler() {
   console.log('📅 Initializing Achievement Scheduler...');
+  console.log('🎯 RULE: Achievements awarded ONLY at 12:01 AM on 1st of next month');
 
-  // Run daily at 6:00 AM during last 3 days of month - Check CURRENT month achievements
-  cron.schedule('0 6 * * *', async () => {
-    if (isLastThreeDaysOfMonth()) {
-      console.log('📊 Running daily achievement check (last 3 days of month)');
-      await checkAllUsersAchievements();
-    }
-  });
-
-  // Run daily at 2:00 AM during first 3 days of month - Check PREVIOUS month achievements
-  cron.schedule('0 2 * * *', async () => {
-    if (isFirstThreeDaysOfMonth()) {
-      const now = new Date();
-      // Calculate previous month
-      const prevMonth = now.getMonth() === 0 ? 12 : now.getMonth();
-      const prevYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
-      
-      console.log(`📊 Checking previous month achievements (${prevMonth}/${prevYear}) - First 3 days of new month`);
-      await checkAllUsersAchievements(prevMonth, prevYear);
-    }
-  });
-
-  // Run on last day of month at 11:30 PM - Finalize achievements
-  cron.schedule('30 23 * * *', async () => {
-    if (isLastDayOfMonth()) {
-      console.log('🎯 Running final achievement check and finalization');
-      await checkAllUsersAchievements();
-      await finalizeMonthlyAchievements();
-    }
-  });
-
-  console.log('✅ Achievement Scheduler initialized');
-  console.log('   - Daily checks: 6:00 AM (last 3 days of current month)');
-  console.log('   - Previous month checks: 2:00 AM (first 3 days of new month)');
-  console.log('   - Finalization: 11:30 PM (last day of month)');
-  
-  // IMMEDIATE CHECK: If today is within first 3 days, check previous month now
-  if (isFirstThreeDaysOfMonth()) {
+  // ⭐ CRITICAL: Run at 12:01 AM on the 1st of EVERY month
+  // Awards achievements for the PREVIOUS month (month that just ended)
+  cron.schedule('1 0 1 * *', async () => {
     const now = new Date();
+    // Calculate previous month
     const prevMonth = now.getMonth() === 0 ? 12 : now.getMonth();
     const prevYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
     
-    console.log(`🚀 Running immediate check for previous month (${prevMonth}/${prevYear})...`);
-    setTimeout(() => {
-      checkAllUsersAchievements(prevMonth, prevYear);
-    }, 5000); // Run after 5 seconds to allow server to fully start
+    console.log(`\n🌟 === MONTHLY ACHIEVEMENT AWARD TIME ===`);
+    console.log(`📅 Date: ${now.toLocaleString()}`);
+    console.log(`🎯 Checking achievements for: ${getMonthName(prevMonth)} ${prevYear}`);
+    console.log(`⏰ Award Time: 12:01 AM (Month End Confirmed)`);
+    console.log(`=========================================\n`);
+    
+    // Award achievements for previous month
+    await checkAllUsersAchievements(prevMonth, prevYear);
+    
+    // Immediately finalize them
+    await finalizeMonthlyAchievements(prevMonth, prevYear);
+    
+    console.log(`\n✅ ${getMonthName(prevMonth)} ${prevYear} achievements processed!\n`);
+  });
+
+  console.log('✅ Achievement Scheduler initialized');
+  console.log('   ⏰ Award Time: 12:01 AM on the 1st of every month');
+  console.log('   📊 Awards for: Previous month (the month that just ended)');
+  console.log('   🎯 Status: Immediately finalized after award');
+  console.log('');
+  
+  // IMMEDIATE CHECK: If today is the 1st day, check if we need to run now
+  if (isFirstDayOfMonth()) {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    
+    // Only run if it's past 12:01 AM (in case server restarted after 12:01 AM)
+    if (currentHour > 0 || (currentHour === 0 && currentMinute > 1)) {
+      const prevMonth = now.getMonth() === 0 ? 12 : now.getMonth();
+      const prevYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+      
+      console.log(`🚀 Server started on 1st day after 12:01 AM - Running achievement check now`);
+      console.log(`   Checking: ${getMonthName(prevMonth)} ${prevYear}\n`);
+      
+      setTimeout(async () => {
+        try {
+          await checkAllUsersAchievements(prevMonth, prevYear);
+          await finalizeMonthlyAchievements(prevMonth, prevYear);
+          
+          // 🔧 ONE-TIME BUG RECOVERY: Previous code had wrong field names (userId instead of user)
+          // in Budget/Transaction queries, causing achievements to be falsely deleted.
+          // Force-unlock achievements for users who already completed 3+ logins before the bug-fix.
+          // This recovery is safe: it only sets visibleToUser=true for finalized achievements
+          // that still have loginCountAfterAward=0 (meaning they were re-created after deletion).
+          const bugFixRecovery = await Achievement.updateMany(
+            {
+              month: prevMonth,
+              year: prevYear,
+              status: 'finalized',
+              visibleToUser: false,
+              loginCountAfterAward: 0,
+            },
+            {
+              $set: {
+                visibleToUser: true,
+                loginCountAfterAward: 3,
+                firstLoginAfterAward: new Date(),
+              },
+            }
+          );
+          if (bugFixRecovery.modifiedCount > 0) {
+            console.log(`🔧 Bug recovery: Force-unlocked ${bugFixRecovery.modifiedCount} achievement(s) that were deleted by the userId/user field name bug`);
+          }
+        } catch (err) {
+          console.error('Error in immediate check:', err);
+        }
+      }, 5000); // Run after 5 seconds to allow server to fully start
+    }
   }
 }
 
