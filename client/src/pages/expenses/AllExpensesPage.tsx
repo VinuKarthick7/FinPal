@@ -39,20 +39,21 @@ const AllExpensesPage: React.FC = () => {
   // Get current month dates
   const now = new Date()
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
   
   const currentMonthName = now.toLocaleDateString('en-US', { 
     month: 'long', 
     year: 'numeric' 
   })
 
-  // Fetch current month's transactions
+  // Fetch current month's transactions - use high limit to get ALL transactions
   const { data: transactionsData, isLoading, error } = useQuery({
     queryKey: ['current-month-expenses', startOfMonth.toISOString(), endOfMonth.toISOString()],
     queryFn: async () => {
       const response = await expensesApi.getAll({
         startDate: startOfMonth.toISOString(),
         endDate: endOfMonth.toISOString(),
+        limit: 1000, // Get ALL transactions for the month, not just 20
       })
       console.log('API Response:', response) // Debug log
       return response.data

@@ -224,7 +224,7 @@ const AchievementsPage: React.FC = () => {
               <span className="text-[10px] sm:text-xs text-emerald-600 font-medium uppercase">Success Rate</span>
             </div>
             <p className="text-2xl sm:text-3xl font-bold text-gray-900 mb-0.5 sm:mb-1">
-              {stats && stats.total > 0 ? Math.round((stats.currentYear / new Date().getMonth() + 1) * 100) : 0}%
+              {stats && stats.total > 0 ? Math.round((stats.currentYear / (new Date().getMonth() + 1)) * 100) : 0}%
             </p>
             <p className="text-[10px] sm:text-xs text-gray-600">Budget discipline</p>
           </motion.div>

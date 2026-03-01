@@ -536,13 +536,19 @@ export const familyReportsApi = {
 export const achievementApi = {
   // Get user's achievements
   getAchievements: async () => {
-    const response = await api.get('/achievements')
+    const response = await api.get('/achievements', {
+      params: { _t: Date.now() }, // Cache buster
+      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
+    })
     return response.data
   },
 
   // Get achievement statistics
   getStats: async () => {
-    const response = await api.get('/achievements/stats')
+    const response = await api.get('/achievements/stats', {
+      params: { _t: Date.now() }, // Cache buster
+      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
+    })
     return response.data
   },
 
