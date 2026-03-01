@@ -8,6 +8,7 @@ import {
   markPopupShown,
   validateAndCleanAchievements,
   deleteInvalidAchievements,
+  getAchievementUnlockProgress,
 } from '../controllers/achievementController';
 import { protect } from '../middleware/auth';
 
@@ -27,6 +28,9 @@ router.get('/announcement', checkSuccessAnnouncement);
 
 // Mark reward popup as shown
 router.post('/popup-shown', markPopupShown);
+
+// ⭐ NEW: Get unlock progress (3-login rule)
+router.get('/unlock-progress', getAchievementUnlockProgress);
 
 // Check current month's budget performance
 router.post('/check', checkMonthlyBudget);

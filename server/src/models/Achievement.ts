@@ -13,6 +13,10 @@ export interface IAchievement extends Document {
   finalizedAt?: Date;
   popupShown?: boolean; // Track if reward popup was shown to user
   popupShownAt?: Date; // When popup was shown
+  // NEW: Login-based visibility control
+  loginCountAfterAward: number; // Track logins after achievement awarded
+  visibleToUser: boolean; // Only true after 3 logins
+  firstLoginAfterAward?: Date; // When first login occurred after award
   metadata?: {
     savingsAmount?: number;
     budgetUtilization?: number; // percentage
@@ -73,6 +77,19 @@ const AchievementSchema: Schema = new Schema(
       default: false,
     },
     popupShownAt: {
+      type: Date,
+    },
+    loginCountAfterAward: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    visibleToUser: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    firstLoginAfterAward: {
       type: Date,
     },
     metadata: {
