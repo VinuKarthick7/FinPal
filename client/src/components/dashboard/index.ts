@@ -9,3 +9,4 @@ export { default as FamilyModeCard } from './FamilyModeCard';
 export { default as FamilyModeModal } from './FamilyModeModal';
 export { default as AchievementNotification } from './AchievementNotification';
 export { default as SuccessAnnouncement } from './SuccessAnnouncement';
+export { UpiQuickPayCard, UpiMonthlySummary, SmartInsightsPreview, AutoTrackedBadge, RealTimeBudgetProgress } from './UpiWidgets';

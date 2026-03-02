@@ -11,6 +11,7 @@ import {
   Plus,
   Calendar,
   Users,
+  Smartphone,
 } from 'lucide-react'
 import {
   StatCard,
@@ -21,6 +22,9 @@ import {
   FamilyModeModal,
   FamilyModeCard,
   SuccessAnnouncement,
+  UpiQuickPayCard,
+  UpiMonthlySummary,
+  SmartInsightsPreview,
 } from '@/components/dashboard'
 import { Button, DashboardSkeleton, ErrorDisplay } from '@/components/ui'
 import { dashboardApi, achievementApi } from '@/lib/api'
@@ -361,6 +365,11 @@ export const DashboardPage: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Transactions & Budget */}
           <div className="lg:col-span-2 space-y-6">
+            {/* UPI Quick Pay */}
+            <motion.div variants={itemVariants}>
+              <UpiQuickPayCard />
+            </motion.div>
+
             {/* Family Mode Feature Card */}
             <motion.div variants={itemVariants}>
               <FamilyModeCard onClick={() => navigate('/family')} />
@@ -423,6 +432,16 @@ export const DashboardPage: React.FC = () => {
                 onViewAll={() => navigate('/reminders')}
               />
             </motion.div>
+
+            {/* UPI Monthly Summary */}
+            <motion.div variants={itemVariants}>
+              <UpiMonthlySummary />
+            </motion.div>
+
+            {/* Smart Insights Preview */}
+            <motion.div variants={itemVariants}>
+              <SmartInsightsPreview />
+            </motion.div>
           </div>
         </div>
 
@@ -440,6 +459,13 @@ export const DashboardPage: React.FC = () => {
                 <span className="text-xs font-medium">{t('common.add')}</span>
               </button>
               <button
+                onClick={() => navigate('/pay')}
+                className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-indigo-50 text-indigo-600"
+              >
+                <Smartphone className="w-5 h-5" />
+                <span className="text-xs font-medium">UPI Pay</span>
+              </button>
+              <button
                 onClick={() => navigate('/expenses')}
                 className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-secondary-50 text-secondary-600"
               >
@@ -452,13 +478,6 @@ export const DashboardPage: React.FC = () => {
               >
                 <Calendar className="w-5 h-5" />
                 <span className="text-xs font-medium">{t('nav.reminders')}</span>
-              </button>
-              <button
-                onClick={() => navigate('/family')}
-                className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-accent-50 text-accent-600"
-              >
-                <Users className="w-5 h-5" />
-                <span className="text-xs font-medium">{t('nav.family')}</span>
               </button>
             </div>
           </div>

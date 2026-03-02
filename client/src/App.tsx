@@ -15,6 +15,7 @@ import { ReportsPage } from './pages/reports/ReportsPage'
 import { FamilyModePage } from './pages/family'
 import { AchievementsPage } from './pages/achievements'
 import { FinMatePage } from './pages/finmate'
+import { UpiPaymentPage, PaymentHistoryPage, SmartInsightsPage, ScanPayPage } from './pages/payments'
 import { MainLayout } from './components/layout'
 import { ErrorBoundary } from './components/ui'
 import { useAuthStore } from './stores/authStore'
@@ -121,6 +122,15 @@ const OAuthCallback = () => {
   )
 }
 
+// Scroll to top on every route change
+const ScrollToTop = () => {
+  const { pathname } = useLocation()
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [pathname])
+  return null
+}
+
 function App() {
   const { isAuthenticated, setLoading, token, setAuth, user } = useAuthStore()
 
@@ -182,6 +192,7 @@ function App() {
           },
         }}
       />
+      <ScrollToTop />
       <div className="min-h-screen min-h-[100dvh] bg-gray-50">
         <Routes>
           {/* Auth Routes */}
@@ -214,6 +225,34 @@ function App() {
           <Route path="/finmate" element={
             <ProtectedRoute>
               <FinMatePage />
+            </ProtectedRoute>
+          } />
+
+          {/* UPI Payment - Full screen standalone page */}
+          <Route path="/pay" element={
+            <ProtectedRoute>
+              <UpiPaymentPage />
+            </ProtectedRoute>
+          } />
+
+          {/* Scan & Pay - QR code scanner page */}
+          <Route path="/scan-pay" element={
+            <ProtectedRoute>
+              <ScanPayPage />
+            </ProtectedRoute>
+          } />
+
+          {/* UPI Payment History - Full screen standalone page */}
+          <Route path="/payments/history" element={
+            <ProtectedRoute>
+              <PaymentHistoryPage />
+            </ProtectedRoute>
+          } />
+
+          {/* Smart Insights - Full screen standalone page */}
+          <Route path="/insights" element={
+            <ProtectedRoute>
+              <SmartInsightsPage />
             </ProtectedRoute>
           } />
 

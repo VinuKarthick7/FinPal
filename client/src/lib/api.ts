@@ -595,4 +595,73 @@ export const chatbotApi = {
   },
 }
 
+// UPI Payment API (Razorpay)
+export const paymentApi = {
+  // Check if UPI/Razorpay is configured
+  getConfig: async () => {
+    const response = await api.get('/payments/config')
+    return response.data
+  },
+
+  // Create a Razorpay order
+  createOrder: async (data: {
+    amount: number
+    merchant: string
+    description?: string
+    notes?: Record<string, string>
+  }) => {
+    const response = await api.post('/payments/create-order', data)
+    return response.data
+  },
+
+  // Verify payment after Razorpay checkout
+  verifyPayment: async (data: {
+    razorpay_order_id: string
+    razorpay_payment_id: string
+    razorpay_signature: string
+  }) => {
+    const response = await api.post('/payments/verify', data)
+    return response.data
+  },
+
+  // Get UPI payment history
+  getHistory: async (params?: {
+    page?: number
+    limit?: number
+    status?: string
+  }) => {
+    const response = await api.get('/payments/history', { params })
+    return response.data
+  },
+
+  // Get UPI spending summary
+  getSummary: async (params?: { month?: number; year?: number }) => {
+    const response = await api.get('/payments/summary', { params })
+    return response.data
+  },
+
+  // Get smart budget insights
+  getInsights: async () => {
+    const response = await api.get('/payments/insights')
+    return response.data
+  },
+
+  // AI categorize a merchant
+  categorize: async (data: {
+    merchant: string
+    description?: string
+    notes?: string
+    amount?: number
+  }) => {
+    const response = await api.post('/payments/categorize', data)
+    return response.data
+  },
+
+  // Override AI category
+  overrideCategory: async (paymentId: string, category: string) => {
+    const response = await api.patch(`/payments/${paymentId}/category`, { category })
+    return response.data
+  },
+}
+
 export default api

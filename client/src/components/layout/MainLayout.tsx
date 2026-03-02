@@ -251,12 +251,12 @@ export const MainLayout: React.FC = () => {
                   key={item.path}
                   to={item.path}
                   onClick={handleFinMateClick}
-                  className="flex items-center justify-center -mt-2 active:scale-95 transition-transform touch-feedback"
+                  className="flex items-center justify-center -mt-1 active:scale-95 transition-transform touch-feedback"
                 >
-                  <div className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center shadow-lg shadow-cyan-200/50 overflow-hidden">
+                  <div className="w-11 h-11 rounded-xl bg-white flex items-center justify-center shadow-md shadow-cyan-200/40 overflow-hidden">
                     {/* Official FinMate Robot Icon */}
                     <FinMateIcon 
-                      size={42} 
+                      size={32} 
                       animate={showLoginAnimation}
                       triggerAnimation={finmateClickAnimation}
                     />

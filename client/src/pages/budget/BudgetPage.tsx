@@ -15,6 +15,10 @@ import {
   Target,
   Copy,
   RefreshCw,
+  Eye,
+  Wallet,
+  Star,
+  ThumbsDown,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui'
@@ -90,6 +94,7 @@ export const BudgetPage: React.FC = () => {
   const [showModal, setShowModal] = useState(false)
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null)
+  const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null)
 
   // Form state
   const currentDate = new Date()
@@ -621,10 +626,10 @@ export const BudgetPage: React.FC = () => {
                     : 0
 
                   return (
-                    <div
-                      key={budget._id}
-                      className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
-                    >
+                    <div key={budget._id} className="space-y-0">
+                      <div
+                        className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+                      >
                       <div>
                         <p className="font-medium text-gray-900">
                           {MONTHS[budget.month - 1]} {budget.year}
@@ -640,18 +645,52 @@ export const BudgetPage: React.FC = () => {
                           {percentage.toFixed(0)}%
                         </span>
                         <button
-                          onClick={() => openEditModal(budget)}
-                          className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+                          onClick={() => setExpandedHistoryId(expandedHistoryId === budget._id ? null : budget._id)}
+                          className="p-2 hover:bg-primary-50 rounded-lg transition-colors"
+                          title="View savings info"
                         >
-                          <Edit2 className="w-4 h-4 text-gray-500" />
+                          <Eye className="w-4 h-4 text-primary-600" />
                         </button>
-                        <button
-                          onClick={() => setShowDeleteConfirm(budget._id)}
-                          className="p-2 hover:bg-red-100 rounded-lg transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4 text-red-500" />
-                        </button>
+                        {percentage <= 100 ? (
+                          <div className="p-2" title="Budget tracked successfully!">
+                            <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                          </div>
+                        ) : (
+                          <div className="p-2" title="Over budget">
+                            <ThumbsDown className="w-4 h-4 text-red-500" />
+                          </div>
+                        )}
                       </div>
+                      </div>
+                      {/* Savings info panel */}
+                      <AnimatePresence>
+                        {expandedHistoryId === budget._id && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="mx-4 mb-2 pt-0 pb-3 border-b border-gray-200">
+                              {budget.totalBudget > budget.totalSpent ? (
+                                <div className="flex items-center gap-2 text-green-700 bg-green-50 rounded-lg px-3 py-2">
+                                  <Wallet className="w-4 h-4 flex-shrink-0" />
+                                  <span className="text-sm font-medium">
+                                    You saved {formatCurrency(budget.totalBudget - budget.totalSpent)} this month! 🎉
+                                  </span>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2 text-red-700 bg-red-50 rounded-lg px-3 py-2">
+                                  <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                                  <span className="text-sm font-medium">
+                                    Overspent by {formatCurrency(budget.totalSpent - budget.totalBudget)}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
                   )
                 })}

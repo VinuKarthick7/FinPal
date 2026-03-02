@@ -425,3 +425,13 @@ a {
     transform: translateY(1px); 
   }
 }
+
+/* QR Scanner — hide html5-qrcode hidden scanner element */
+#qr-hidden-scanner {
+  display: none !important;
+  position: absolute !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+}
+
