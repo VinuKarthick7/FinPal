@@ -21,3 +21,6 @@ export type { IFamilyTransaction } from './FamilyTransaction';
 
 export { default as Achievement } from './Achievement';
 export type { IAchievement } from './Achievement';
+
+export { UpiPayment } from './UpiPayment';
+export type { IUpiPayment } from './UpiPayment';

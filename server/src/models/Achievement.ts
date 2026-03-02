@@ -13,6 +13,7 @@ export interface IAchievement extends Document {
   finalizedAt?: Date;
   popupShown?: boolean; // Track if reward popup was shown to user
   popupShownAt?: Date; // When popup was shown
+  popupShowCount: number; // Track how many times popup was shown (max 2)
   // NEW: Login-based visibility control
   loginCountAfterAward: number; // Track logins after achievement awarded
   visibleToUser: boolean; // Only true after 3 logins
@@ -78,6 +79,11 @@ const AchievementSchema: Schema = new Schema(
     },
     popupShownAt: {
       type: Date,
+    },
+    popupShowCount: {
+      type: Number,
+      default: 0,
+      min: 0,
     },
     loginCountAfterAward: {
       type: Number,

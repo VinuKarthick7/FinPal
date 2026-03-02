@@ -41,6 +41,7 @@ const transactionSchema = new Schema<ITransaction>(
         'Healthcare',
         'Education',
         'Rent',
+        'EMI',
         'Salary',
         'Investment',
         'Gift',
