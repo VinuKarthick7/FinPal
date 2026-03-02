@@ -1,7 +1,8 @@
 import dotenv from 'dotenv';
 import crypto from 'crypto';
+import path from 'path';
 
-dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 // Generate secure random secrets for development
 const generateDevSecret = () => crypto.randomBytes(64).toString('hex');
@@ -48,6 +49,11 @@ export const config = {
   appleTeamId: process.env.APPLE_TEAM_ID || '',
   appleKeyId: process.env.APPLE_KEY_ID || '',
   applePrivateKey: process.env.APPLE_PRIVATE_KEY || '',
+
+  // Razorpay (UPI Payments)
+  razorpayKeyId: process.env.RAZORPAY_KEY_ID || '',
+  razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET || '',
+  razorpayWebhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET || '',
 };
 
 export default config;

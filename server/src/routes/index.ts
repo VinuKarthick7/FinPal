@@ -14,6 +14,7 @@ import achievementRoutes from './achievements';
 import chatbotRoutes from './chatbot';
 import testAchievementRoutes from './testAchievements';
 import debugRoutes from './debug';
+import paymentRoutes from './payments';
 
 const router = Router();
 
@@ -42,5 +43,6 @@ router.use('/achievements', achievementRoutes);
 router.use('/chatbot', chatbotRoutes);
 router.use('/test-achievements', testAchievementRoutes);
 router.use('/debug', debugRoutes);
+router.use('/payments', paymentRoutes);
 
 export default router;

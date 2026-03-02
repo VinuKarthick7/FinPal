@@ -475,14 +475,14 @@ export const checkSuccessAnnouncement = async (req: Request, res: Response) => {
     
     // Check if user earned achievement last month
     // ⭐ ONLY show announcement for VISIBLE achievements (after 3 logins)
-    // 🔁 During the 1st day (24-hour window), popup shows on EVERY login — ignore popupShown
+    // 🔁 During the 1st day, popup shows up to 2 times only
     const lastMonthAchievement = await Achievement.findOne({
       userId,
       month: lastMonth,
       year: lastYear,
       status: { $in: ['awarded', 'finalized'] },
       visibleToUser: true, // ⭐ CRITICAL: Only announce visible achievements
-      // NO popupShown filter — popup shows on EVERY login during the 1st day
+      popupShowCount: { $lt: 1 }, // ⭐ Only show popup ONCE — strictly 1 time
     });
 
     // 🔐 CRITICAL: Verify budget existed for that month before showing reward
@@ -573,17 +573,17 @@ export const checkSuccessAnnouncement = async (req: Request, res: Response) => {
         },
       });
     } else {
-      // Check if user had an achievement but already saw the popup
+      // Check if user had an achievement but already saw the popup (1 time max)
       const alreadyShownAchievement = await Achievement.findOne({
         userId,
         month: lastMonth,
         year: lastYear,
         status: { $in: ['awarded', 'finalized'] },
-        popupShown: true
+        popupShowCount: { $gte: 1 }
       });
 
       if (alreadyShownAchievement) {
-        console.log(`ℹ️ Reward already shown to ${userEmail} for ${getMonthName(lastMonth)} ${lastYear}`);
+        console.log(`ℹ️ Reward already shown once to ${userEmail} for ${getMonthName(lastMonth)} ${lastYear}`);
       } else {
         console.log(`ℹ️ No reward for ${userEmail} - Either budget exceeded or no budget set for ${getMonthName(lastMonth)} ${lastYear}`);
       }
@@ -620,6 +620,7 @@ export const markPopupShown = async (req: Request, res: Response) => {
     }
 
     // Find and update the achievement - only mark popup shown for VISIBLE achievements
+    // Mark popup as shown — strictly once only
     const achievement = await Achievement.findOneAndUpdate(
       {
         userId,
@@ -631,6 +632,7 @@ export const markPopupShown = async (req: Request, res: Response) => {
       },
       {
         $set: {
+          popupShowCount: 1,
           popupShown: true,
           popupShownAt: new Date()
         }

@@ -1,12 +1,12 @@
 import dotenv from 'dotenv';
+import path from 'path';
 
-dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 import express, { Application } from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import session from 'express-session';
-import path from 'path';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import mongoSanitize from 'express-mongo-sanitize';
@@ -67,7 +67,7 @@ app.use('/api/uploads', uploadsStatic);
 // Security: Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // Increased for development - Limit each IP to 1000 requests per windowMs
+  max: 5000, // Development: generous limit
   message: { success: false, message: 'Too many requests, please try again later' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -77,7 +77,7 @@ app.use('/api', limiter);
 // Strict rate limiting for auth routes
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // Limit to 10 auth attempts per 15 minutes
+  max: 30, // Limit to 30 auth attempts per 15 minutes
   message: { success: false, message: 'Too many login attempts, please try again later' },
   standardHeaders: true,
   legacyHeaders: false,
