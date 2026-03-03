@@ -29,6 +29,15 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));
 
+// Permissions-Policy header for Razorpay/Sardine iframe compatibility
+app.use((_req, res, next) => {
+  res.setHeader(
+    'Permissions-Policy',
+    'accelerometer=(self "https://api.razorpay.com" "https://api.sardine.ai"), gyroscope=(self "https://api.razorpay.com" "https://api.sardine.ai"), magnetometer=(self), payment=(self "https://api.razorpay.com")'
+  );
+  next();
+});
+
 // CORS - LOCALHOST ONLY (no network access)
 const allowedOrigins = new Set([
   'http://localhost:3000',
