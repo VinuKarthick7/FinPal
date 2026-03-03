@@ -19,6 +19,9 @@ export default defineConfig({
   },
   server: {
     port: 3000,
+    headers: {
+      'Permissions-Policy': 'accelerometer=(self "https://api.razorpay.com" "https://api.sardine.ai"), gyroscope=(self "https://api.razorpay.com" "https://api.sardine.ai"), magnetometer=(self), payment=(self "https://api.razorpay.com")',
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:5000',
