@@ -1,0 +1,22 @@
+{
+  "name": "FinPal - Family Finance Tracker",
+  "short_name": "FinPal",
+  "description": "Smart Family Finance Tracker for Indian Families",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#6366F1",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "serviceworker": {
+    "src": "",
+    "scope": "/",
+    "type": "",
+    "update_via_cache": "none"
+  }
+}
