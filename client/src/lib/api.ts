@@ -662,6 +662,12 @@ export const paymentApi = {
     const response = await api.patch(`/payments/${paymentId}/category`, { category })
     return response.data
   },
+
+  // Recategorize existing payments
+  recategorize: async (forceAll: boolean = false) => {
+    const response = await api.post('/payments/recategorize', { forceAll })
+    return response.data
+  },
 }
 
 export default api
