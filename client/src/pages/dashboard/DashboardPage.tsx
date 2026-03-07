@@ -265,8 +265,6 @@ export const DashboardPage: React.FC = () => {
     )
   }
 
-  console.log('🏠 Rendering dashboard home page')
-
   return (
     <div className="min-h-screen bg-surface-50">{/* Success Announcement Popup Overlay */}
       {showSuccessAnnouncement && announcementData && (
