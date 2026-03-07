@@ -21,6 +21,7 @@ import {
   Sparkles,
 } from 'lucide-react'
 import { paymentApi } from '@/lib/api'
+import { useAuthStore } from '@/stores/authStore'
 
 interface PaymentFormData {
   amount: string
@@ -104,14 +105,16 @@ function parseUpiString(data: string): ParsedUpiData | null {
 export const ScanPayPage: React.FC = () => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const user = useAuthStore((s) => s.user)
 
   const [scannerActive, setScannerActive] = useState(false)
   const [cameraPermission, setCameraPermission] = useState<'prompt' | 'granted' | 'denied'>('prompt')
   const [scannedData, setScannedData] = useState<ParsedUpiData | null>(null)
   const [paymentStep, setPaymentStep] = useState<'scanning' | 'details' | 'processing' | 'success' | 'failed'>('scanning')
   const [paymentResult, setPaymentResult] = useState<any>(null)
-  const [razorpayLoaded, setRazorpayLoaded] = useState(false)
+  const razorpayLoadingRef = useRef(false)
   const [scanError, setScanError] = useState<string | null>(null)
+  const razorpayObserverRef = useRef<MutationObserver | null>(null)
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -133,18 +136,73 @@ export const ScanPayPage: React.FC = () => {
 
   const amount = watch('amount')
 
-  // Load Razorpay
+  // Load Razorpay on demand (not eagerly) to avoid SDK console noise
+  const loadRazorpayScript = useCallback((): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      if (window.Razorpay) {
+        resolve()
+        return
+      }
+      if (document.getElementById('razorpay-script')) {
+        // Script tag exists but hasn't loaded yet — wait for it
+        const existing = document.getElementById('razorpay-script') as HTMLScriptElement
+        existing.addEventListener('load', () => { resolve() })
+        existing.addEventListener('error', () => reject(new Error('Failed to load Razorpay')))
+        return
+      }
+      if (razorpayLoadingRef.current) return
+      razorpayLoadingRef.current = true
+      const script = document.createElement('script')
+      script.id = 'razorpay-script'
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+      script.async = true
+      script.onload = () => { resolve() }
+      script.onerror = () => { razorpayLoadingRef.current = false; reject(new Error('Failed to load Razorpay')) }
+      document.body.appendChild(script)
+    })
+  }, [])
+
+  /**
+   * Patch Razorpay iframes with proper `allow` attributes to suppress
+   * Permissions-Policy console violations (accelerometer, gyroscope, etc.).
+   * Also cleans up Razorpay artifacts when the component unmounts.
+   */
   useEffect(() => {
-    if (document.getElementById('razorpay-script')) {
-      setRazorpayLoaded(true)
-      return
+    const patchRazorpayIframes = () => {
+      document.querySelectorAll('iframe').forEach((iframe) => {
+        const src = iframe.src || ''
+        if (
+          (src.includes('razorpay.com') || src.includes('sardine.ai')) &&
+          !iframe.getAttribute('data-rzp-patched')
+        ) {
+          iframe.allow =
+            'accelerometer; gyroscope; magnetometer; payment; camera; microphone'
+          iframe.setAttribute('data-rzp-patched', 'true')
+        }
+      })
     }
-    const script = document.createElement('script')
-    script.id = 'razorpay-script'
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js'
-    script.async = true
-    script.onload = () => setRazorpayLoaded(true)
-    document.body.appendChild(script)
+
+    // Watch for Razorpay iframes being injected
+    razorpayObserverRef.current = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        if (m.addedNodes.length) patchRazorpayIframes()
+      }
+    })
+    razorpayObserverRef.current.observe(document.body, {
+      childList: true,
+      subtree: true,
+    })
+
+    return () => {
+      // Disconnect observer
+      razorpayObserverRef.current?.disconnect()
+      razorpayObserverRef.current = null
+
+      // Remove Razorpay SDK artifacts to stop background noise
+      document.querySelectorAll(
+        'iframe[src*="razorpay.com"], iframe[src*="sardine.ai"], .razorpay-container, .razorpay-backdrop'
+      ).forEach((el) => el.remove())
+    }
   }, [])
 
   // Create a hidden Html5Qrcode instance for frame-by-frame decode
@@ -370,6 +428,12 @@ export const ScanPayPage: React.FC = () => {
       name: 'FinPal',
       description: `Payment to ${scannedData?.pn || orderData.merchant}`,
       order_id: orderData.orderId,
+      prefill: {
+        name: user?.fullName || '',
+        email: user?.email || '',
+        contact: user?.phone || '',
+        ...(scannedData?.pa ? { vpa: scannedData.pa } : {}),
+      },
       handler: function (response: any) {
         setPaymentStep('processing')
         verifyMutation.mutate({
@@ -378,9 +442,21 @@ export const ScanPayPage: React.FC = () => {
           razorpay_signature: response.razorpay_signature,
         })
       },
+      notes: {
+        merchant: scannedData?.pn || orderData.merchant || '',
+        upiVpa: scannedData?.pa || '',
+      },
       theme: { color: '#4f46e5' },
       modal: {
         ondismiss: () => toast('Payment cancelled', { icon: 'ℹ️' }),
+        confirm_close: true,
+        escape: true,
+      },
+      config: {
+        display: {
+          // Suppress Sardine biometric data collection which causes console noise
+          hide: [{ method: 'emandate' }],
+        },
       },
       method: { upi: true, card: true, netbanking: true, wallet: true },
     }
@@ -392,7 +468,13 @@ export const ScanPayPage: React.FC = () => {
     rzp.open()
   }
 
-  const onSubmit = (data: PaymentFormData) => {
+  const onSubmit = async (data: PaymentFormData) => {
+    try {
+      await loadRazorpayScript()
+    } catch {
+      toast.error('Failed to load payment gateway. Check your internet connection.')
+      return
+    }
     createOrderMutation.mutate(data)
   }
 
@@ -640,7 +722,7 @@ export const ScanPayPage: React.FC = () => {
             <div className="space-y-3 pt-2">
               <button
                 type="submit"
-                disabled={createOrderMutation.isPending || !razorpayLoaded}
+                disabled={createOrderMutation.isPending}
                 className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold rounded-2xl text-lg disabled:opacity-50 flex items-center justify-center gap-2 hover:from-blue-700 hover:to-blue-800 transition-all active:scale-[0.98] shadow-lg shadow-blue-200"
               >
                 {createOrderMutation.isPending ? (

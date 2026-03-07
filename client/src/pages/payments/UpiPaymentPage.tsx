@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -63,6 +63,7 @@ export const UpiPaymentPage: React.FC = () => {
   const [paymentStep, setPaymentStep] = useState<'form' | 'processing' | 'success' | 'failed'>('form')
   const [paymentResult, setPaymentResult] = useState<any>(null)
   const [razorpayLoaded, setRazorpayLoaded] = useState(false)
+  const razorpayLoadingRef = useRef(false)
   const [copiedUpi, setCopiedUpi] = useState(false)
 
   const {
@@ -123,18 +124,30 @@ export const UpiPaymentPage: React.FC = () => {
     window.scrollTo(0, 0)
   }, [])
 
-  // Load Razorpay script
-  useEffect(() => {
-    if (document.getElementById('razorpay-script')) {
-      setRazorpayLoaded(true)
-      return
-    }
-    const script = document.createElement('script')
-    script.id = 'razorpay-script'
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js'
-    script.async = true
-    script.onload = () => setRazorpayLoaded(true)
-    document.body.appendChild(script)
+  // Load Razorpay on demand (not eagerly) to avoid SDK console noise
+  const loadRazorpayScript = useCallback((): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      if (window.Razorpay) {
+        setRazorpayLoaded(true)
+        resolve()
+        return
+      }
+      if (document.getElementById('razorpay-script')) {
+        const existing = document.getElementById('razorpay-script') as HTMLScriptElement
+        existing.addEventListener('load', () => { setRazorpayLoaded(true); resolve() })
+        existing.addEventListener('error', () => reject(new Error('Failed to load Razorpay')))
+        return
+      }
+      if (razorpayLoadingRef.current) return
+      razorpayLoadingRef.current = true
+      const script = document.createElement('script')
+      script.id = 'razorpay-script'
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+      script.async = true
+      script.onload = () => { setRazorpayLoaded(true); resolve() }
+      script.onerror = () => { razorpayLoadingRef.current = false; reject(new Error('Failed to load Razorpay')) }
+      document.body.appendChild(script)
+    })
   }, [])
 
   // Create order mutation
@@ -217,7 +230,13 @@ export const UpiPaymentPage: React.FC = () => {
     rzp.open()
   }
 
-  const onSubmit = (data: PaymentFormData) => {
+  const onSubmit = async (data: PaymentFormData) => {
+    try {
+      await loadRazorpayScript()
+    } catch {
+      toast.error('Failed to load payment gateway. Check your internet connection.')
+      return
+    }
     createOrderMutation.mutate(data)
   }
 
@@ -703,7 +722,7 @@ export const UpiPaymentPage: React.FC = () => {
                         {/* CTA */}
                         <button
                           type="submit"
-                          disabled={createOrderMutation.isPending || !razorpayLoaded}
+                          disabled={createOrderMutation.isPending}
                           className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold rounded-2xl text-lg disabled:opacity-50 flex items-center justify-center gap-2 hover:from-blue-700 hover:to-blue-800 transition-all active:scale-[0.98] shadow-lg shadow-blue-200"
                         >
                           {createOrderMutation.isPending ? (
