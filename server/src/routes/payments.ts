@@ -16,6 +16,7 @@ import {
   categorizePayment,
   overrideCategory,
   getPaymentConfig,
+  recategorizePayments,
 } from '../controllers/paymentController';
 
 const router = Router();
@@ -111,6 +112,14 @@ router.patch(
   protect,
   [body('category').trim().notEmpty().withMessage('Category is required')],
   overrideCategory
+);
+
+// Recategorize existing payments (fix miscategorized payments)
+router.post(
+  '/recategorize',
+  protect,
+  [body('forceAll').optional().isBoolean()],
+  recategorizePayments
 );
 
 export default router;

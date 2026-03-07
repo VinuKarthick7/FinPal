@@ -309,7 +309,84 @@ export async function getUpiSpendingSummary(
   };
 }
 
+/**
+ * Recategorize existing UPI payments
+ * Useful for fixing miscategorized payments or applying improved categorization logic
+ */
+export async function recategorizeExistingPayments(
+  userId?: string,
+  forceRecategorize: boolean = false
+): Promise<{ success: boolean; updated: number; errors: number }> {
+  try {
+    const filter: Record<string, any> = { status: 'captured' };
+    
+    // Only recategorize 'Other' category unless forced
+    if (!forceRecategorize) {
+      filter.$or = [
+        { aiCategory: 'Other' },
+        { aiCategory: { $exists: false } },
+      ];
+    }
+    
+    if (userId) {
+      filter.user = new mongoose.Types.ObjectId(userId);
+    }
+
+    const payments = await UpiPayment.find(filter);
+    
+    let updated = 0;
+    let errors = 0;
+
+    console.log(`📊 Recategorizing ${payments.length} UPI payments...`);
+
+    for (const payment of payments) {
+      try {
+        // Re-categorize using current logic
+        const categorization = await categorizeTransaction({
+          merchant: payment.merchant,
+          description: payment.description,
+          notes: payment.notes ? Object.values(payment.notes).join(' ') : undefined,
+          amount: payment.amount,
+        });
+
+        // Update UPI payment
+        await UpiPayment.findByIdAndUpdate(payment._id, {
+          $set: {
+            aiCategory: categorization.category,
+            aiConfidence: categorization.confidence,
+          },
+        });
+
+        // Update linked transaction if exists
+        if (payment.transactionId) {
+          await Transaction.findByIdAndUpdate(payment.transactionId, {
+            $set: {
+              category: categorization.category,
+            },
+          });
+        }
+
+        updated++;
+        console.log(
+          `✅ Updated: "${payment.merchant}" → ${categorization.category} (was: ${payment.aiCategory || 'None'})`
+        );
+      } catch (error) {
+        errors++;
+        console.error(`❌ Failed to recategorize payment ${payment._id}:`, error);
+      }
+    }
+
+    console.log(`✨ Recategorization complete: ${updated} updated, ${errors} errors`);
+    
+    return { success: true, updated, errors };
+  } catch (error) {
+    console.error('❌ Recategorization failed:', error);
+    return { success: false, updated: 0, errors: 0 };
+  }
+}
+
 export default {
   processPaymentToExpense,
   getUpiSpendingSummary,
+  recategorizeExistingPayments,
 };

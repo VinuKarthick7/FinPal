@@ -136,27 +136,129 @@ function ruleBasedCategorize(
   const text = `${merchant} ${description || ''} ${notes || ''}`.toLowerCase();
 
   const rules: Array<{ keywords: string[]; category: ExpenseCategory }> = [
-    { keywords: ['swiggy', 'zomato', 'restaurant', 'cafe', 'food', 'biryani', 'pizza', 'burger', 'dominos', 'mcdonalds', 'kfc', 'dining'], category: 'Food' },
-    { keywords: ['bigbasket', 'blinkit', 'grofers', 'dmart', 'grocery', 'vegetables', 'fruits', 'kirana', 'supermarket', 'zepto', 'instamart'], category: 'Groceries' },
-    { keywords: ['emi', 'loan', 'bajaj', 'hdfc loan', 'personal loan', 'home loan', 'car loan', 'equated monthly'], category: 'EMI' },
-    { keywords: ['rent', 'house rent', 'pg rent', 'apartment', 'landlord'], category: 'Rent' },
-    { keywords: ['electricity', 'water bill', 'gas bill', 'internet', 'broadband', 'wifi', 'jio', 'airtel', 'vi ', 'bsnl', 'mobile recharge', 'dth', 'tata sky', 'piped gas'], category: 'Utilities' },
-    { keywords: ['amazon', 'flipkart', 'myntra', 'ajio', 'meesho', 'shopping', 'mall', 'clothes', 'electronics', 'nykaa', 'snapdeal'], category: 'Shopping' },
-    { keywords: ['uber', 'ola', 'rapido', 'metro', 'bus', 'train', 'irctc', 'petrol', 'diesel', 'fuel', 'parking', 'toll', 'cab', 'auto'], category: 'Transport' },
-    { keywords: ['hospital', 'doctor', 'pharmacy', 'medical', 'medicine', 'apollo', 'medplus', 'netmeds', 'pharmeasy', '1mg', 'clinic', 'dental', 'health'], category: 'Healthcare' },
-    { keywords: ['school', 'college', 'university', 'tuition', 'course', 'udemy', 'coursera', 'coaching', 'books', 'education', 'exam', 'fee'], category: 'Education' },
-    { keywords: ['netflix', 'hotstar', 'prime video', 'spotify', 'movie', 'theatre', 'gaming', 'entertainment', 'concert', 'event'], category: 'Entertainment' },
-    { keywords: ['mutual fund', 'stock', 'zerodha', 'groww', 'upstox', 'investment', 'sip', 'fd ', 'fixed deposit', 'ppf', 'nps'], category: 'Investment' },
-    { keywords: ['salary', 'wage', 'income', 'freelance', 'payment received', 'credit'], category: 'Salary' },
-    { keywords: ['gift', 'donation', 'charity', 'shagun', 'wedding gift'], category: 'Gift' },
+    { 
+      keywords: [
+        'swiggy', 'zomato', 'restaurant', 'cafe', 'coffee', 'food', 'biryani', 'pizza', 'burger', 
+        'dominos', 'mcdonalds', 'kfc', 'dining', 'snacks', 'snack', 'breakfast', 'lunch', 'dinner',
+        'dosa', 'idli', 'vada', 'samosa', 'chai', 'tea', 'paratha', 'thali', 'meal', 'eating',
+        'bakery', 'sweet', 'mithai', 'haldiram', 'bikanervala', 'subway', 'starbucks',
+        'beverage', 'juice', 'lassi', 'chole', 'paneer', 'chicken', 'mutton', 'fish', 'egg',
+        'noodles', 'momos', 'chaat', 'pav bhaji', 'vadapav', 'frankie', 'roll', 'wrap',
+        'sandwich', 'pasta', 'ice cream', 'dessert', 'cake', 'pastry', 'tiffin', 'canteen',
+        'dhaba', 'udupi', 'south indian', 'north indian', 'chinese', 'continental',
+        'fastfood', 'fast food', 'eatery', 'foodcourt', 'food court', 'mess'
+      ], 
+      category: 'Food' 
+    },
+    { 
+      keywords: [
+        'bigbasket', 'blinkit', 'grofers', 'dmart', 'grocery', 'vegetables', 'fruits', 
+        'kirana', 'supermarket', 'zepto', 'instamart', 'jiomart', 'amazon fresh',
+        'milk', 'bread', 'eggs', 'rice', 'wheat', 'atta', 'dal', 'oil', 'ghee',
+        'spices', 'masala', 'provisions', 'staples', 'fresh', 'organic'
+      ], 
+      category: 'Groceries' 
+    },
+    { 
+      keywords: [
+        'emi', 'loan', 'bajaj', 'hdfc loan', 'personal loan', 'home loan', 'car loan', 
+        'equated monthly', 'installment', 'instalment', 'finance', 'credit card bill'
+      ], 
+      category: 'EMI' 
+    },
+    { 
+      keywords: [
+        'rent', 'house rent', 'pg rent', 'apartment', 'landlord', 'accommodation',
+        'hostel', 'room rent', 'flat rent', 'maintenance'
+      ], 
+      category: 'Rent' 
+    },
+    { 
+      keywords: [
+        'electricity', 'water bill', 'gas bill', 'internet', 'broadband', 'wifi', 
+        'jio', 'airtel', 'vi ', 'bsnl', 'mobile recharge', 'dth', 'tata sky', 'piped gas',
+        'prepaid', 'postpaid', 'bill payment', 'utility', 'utilities', 'phone bill',
+        'tata play', 'dish tv', 'sun direct', 'vodafone', 'idea', 'reliance'
+      ], 
+      category: 'Utilities' 
+    },
+    { 
+      keywords: [
+        'amazon', 'flipkart', 'myntra', 'ajio', 'meesho', 'shopping', 'mall', 'clothes', 
+        'electronics', 'nykaa', 'snapdeal', 'store', 'shop', 'market', 'garment',
+        'fashion', 'apparel', 'footwear', 'shoes', 'accessories', 'cosmetics',
+        'purchase', 'buy', 'order', 'retail', 'online shopping'
+      ], 
+      category: 'Shopping' 
+    },
+    { 
+      keywords: [
+        'uber', 'ola', 'rapido', 'metro', 'bus', 'train', 'irctc', 'petrol', 'diesel', 
+        'fuel', 'parking', 'toll', 'cab', 'auto', 'taxi', 'rickshaw', 'transport',
+        'travel', 'commute', 'ride', 'booking', 'railways', 'flight', 'airline',
+        'indigo', 'spicejet', 'air india', 'vistara', 'goibibo', 'makemytrip'
+      ], 
+      category: 'Transport' 
+    },
+    { 
+      keywords: [
+        'hospital', 'doctor', 'pharmacy', 'medical', 'medicine', 'apollo', 'medplus', 
+        'netmeds', 'pharmeasy', '1mg', 'clinic', 'dental', 'health', 'healthcare',
+        'diagnostic', 'lab', 'test', 'checkup', 'consultation', 'prescription',
+        'surgery', 'treatment', 'therapy', 'physiotherapy', 'nursing'
+      ], 
+      category: 'Healthcare' 
+    },
+    { 
+      keywords: [
+        'school', 'college', 'university', 'tuition', 'course', 'udemy', 'coursera', 
+        'coaching', 'books', 'education', 'exam', 'fee', 'admission', 'certificate',
+        'training', 'workshop', 'seminar', 'class', 'academy', 'institute',
+        'learning', 'study', 'notebook', 'stationery'
+      ], 
+      category: 'Education' 
+    },
+    { 
+      keywords: [
+        'netflix', 'hotstar', 'prime video', 'spotify', 'movie', 'theatre', 'gaming', 
+        'entertainment', 'concert', 'event', 'subscription', 'ott', 'streaming',
+        'youtube premium', 'disney', 'zee5', 'sonyliv', 'voot', 'mx player',
+        'game', 'play', 'cinema', 'pvr', 'inox', 'show', 'ticket', 'culturals',
+        'cultural', 'fest', 'festival', 'program', 'programme', 'performance',
+        'exhibition', 'fair', 'carnival', 'celebration', 'function'
+      ], 
+      category: 'Entertainment' 
+    },
+    { 
+      keywords: [
+        'mutual fund', 'stock', 'zerodha', 'groww', 'upstox', 'investment', 'sip', 
+        'fd ', 'fixed deposit', 'ppf', 'nps', 'trading', 'demat', 'portfolio',
+        'equity', 'bond', 'share', 'market', 'invest', 'gold'
+      ], 
+      category: 'Investment' 
+    },
+    { 
+      keywords: [
+        'salary', 'wage', 'income', 'freelance', 'payment received', 'credit',
+        'earnings', 'stipend', 'bonus', 'incentive', 'commission'
+      ], 
+      category: 'Salary' 
+    },
+    { 
+      keywords: [
+        'gift', 'donation', 'charity', 'shagun', 'wedding gift', 'present',
+        'contribute', 'contribution', 'ngo', 'temple', 'church', 'mosque', 'gurudwara'
+      ], 
+      category: 'Gift' 
+    },
   ];
 
   for (const rule of rules) {
     if (rule.keywords.some((kw) => text.includes(kw))) {
       return {
         category: rule.category,
-        confidence: 0.6,
-        reasoning: `Rule-based match (AI unavailable)`,
+        confidence: 0.7,
+        reasoning: `Rule-based match: "${merchant}"`,
       };
     }
   }

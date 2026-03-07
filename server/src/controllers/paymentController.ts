@@ -17,6 +17,7 @@ import {
 import {
   processPaymentToExpense,
   getUpiSpendingSummary,
+  recategorizeExistingPayments,
 } from '../services/autoExpenseEngine';
 import { categorizeTransaction } from '../services/aiCategorizationService';
 import { generateSmartInsights } from '../services/smartBudgetIntelligence';
@@ -531,4 +532,33 @@ export const getPaymentConfig = async (_req: Request, res: Response) => {
       keyId: isRazorpayConfigured() ? config.razorpayKeyId : null,
     },
   });
+};
+
+/**
+ * POST /api/payments/recategorize
+ * Recategorize existing UPI payments (admin/user action)
+ */
+export const recategorizePayments = async (req: Request, res: Response) => {
+  try {
+    const userId = (req.user as any)?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+
+    const { forceAll } = req.body;
+
+    const result = await recategorizeExistingPayments(userId, forceAll || false);
+
+    return res.status(200).json({
+      success: true,
+      message: `Recategorization complete: ${result.updated} payments updated`,
+      data: result,
+    });
+  } catch (error) {
+    console.error('Recategorize endpoint error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to recategorize payments',
+    });
+  }
 };
