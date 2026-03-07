@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import {
   ArrowLeft,
@@ -12,6 +12,7 @@ import {
   Filter,
   ChevronDown,
   Loader2,
+  Sparkles,
 } from 'lucide-react'
 import { paymentApi } from '@/lib/api'
 
@@ -45,6 +46,7 @@ const statusConfig: Record<string, { icon: React.ReactNode; color: string; label
 
 export const PaymentHistoryPage: React.FC = () => {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [page, setPage] = useState(1)
   const [statusFilter, setStatusFilter] = useState<string>('captured')
   const [showFilter, setShowFilter] = useState(false)
@@ -57,6 +59,19 @@ export const PaymentHistoryPage: React.FC = () => {
         limit: 20,
         status: statusFilter || undefined,
       }),
+  })
+
+  // Recategorization mutation
+  const recategorizeMutation = useMutation({
+    mutationFn: () => paymentApi.recategorize(false),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['payment-history'] })
+      queryClient.invalidateQueries({ queryKey: ['payment-summary'] })
+      alert(`✅ ${data.data.updated} payments recategorized successfully!`)
+    },
+    onError: () => {
+      alert('❌ Failed to recategorize payments. Please try again.')
+    },
   })
 
   const payments = data?.data?.payments || []
@@ -113,17 +128,32 @@ export const PaymentHistoryPage: React.FC = () => {
           <h2 className="text-lg font-semibold text-gray-800">
             Payment History
           </h2>
-          <button
-            onClick={() => setShowFilter(!showFilter)}
-            className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
-          >
-            <Filter size={16} />
-            Filter
-            <ChevronDown
-              size={14}
-              className={`transition-transform ${showFilter ? 'rotate-180' : ''}`}
-            />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => recategorizeMutation.mutate()}
+              disabled={recategorizeMutation.isPending}
+              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              title="Fix miscategorized payments"
+            >
+              {recategorizeMutation.isPending ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Sparkles size={14} />
+              )}
+              Fix Categories
+            </button>
+            <button
+              onClick={() => setShowFilter(!showFilter)}
+              className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
+            >
+              <Filter size={16} />
+              Filter
+              <ChevronDown
+                size={14}
+                className={`transition-transform ${showFilter ? 'rotate-180' : ''}`}
+              />
+            </button>
+          </div>
         </div>
 
         {showFilter && (
