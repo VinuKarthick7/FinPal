@@ -85,6 +85,13 @@ ${params.amount ? `- Amount: ₹${params.amount}` : ''}
 
 Context: This is an Indian payment (likely UPI). Consider Indian merchant names, food chains, utility providers, e-commerce platforms, etc.
 
+Category Guidelines:
+- Education: School/college fees, tuition, courses, books, training, workshops, seminars, hackathons, competitions, coding contests, tech events, bootcamps, conferences, study materials, certifications, exams
+- Entertainment: Movies, concerts, games, OTT subscriptions, cultural events, festivals
+- Food: Restaurants, cafes, food delivery (Swiggy, Zomato)
+- Groceries: Supermarkets, vegetable/fruit vendors, BigBasket, Blinkit
+- Transport: Uber, Ola, fuel, metro, train, flights
+
 Respond ONLY with valid JSON: {"category": "<category>", "confidence": <0.0-1.0>, "reasoning": "<brief reason>"}`;
 
     const response = await openai.chat.completions.create({
@@ -214,7 +221,8 @@ function ruleBasedCategorize(
         'school', 'college', 'university', 'tuition', 'course', 'udemy', 'coursera', 
         'coaching', 'books', 'education', 'exam', 'fee', 'admission', 'certificate',
         'training', 'workshop', 'seminar', 'class', 'academy', 'institute',
-        'learning', 'study', 'notebook', 'stationery'
+        'learning', 'study', 'notebook', 'stationery', 'hackathon', 'competition',
+        'contest', 'project', 'tech event', 'coding', 'bootcamp', 'conference'
       ], 
       category: 'Education' 
     },
