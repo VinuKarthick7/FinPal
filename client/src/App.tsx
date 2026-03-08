@@ -15,7 +15,7 @@ import { ReportsPage } from './pages/reports/ReportsPage'
 import { FamilyModePage } from './pages/family'
 import { AchievementsPage } from './pages/achievements'
 import { FinMatePage } from './pages/finmate'
-import { UpiPaymentPage, PaymentHistoryPage, SmartInsightsPage, ScanPayPage } from './pages/payments'
+import { UpiPaymentPage, PaymentHistoryPage, SmartInsightsPage, ScanPayPage, PayContactsPage, PayContactScreen } from './pages/payments'
 import { MainLayout } from './components/layout'
 import { ErrorBoundary } from './components/ui'
 import { useAuthStore } from './stores/authStore'
@@ -239,6 +239,20 @@ function App() {
           <Route path="/scan-pay" element={
             <ProtectedRoute>
               <ScanPayPage />
+            </ProtectedRoute>
+          } />
+
+          {/* Pay Contact - Contact list for UPI payments */}
+          <Route path="/pay/contacts" element={
+            <ProtectedRoute>
+              <PayContactsPage />
+            </ProtectedRoute>
+          } />
+
+          {/* Pay Contact - Payment screen for selected contact */}
+          <Route path="/pay/contact" element={
+            <ProtectedRoute>
+              <PayContactScreen />
             </ProtectedRoute>
           } />
 
