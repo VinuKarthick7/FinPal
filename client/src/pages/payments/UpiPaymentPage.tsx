@@ -355,8 +355,8 @@ export const UpiPaymentPage: React.FC = () => {
             {[
               { icon: QrCode, label: 'Scan & Pay', color: 'from-blue-500 to-blue-600', action: () => navigate('/scan-pay') },
               { icon: Send, label: 'Pay Contact', color: 'from-purple-500 to-purple-600', action: () => navigate('/pay/contacts') },
-              { icon: ArrowDownLeft, label: 'Request', color: 'from-emerald-500 to-emerald-600', action: () => toast('Coming soon!', { icon: '🔜' }) },
-              { icon: CreditCard, label: 'Bank Transfer', color: 'from-blue-500 to-blue-600', action: () => setActiveTab('pay') },
+              { icon: ArrowDownLeft, label: 'Request', color: 'from-emerald-500 to-emerald-600', action: () => navigate('/pay/request') },
+              { icon: CreditCard, label: 'Bank Transfer', color: 'from-blue-500 to-blue-600', action: () => navigate('/pay/bank-transfer') },
             ].map((item) => (
               <button
                 key={item.label}
