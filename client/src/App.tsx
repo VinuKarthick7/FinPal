@@ -15,7 +15,7 @@ import { ReportsPage } from './pages/reports/ReportsPage'
 import { FamilyModePage } from './pages/family'
 import { AchievementsPage } from './pages/achievements'
 import { FinMatePage } from './pages/finmate'
-import { UpiPaymentPage, PaymentHistoryPage, SmartInsightsPage, ScanPayPage, PayContactsPage, PayContactScreen } from './pages/payments'
+import { UpiPaymentPage, PaymentHistoryPage, SmartInsightsPage, ScanPayPage, PayContactsPage, PayContactScreen, RequestMoneyPage, BankTransferPage } from './pages/payments'
 import { MainLayout } from './components/layout'
 import { ErrorBoundary } from './components/ui'
 import { useAuthStore } from './stores/authStore'
@@ -253,6 +253,20 @@ function App() {
           <Route path="/pay/contact" element={
             <ProtectedRoute>
               <PayContactScreen />
+            </ProtectedRoute>
+          } />
+
+          {/* Request Money - UPI collect request */}
+          <Route path="/pay/request" element={
+            <ProtectedRoute>
+              <RequestMoneyPage />
+            </ProtectedRoute>
+          } />
+
+          {/* Bank Transfer - Send money to bank account */}
+          <Route path="/pay/bank-transfer" element={
+            <ProtectedRoute>
+              <BankTransferPage />
             </ProtectedRoute>
           } />
 
