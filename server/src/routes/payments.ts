@@ -17,6 +17,9 @@ import {
   overrideCategory,
   getPaymentConfig,
   recategorizePayments,
+  requestMoney,
+  verifyBankAccount,
+  bankTransfer,
 } from '../controllers/paymentController';
 
 const router = Router();
@@ -120,6 +123,65 @@ router.post(
   protect,
   [body('forceAll').optional().isBoolean()],
   recategorizePayments
+);
+
+// Request money (UPI collect)
+router.post(
+  '/request-money',
+  protect,
+  [
+    body('contactName').trim().notEmpty().withMessage('Contact name is required'),
+    body('contactUpiId').trim().notEmpty().withMessage('Contact UPI ID is required'),
+    body('contactPhone').trim().notEmpty().withMessage('Contact phone is required'),
+    body('amount').isFloat({ min: 1, max: 100000 }).withMessage('Amount must be between ₹1 and ₹1,00,000'),
+    body('note').optional().trim().isLength({ max: 200 }),
+  ],
+  requestMoney
+);
+
+// Verify bank account
+router.post(
+  '/verify-bank-account',
+  protect,
+  [
+    body('accountNumber')
+      .trim()
+      .notEmpty()
+      .withMessage('Account number is required')
+      .isLength({ min: 9, max: 18 })
+      .withMessage('Invalid account number'),
+    body('ifscCode')
+      .trim()
+      .notEmpty()
+      .withMessage('IFSC code is required')
+      .matches(/^[A-Z]{4}0[A-Z0-9]{6}$/i)
+      .withMessage('Invalid IFSC code'),
+    body('holderName').trim().notEmpty().withMessage('Account holder name is required'),
+  ],
+  verifyBankAccount
+);
+
+// Bank transfer
+router.post(
+  '/bank-transfer',
+  protect,
+  [
+    body('holderName').trim().notEmpty().withMessage('Account holder name is required'),
+    body('accountNumber')
+      .trim()
+      .notEmpty()
+      .withMessage('Account number is required')
+      .isLength({ min: 9, max: 18 }),
+    body('ifscCode')
+      .trim()
+      .notEmpty()
+      .withMessage('IFSC code is required')
+      .matches(/^[A-Z]{4}0[A-Z0-9]{6}$/i),
+    body('bankName').trim().notEmpty().withMessage('Bank name is required'),
+    body('amount').isFloat({ min: 1, max: 200000 }).withMessage('Amount must be between ₹1 and ₹2,00,000'),
+    body('note').optional().trim().isLength({ max: 200 }),
+  ],
+  bankTransfer
 );
 
 export default router;

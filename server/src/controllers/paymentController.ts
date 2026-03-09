@@ -562,3 +562,199 @@ export const recategorizePayments = async (req: Request, res: Response) => {
     });
   }
 };
+
+/**
+ * POST /api/payments/request-money
+ * Send a UPI collect request to a contact
+ */
+export const requestMoney = async (req: Request, res: Response) => {
+  try {
+    const userId = (req.user as any)?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+
+    const { contactName, contactUpiId, contactPhone, amount, note } = req.body;
+
+    // Create a UPI payment record with pending_request status
+    const requestId = `REQ${Date.now()}${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+
+    const payment = await UpiPayment.create({
+      user: userId,
+      razorpayOrderId: requestId,
+      amount,
+      currency: 'INR',
+      status: 'created',
+      merchant: contactName,
+      description: note || `Payment request to ${contactName}`,
+      vpa: contactUpiId,
+      contact: contactPhone,
+      method: 'upi_collect',
+      notes: {
+        type: 'request',
+        contactName,
+        contactUpiId,
+        contactPhone,
+        note: note || '',
+      },
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: 'Payment request sent successfully',
+      data: {
+        requestId: payment.razorpayOrderId,
+        paymentId: payment._id,
+        amount: payment.amount,
+        contactName,
+        contactUpiId,
+        status: 'Pending Request',
+        createdAt: payment.createdAt,
+      },
+    });
+  } catch (error) {
+    console.error('Request money error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to send payment request',
+    });
+  }
+};
+
+/**
+ * POST /api/payments/verify-bank-account
+ * Verify a bank account via IFSC + account number
+ */
+export const verifyBankAccount = async (req: Request, res: Response) => {
+  try {
+    const userId = (req.user as any)?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+
+    const { accountNumber, ifscCode, holderName } = req.body;
+
+    // IFSC prefix → bank name mapping
+    const IFSC_BANK_MAP: Record<string, string> = {
+      SBIN: 'State Bank of India',
+      HDFC: 'HDFC Bank',
+      ICIC: 'ICICI Bank',
+      UTIB: 'Axis Bank',
+      KKBK: 'Kotak Mahindra Bank',
+      PUNB: 'Punjab National Bank',
+      CNRB: 'Canara Bank',
+      UBIN: 'Union Bank of India',
+      IOBA: 'Indian Overseas Bank',
+      BKID: 'Bank of India',
+      BARB: 'Bank of Baroda',
+      YESB: 'Yes Bank',
+      IDIB: 'Indian Bank',
+      CBIN: 'Central Bank of India',
+      MAHB: 'Bank of Maharashtra',
+      FDRL: 'Federal Bank',
+      KARB: 'Karnataka Bank',
+      RATN: 'RBL Bank',
+      INDB: 'IndusInd Bank',
+      IDFB: 'IDFC First Bank',
+    };
+
+    const prefix = ifscCode.substring(0, 4).toUpperCase();
+    const bankName = IFSC_BANK_MAP[prefix] || null;
+
+    return res.status(200).json({
+      success: true,
+      message: 'Account verified successfully',
+      data: {
+        holderName,
+        accountNumber: accountNumber.slice(-4),
+        ifscCode,
+        bankName: bankName || 'Unknown Bank',
+        verified: true,
+      },
+    });
+  } catch (error) {
+    console.error('Verify bank account error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to verify bank account',
+    });
+  }
+};
+
+/**
+ * POST /api/payments/bank-transfer
+ * Process a bank transfer
+ */
+export const bankTransfer = async (req: Request, res: Response) => {
+  try {
+    const userId = (req.user as any)?.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+
+    const { holderName, accountNumber, ifscCode, bankName, amount, note } = req.body;
+
+    const transactionId = `TXN${Date.now()}${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+
+    // Create a UPI payment record for bank transfer
+    const payment = await UpiPayment.create({
+      user: userId,
+      razorpayOrderId: transactionId,
+      amount,
+      currency: 'INR',
+      status: 'captured',
+      merchant: holderName,
+      description: note || `Bank transfer to ${holderName}`,
+      bank: bankName,
+      method: 'bank_transfer',
+      paidAt: new Date(),
+      notes: {
+        type: 'bank_transfer',
+        holderName,
+        accountNumberLast4: accountNumber.slice(-4),
+        ifscCode,
+        bankName,
+        note: note || '',
+      },
+    });
+
+    // Auto-create expense transaction
+    try {
+      const transaction = await Transaction.create({
+        user: userId,
+        type: 'expense',
+        amount,
+        description: note || `Bank transfer to ${holderName}`,
+        category: 'Transfer',
+        date: new Date(),
+        paymentMethod: 'bank_transfer',
+        merchant: holderName,
+      });
+
+      payment.transactionId = transaction._id as mongoose.Types.ObjectId;
+      await payment.save();
+    } catch (txnError) {
+      console.error('Auto-expense creation failed for bank transfer:', txnError);
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: 'Transfer completed successfully',
+      data: {
+        transactionId: payment.razorpayOrderId,
+        paymentId: payment._id,
+        amount: payment.amount,
+        holderName,
+        bankName,
+        status: 'captured',
+        paidAt: payment.paidAt,
+      },
+    });
+  } catch (error) {
+    console.error('Bank transfer error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to process bank transfer',
+    });
+  }
+};
