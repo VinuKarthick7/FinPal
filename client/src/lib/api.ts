@@ -668,6 +668,41 @@ export const paymentApi = {
     const response = await api.post('/payments/recategorize', { forceAll })
     return response.data
   },
+
+  // Request money from a contact (UPI collect)
+  requestMoney: async (data: {
+    contactName: string
+    contactUpiId: string
+    contactPhone: string
+    amount: number
+    note?: string
+  }) => {
+    const response = await api.post('/payments/request-money', data)
+    return response.data
+  },
+
+  // Verify bank account
+  verifyBankAccount: async (data: {
+    accountNumber: string
+    ifscCode: string
+    holderName: string
+  }) => {
+    const response = await api.post('/payments/verify-bank-account', data)
+    return response.data
+  },
+
+  // Bank transfer
+  bankTransfer: async (data: {
+    holderName: string
+    accountNumber: string
+    ifscCode: string
+    bankName: string
+    amount: number
+    note?: string
+  }) => {
+    const response = await api.post('/payments/bank-transfer', data)
+    return response.data
+  },
 }
 
 export default api
