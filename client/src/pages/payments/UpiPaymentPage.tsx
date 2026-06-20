@@ -62,7 +62,6 @@ export const UpiPaymentPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'home' | 'pay'>('home')
   const [paymentStep, setPaymentStep] = useState<'form' | 'processing' | 'success' | 'failed'>('form')
   const [paymentResult, setPaymentResult] = useState<any>(null)
-  const [razorpayLoaded, setRazorpayLoaded] = useState(false)
   const razorpayLoadingRef = useRef(false)
   const [copiedUpi, setCopiedUpi] = useState(false)
 
@@ -128,13 +127,12 @@ export const UpiPaymentPage: React.FC = () => {
   const loadRazorpayScript = useCallback((): Promise<void> => {
     return new Promise((resolve, reject) => {
       if (window.Razorpay) {
-        setRazorpayLoaded(true)
         resolve()
         return
       }
       if (document.getElementById('razorpay-script')) {
         const existing = document.getElementById('razorpay-script') as HTMLScriptElement
-        existing.addEventListener('load', () => { setRazorpayLoaded(true); resolve() })
+        existing.addEventListener('load', () => { resolve() })
         existing.addEventListener('error', () => reject(new Error('Failed to load Razorpay')))
         return
       }
@@ -144,7 +142,7 @@ export const UpiPaymentPage: React.FC = () => {
       script.id = 'razorpay-script'
       script.src = 'https://checkout.razorpay.com/v1/checkout.js'
       script.async = true
-      script.onload = () => { setRazorpayLoaded(true); resolve() }
+      script.onload = () => { resolve() }
       script.onerror = () => { razorpayLoadingRef.current = false; reject(new Error('Failed to load Razorpay')) }
       document.body.appendChild(script)
     })

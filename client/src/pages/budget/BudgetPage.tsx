@@ -9,7 +9,6 @@ import {
   AlertTriangle,
   Calendar,
   Edit2,
-  Trash2,
   X,
   Loader2,
   Target,
@@ -611,7 +610,7 @@ export const BudgetPage: React.FC = () => {
           )}
 
           {/* Budget History */}
-          {budgetsData && budgetsData.length > 1 && (
+          {budgetsData && budgetsData.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -620,77 +619,96 @@ export const BudgetPage: React.FC = () => {
             >
               <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('budget.budgetHistory')}</h3>
               <div className="space-y-3">
-                {budgetsData.slice(1).map((budget) => {
+                {budgetsData.map((budget) => {
                   const percentage = budget.totalBudget > 0 
                     ? (budget.totalSpent / budget.totalBudget) * 100 
                     : 0
+                  
+                  // Check if this month has a budget
+                  const hasBudget = budget.budgetExists === true;
+                  const monthKey = `${budget.year}-${budget.month}-${budget._id || 'missing'}`;
 
                   return (
-                    <div key={budget._id} className="space-y-0">
-                      <div
-                        className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
-                      >
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          {MONTHS[budget.month - 1]} {budget.year}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {formatCurrency(budget.totalSpent)} of {formatCurrency(budget.totalBudget)}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className={`text-sm font-medium ${
-                          percentage >= 100 ? 'text-red-600' : percentage >= 80 ? 'text-amber-600' : 'text-green-600'
-                        }`}>
-                          {percentage.toFixed(0)}%
-                        </span>
-                        <button
-                          onClick={() => setExpandedHistoryId(expandedHistoryId === budget._id ? null : budget._id)}
-                          className="p-2 hover:bg-primary-50 rounded-lg transition-colors"
-                          title="View savings info"
-                        >
-                          <Eye className="w-4 h-4 text-primary-600" />
-                        </button>
-                        {percentage <= 100 ? (
-                          <div className="p-2" title="Budget tracked successfully!">
-                            <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-                          </div>
-                        ) : (
-                          <div className="p-2" title="Over budget">
-                            <ThumbsDown className="w-4 h-4 text-red-500" />
-                          </div>
-                        )}
-                      </div>
-                      </div>
-                      {/* Savings info panel */}
-                      <AnimatePresence>
-                        {expandedHistoryId === budget._id && (
-                          <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            className="overflow-hidden"
-                          >
-                            <div className="mx-4 mb-2 pt-0 pb-3 border-b border-gray-200">
-                              {budget.totalBudget > budget.totalSpent ? (
-                                <div className="flex items-center gap-2 text-green-700 bg-green-50 rounded-lg px-3 py-2">
-                                  <Wallet className="w-4 h-4 flex-shrink-0" />
-                                  <span className="text-sm font-medium">
-                                    You saved {formatCurrency(budget.totalBudget - budget.totalSpent)} this month! 🎉
-                                  </span>
+                    <div key={monthKey} className="space-y-0">
+                      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            {MONTHS[budget.month - 1]} {budget.year}
+                          </p>
+                          {hasBudget ? (
+                            <p className="text-sm text-gray-500">
+                              {formatCurrency(budget.totalSpent)} of {formatCurrency(budget.totalBudget)}
+                            </p>
+                          ) : (
+                            <p className="text-sm font-semibold text-red-600">
+                              🔴 Budget Not Fixed This Month
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {hasBudget ? (
+                            <>
+                              <span className={`text-sm font-medium ${
+                                percentage >= 100 ? 'text-red-600' : percentage >= 80 ? 'text-amber-600' : 'text-green-600'
+                              }`}>
+                                {percentage.toFixed(0)}%
+                              </span>
+                              <button
+                                onClick={() => setExpandedHistoryId(expandedHistoryId === budget._id ? null : budget._id)}
+                                className="p-2 hover:bg-primary-50 rounded-lg transition-colors"
+                                title="View savings info"
+                              >
+                                <Eye className="w-4 h-4 text-primary-600" />
+                              </button>
+                              {percentage <= 100 ? (
+                                <div className="p-2" title="Budget tracked successfully!">
+                                  <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
                                 </div>
                               ) : (
-                                <div className="flex items-center gap-2 text-red-700 bg-red-50 rounded-lg px-3 py-2">
-                                  <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-                                  <span className="text-sm font-medium">
-                                    Overspent by {formatCurrency(budget.totalSpent - budget.totalBudget)}
-                                  </span>
+                                <div className="p-2" title="Over budget">
+                                  <ThumbsDown className="w-4 h-4 text-red-500" />
                                 </div>
                               )}
+                            </>
+                          ) : (
+                            <div className="text-gray-400">
+                              <AlertTriangle className="w-5 h-5" />
                             </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Savings info panel - only show for existing budgets */}
+                      {hasBudget && (
+                        <AnimatePresence>
+                          {expandedHistoryId === budget._id && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              exit={{ opacity: 0, height: 0 }}
+                              className="overflow-hidden"
+                            >
+                              <div className="mx-4 mb-2 pt-0 pb-3 border-b border-gray-200">
+                                {budget.totalBudget > budget.totalSpent ? (
+                                  <div className="flex items-center gap-2 text-green-700 bg-green-50 rounded-lg px-3 py-2">
+                                    <Wallet className="w-4 h-4 flex-shrink-0" />
+                                    <span className="text-sm font-medium">
+                                      You saved {formatCurrency(budget.totalBudget - budget.totalSpent)} this month! 🎉
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-2 text-red-700 bg-red-50 rounded-lg px-3 py-2">
+                                    <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                                    <span className="text-sm font-medium">
+                                      Overspent by {formatCurrency(budget.totalSpent - budget.totalBudget)}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      )}
                     </div>
                   )
                 })}

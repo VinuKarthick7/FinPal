@@ -188,8 +188,7 @@ const familySchema = new Schema<IFamily>(
   }
 );
 
-// Index for faster queries
-familySchema.index({ familyCode: 1 });
+// Index for faster queries (familyCode already indexed via unique:true)
 familySchema.index({ 'members.userId': 1 });
 familySchema.index({ 'members.email': 1 });
 familySchema.index({ createdBy: 1 });

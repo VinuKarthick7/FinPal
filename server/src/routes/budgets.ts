@@ -67,20 +67,117 @@ const calculateSpentAmounts = async (userId: string, month: number, year: number
   return { categorySpending, totalSpent };
 };
 
+// Helper to generate complete month history including current month and missing months
+// The history is limited to the current calendar year so it starts at January.
+const generateMonthHistory = (existingBudgets: any[], monthsToShow?: number) => {
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
+  const monthsToGenerate = Math.min(monthsToShow ?? currentMonth, currentMonth);
+
+  // Create a map of existing budgets for quick lookup
+  const budgetMap = new Map<string, any>();
+  existingBudgets.forEach(budget => {
+    const key = `${budget.year}-${budget.month}`;
+    budgetMap.set(key, budget);
+  });
+
+  // Generate array of months going backwards from current month
+  const monthHistory: any[] = [];
+  let tempMonth = currentMonth;
+  let tempYear = currentYear;
+
+  for (let i = 0; i < monthsToGenerate; i++) {
+    const key = `${tempYear}-${tempMonth}`;
+    const existingBudget = budgetMap.get(key);
+
+    if (existingBudget) {
+      // Budget exists for this month
+      monthHistory.push({
+        ...existingBudget,
+        month: tempMonth,
+        year: tempYear,
+        hasBudget: true,
+        budgetExists: true,
+      });
+    } else {
+      // No budget for this month - create a "missing" record
+      monthHistory.push({
+        _id: null,
+        month: tempMonth,
+        year: tempYear,
+        totalBudget: 0,
+        totalSpent: 0,
+        categoryBudgets: [],
+        alertThreshold: 80,
+        hasBudget: false,
+        budgetExists: false,
+        status: 'Budget Not Fixed This Month',
+      });
+    }
+
+    // Move to previous month
+    tempMonth--;
+    if (tempMonth === 0) break;
+  }
+
+  return monthHistory;
+};
+
 // @route   GET /api/budgets
-// @desc    Get all budgets for user (with optional month/year filter)
+// @desc    Get all budgets for user with complete month history (includes current month and missing months)
 // @access  Private
 router.get('/', async (req: any, res: Response) => {
   try {
-    const { month, year } = req.query;
+    const { month, year, months = 12 } = req.query;
     const userId = req.user._id;
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
 
-    const filter: any = { user: userId };
-    
-    if (month) filter.month = parseInt(month);
-    if (year) filter.year = parseInt(year);
+    // If specific month/year filter is requested, use legacy behavior
+    if (month || year) {
+      const filter: any = { user: userId };
+      
+      if (month) filter.month = parseInt(month);
+      if (year) filter.year = parseInt(year);
 
-    const budgets = await Budget.find(filter).sort({ year: -1, month: -1 });
+      const budgets = await Budget.find(filter).sort({ year: -1, month: -1 });
+
+      // Calculate current spending for each budget
+      const budgetsWithSpending = await Promise.all(
+        budgets.map(async (budget) => {
+          const { categorySpending, totalSpent } = await calculateSpentAmounts(
+            userId.toString(),
+            budget.month,
+            budget.year
+          );
+
+          // Update category spent amounts
+          const updatedCategoryBudgets = budget.categoryBudgets.map((cb: any) => ({
+            category: cb.category,
+            amount: cb.amount,
+            color: cb.color,
+            icon: cb.icon,
+            spent: categorySpending[cb.category] || 0,
+          }));
+
+          return {
+            ...budget.toObject(),
+            totalSpent,
+            categoryBudgets: updatedCategoryBudgets,
+            budgetExists: true,
+          };
+        })
+      );
+
+      return res.json({
+        success: true,
+        data: { budgets: budgetsWithSpending },
+      });
+    }
+
+    // Get all user budgets for the requested period
+    const budgets = await Budget.find({ user: userId }).sort({ year: -1, month: -1 });
 
     // Calculate current spending for each budget
     const budgetsWithSpending = await Promise.all(
@@ -104,13 +201,18 @@ router.get('/', async (req: any, res: Response) => {
           ...budget.toObject(),
           totalSpent,
           categoryBudgets: updatedCategoryBudgets,
+          budgetExists: true,
         };
       })
     );
 
+    // Generate complete month history including current month and missing months
+    const monthsToShow = parseInt(months as string) || currentMonth;
+    const completeHistory = generateMonthHistory(budgetsWithSpending, monthsToShow);
+
     res.json({
       success: true,
-      data: { budgets: budgetsWithSpending },
+      data: { budgets: completeHistory },
     });
   } catch (error: any) {
     console.error('Get budgets error:', error);

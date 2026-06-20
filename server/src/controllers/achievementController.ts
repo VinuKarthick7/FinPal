@@ -308,12 +308,12 @@ export const getAchievementStats = async (req: Request, res: Response) => {
     const currentYear = new Date().getFullYear();
 
     // Fetch achievements for this specific user only
-    // ⭐ ONLY count VISIBLE achievements (3-login unlock rule)
+    // ⭐ Count ALL EARNED achievements (visibility is only for popup timing, not for total count)
     const achievements = await Achievement.find({
       userId,
       email: userEmail, // Double-check email matches
       status: { $in: ['awarded', 'finalized'] },
-      visibleToUser: true, // ⭐ CRITICAL: Only count unlocked achievements
+      // Removed visibleToUser filter - we count ALL earned achievements
     }).lean();
 
     // 🔐 CRITICAL VALIDATION: Only count achievements with valid budgets

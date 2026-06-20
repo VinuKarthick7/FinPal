@@ -12,7 +12,7 @@ import mongoose from 'mongoose';
 import { Transaction } from '../models/Transaction';
 import { UpiPayment } from '../models/UpiPayment';
 import { Budget } from '../models/Budget';
-import { categorizeTransaction } from './aiCategorizationService';
+import { categorizeTransaction, clearCategorizationCache } from './aiCategorizationService';
 import Family from '../models/Family';
 
 interface PaymentData {
@@ -318,6 +318,9 @@ export async function recategorizeExistingPayments(
   forceRecategorize: boolean = false
 ): Promise<{ success: boolean; updated: number; errors: number }> {
   try {
+    // Clear cache to ensure fresh categorization with updated rules
+    clearCategorizationCache();
+    
     const filter: Record<string, any> = { status: 'captured' };
     
     // Only recategorize 'Other' category unless forced

@@ -152,7 +152,6 @@ const upiPaymentSchema = new Schema<IUpiPayment>(
 // Compound indexes for efficient queries
 upiPaymentSchema.index({ user: 1, status: 1, createdAt: -1 });
 upiPaymentSchema.index({ user: 1, paidAt: -1 });
-upiPaymentSchema.index({ razorpayPaymentId: 1 }, { sparse: true });
 
 // Prevent duplicate transaction processing
 upiPaymentSchema.index(

@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import {
-  ArrowLeft, Star, Trophy, TrendingUp, Calendar, Award,
-  Sparkles, Target, CheckCircle, Zap, Crown,
+  ArrowLeft, Star, Trophy, Sparkles, Target, Zap, Calendar,
 } from 'lucide-react';
-import { achievementApi, api } from '@/lib/api';
+import { achievementApi } from '@/lib/api';
 import { Button } from '@/components/ui';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -48,8 +46,7 @@ const MONTH_NAMES = [
 
 const AchievementsPage: React.FC = () => {
   useScrollToTop(); // Scroll to top when component mounts
-  
-  const { t } = useTranslation();
+
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
@@ -105,14 +102,6 @@ const AchievementsPage: React.FC = () => {
     } catch (error) {
       console.error('Error loading stats:', error);
     }
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0,
-    }).format(amount);
   };
 
   const getYearsWithAchievements = () => {

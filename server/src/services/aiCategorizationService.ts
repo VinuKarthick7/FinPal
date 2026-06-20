@@ -51,6 +51,14 @@ function addToCache(key: string, result: CategorizationResult): void {
 }
 
 /**
+ * Clear the categorization cache - useful when updating rules
+ */
+export function clearCategorizationCache(): void {
+  categoryCache.clear();
+  console.log('🗑️ Categorization cache cleared');
+}
+
+/**
  * Classify a transaction using AI (OpenAI GPT)
  */
 export async function categorizeTransaction(params: {
@@ -65,11 +73,20 @@ export async function categorizeTransaction(params: {
   const cached = categoryCache.get(cacheKey);
   if (cached) return cached;
 
-  // If OpenAI is not configured, use rule-based fallback
+  // Try rule-based categorization first for common patterns
+  const ruleResult = ruleBasedCategorize(params.merchant, params.description, params.notes);
+  
+  // If rule-based gives a high confidence match (not "Other"), use it immediately
+  if (ruleResult.category !== 'Other') {
+    console.log(`✅ Rule-based match: "${params.merchant}" → ${ruleResult.category}`);
+    addToCache(cacheKey, ruleResult);
+    return ruleResult;
+  }
+
+  // If OpenAI is not configured, use rule-based result (even if it's "Other")
   if (!config.openaiApiKey) {
-    const fallback = ruleBasedCategorize(params.merchant, params.description, params.notes);
-    addToCache(cacheKey, fallback);
-    return fallback;
+    addToCache(cacheKey, ruleResult);
+    return ruleResult;
   }
 
   try {
@@ -88,9 +105,11 @@ Context: This is an Indian payment (likely UPI). Consider Indian merchant names,
 Category Guidelines:
 - Education: School/college fees, tuition, courses, books, training, workshops, seminars, hackathons, competitions, coding contests, tech events, bootcamps, conferences, study materials, certifications, exams
 - Entertainment: Movies, concerts, games, OTT subscriptions, cultural events, festivals
-- Food: Restaurants, cafes, food delivery (Swiggy, Zomato)
+- Food: Restaurants, cafes, food delivery (Swiggy, Zomato), ANY food items like biryani/briyani/biriyani, dosa, pizza, burger, chicken, mutton, paneer, noodles, momos, thali, meals, snacks, chai, coffee, juice, desserts, bakery items
 - Groceries: Supermarkets, vegetable/fruit vendors, BigBasket, Blinkit
 - Transport: Uber, Ola, fuel, metro, train, flights
+
+IMPORTANT: If the merchant name or description contains ANY food item name (biryani, briyani, dosa, pizza, etc.), it MUST be categorized as "Food".
 
 Respond ONLY with valid JSON: {"category": "<category>", "confidence": <0.0-1.0>, "reasoning": "<brief reason>"}`;
 
@@ -145,7 +164,7 @@ function ruleBasedCategorize(
   const rules: Array<{ keywords: string[]; category: ExpenseCategory }> = [
     { 
       keywords: [
-        'swiggy', 'zomato', 'restaurant', 'cafe', 'coffee', 'food', 'biryani', 'pizza', 'burger', 
+        'swiggy', 'zomato', 'restaurant', 'cafe', 'coffee', 'food', 'biryani', 'briyani', 'biriyani', 'pizza', 'burger', 
         'dominos', 'mcdonalds', 'kfc', 'dining', 'snacks', 'snack', 'breakfast', 'lunch', 'dinner',
         'dosa', 'idli', 'vada', 'samosa', 'chai', 'tea', 'paratha', 'thali', 'meal', 'eating',
         'bakery', 'sweet', 'mithai', 'haldiram', 'bikanervala', 'subway', 'starbucks',
@@ -153,7 +172,10 @@ function ruleBasedCategorize(
         'noodles', 'momos', 'chaat', 'pav bhaji', 'vadapav', 'frankie', 'roll', 'wrap',
         'sandwich', 'pasta', 'ice cream', 'dessert', 'cake', 'pastry', 'tiffin', 'canteen',
         'dhaba', 'udupi', 'south indian', 'north indian', 'chinese', 'continental',
-        'fastfood', 'fast food', 'eatery', 'foodcourt', 'food court', 'mess'
+        'fastfood', 'fast food', 'eatery', 'foodcourt', 'food court', 'mess',
+        'pulao', 'pulav', 'fried rice', 'naan', 'roti', 'chapati', 'kulcha', 'tandoori',
+        'kebab', 'kabab', 'tikka', 'korma', 'curry', 'dal makhani', 'butter chicken',
+        'curd', 'raita', 'pickle', 'papad', 'chutney', 'puri', 'bhaji', 'poha', 'upma'
       ], 
       category: 'Food' 
     },
